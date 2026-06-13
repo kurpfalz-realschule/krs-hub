@@ -1,0 +1,2263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1e293b">
+  <title>KRS Hub — Kurpfalz-Realschule Schriesheim</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏫</text></svg>">
+
+  <!-- React 18 via CDN (mit Fallback-URLs) -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script>if(!window.React){document.write('<scr'+'ipt src="https://unpkg.com/react@18/umd/react.production.min.js"><\/scr'+'ipt>')}</script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script>if(!window.ReactDOM){document.write('<scr'+'ipt src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/scr'+'ipt>')}</script>
+  <!-- Phase 2: iServ OAuth wird hier eingebunden -->
+
+  <style>
+    /* ═══════════════════════════════════════════════════
+       KRS Hub — Design System
+       ═══════════════════════════════════════════════════ */
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #dbeafe;
+      --accent: #7c3aed;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --warning: #d97706;
+      --warning-light: #fef3c7;
+      --error: #dc2626;
+      --error-light: #fee2e2;
+
+      --bg: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-sidebar: #1e293b;
+      --bg-sidebar-hover: #334155;
+      --bg-sidebar-active: #0f172a;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --text-sidebar: #94a3b8;
+      --text-sidebar-active: #ffffff;
+      --border: #e2e8f0;
+
+      --sidebar-width: 64px;
+      --topbar-height: 56px;
+      --touch-min: 44px;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --transition: 0.2s ease;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body, #root {
+      height: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ───────────────────────────────────── */
+    .shell {
+      display: flex;
+      height: 100dvh;
+    }
+
+    /* ── Sidebar ──────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-sidebar);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .sidebar-logo {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: transform var(--transition);
+    }
+    .sidebar-logo:hover { transform: scale(1.05); }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      width: 100%;
+      padding: 0 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 4px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-sidebar);
+      text-decoration: none;
+      transition: all var(--transition);
+      position: relative;
+      border: none;
+      background: none;
+      font-family: inherit;
+      min-height: var(--touch-min);
+      width: 100%;
+    }
+    .nav-item:hover { background: var(--bg-sidebar-hover); color: var(--text-sidebar-active); }
+    .nav-item.active { background: var(--bg-sidebar-active); color: var(--text-sidebar-active); }
+
+    .nav-icon { font-size: 20px; line-height: 1; }
+    .nav-label { font-size: 9px; font-weight: 500; letter-spacing: 0.3px; }
+
+    .nav-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: var(--error);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+    }
+
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      padding: 0 8px;
+      border-top: 1px solid var(--bg-sidebar-hover);
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+
+    /* ── Main Area ────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* ── Top Bar ──────────────────────────────────── */
+    .topbar {
+      height: var(--topbar-height);
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 16px;
+      font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      transition: background var(--transition);
+    }
+    .topbar-user:hover { background: var(--bg); }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .topbar-username {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      min-width: var(--touch-min);
+      min-height: var(--touch-min);
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Content Area (iframe container) ──────────── */
+    .content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .module-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+      background: var(--bg);
+    }
+    .module-frame.active { display: block; }
+
+    /* ── Welcome / Landing ────────────────────────── */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 20px 40px;
+      gap: 0;
+      overflow-y: auto;
+      height: 100%;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Hero / Greeting ─────────────────────────── */
+    .welcome-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .welcome-logo {
+      width: 72px;
+      height: auto;
+      margin-bottom: 4px;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
+    }
+    .welcome-greeting {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .welcome-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* ── Quick-Access Module Cards ────────────────── */
+    .module-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 540px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 500px) {
+      .module-cards { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    }
+
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 10px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .module-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 16px rgba(37,99,235,0.10);
+      transform: translateY(-2px);
+    }
+    .module-card:active { transform: scale(0.97); }
+
+    .module-card-icon { font-size: 30px; }
+    .module-card-title { font-size: 12px; font-weight: 600; color: var(--text); }
+    .module-card-desc { display: none; }
+
+    /* ── Dashboard Sections ──────────────────────── */
+    .dashboard-sections {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
+    }
+    .dashboard-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .section-header-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-icon { font-size: 15px; }
+    .section-body { padding: 0; }
+
+    /* Termine */
+    .termine-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    .termine-row:last-child { border-bottom: none; }
+    .termine-date {
+      font-weight: 600;
+      color: var(--primary);
+      white-space: nowrap;
+      min-width: 90px;
+      font-size: 12px;
+    }
+    .termine-text { color: var(--text); line-height: 1.5; }
+
+    /* Mitteilungen */
+    .mitteilung-row {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .mitteilung-row:last-child { border-bottom: none; }
+    .mitteilung-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .mitteilung-text { font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+    /* FAQ Accordion */
+    .faq-row {
+      border-bottom: 1px solid var(--border);
+    }
+    .faq-row:last-child { border-bottom: none; }
+    .faq-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 12px 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: left;
+      font-family: inherit;
+    }
+    .faq-toggle:hover { background: var(--bg); }
+    .faq-chevron {
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .faq-chevron.open { transform: rotate(90deg); }
+    .faq-detail {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      padding: 0 16px 14px;
+      white-space: pre-line;
+    }
+
+    /* Dienste-Bar */
+    .dienste-bar {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+    .dienst-chip {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .dienst-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+    }
+    .dienst-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Download-Button */
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .download-btn:hover { background: var(--primary-hover); }
+    .download-btn:active { transform: scale(0.97); }
+
+    /* ── Login Screen ─────────────────────────────── */
+    .login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .login-logo { font-size: 48px; margin-bottom: 16px; }
+
+    .login-card h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .login-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .login-input:focus { border-color: var(--primary); }
+
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font);
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background var(--transition);
+      min-height: var(--touch-min);
+    }
+    .login-btn:hover { background: var(--primary-hover); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .login-status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .login-status.success { background: var(--success-light); color: var(--success); }
+    .login-status.error { background: var(--error-light); color: var(--error); }
+
+    .login-demo {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .login-demo-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 20px;
+      font-size: 13px;
+      font-family: var(--font);
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all var(--transition);
+    }
+    .login-demo-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* ── PIN Login Additions ────────────────────────── */
+    .login-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color var(--transition);
+      background: var(--bg-card);
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      cursor: pointer;
+    }
+    .login-select:focus { border-color: var(--primary); }
+
+    .pin-input-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 16px 0;
+    }
+
+    .pin-digit {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      font-family: var(--font);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      outline: none;
+      transition: border-color var(--transition);
+      -webkit-text-security: disc;
+    }
+    .pin-digit:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+    .login-info {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .login-switch {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .login-switch-btn {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 13px;
+      font-family: var(--font);
+      cursor: pointer;
+      padding: 8px 16px;
+    }
+    .login-switch-btn:hover { text-decoration: underline; }
+
+    .remembered-users {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .remembered-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 2px solid var(--border);
+      border-radius: 24px;
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 14px;
+      font-family: var(--font);
+      transition: all var(--transition);
+    }
+    .remembered-chip:hover, .remembered-chip.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .remembered-chip .chip-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* ── Lock Screen ──────────────────────────────── */
+    .lock-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      padding: 20px;
+    }
+
+    .lock-card {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 40px 32px;
+      max-width: 360px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .lock-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 auto 12px;
+    }
+
+    .lock-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .lock-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .lock-other-btn {
+      margin-top: 12px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: var(--font);
+      cursor: pointer;
+    }
+    .lock-other-btn:hover { color: var(--primary); }
+
+    /* ── User Menu Dropdown ───────────────────────── */
+    .user-menu {
+      position: absolute;
+      top: calc(var(--topbar-height) - 4px);
+      right: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      min-width: 200px;
+      z-index: 100;
+      padding: 4px;
+    }
+
+    .user-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text);
+      border: none;
+      background: none;
+      width: 100%;
+      font-family: var(--font);
+      min-height: var(--touch-min);
+    }
+    .user-menu-item:hover { background: var(--bg); }
+    .user-menu-item.danger { color: var(--error); }
+
+    .user-menu-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* ── Toast ─────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      font-size: 13px;
+      max-width: 360px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: slideIn 0.3s ease;
+    }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--error); }
+    .toast.info { border-left: 4px solid var(--primary); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ── Loading Spinner ──────────────────────────── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Mobile ────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .hamburger { display: flex; }
+
+      .mobile-tabs {
+        display: flex !important;
+        height: 56px;
+        background: var(--bg-card);
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      .mobile-tab {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        border: none;
+        background: none;
+        color: var(--text-muted);
+        font-family: var(--font);
+        font-size: 10px;
+        cursor: pointer;
+        position: relative;
+        min-height: var(--touch-min);
+        padding: 4px;
+      }
+      .mobile-tab.active { color: var(--primary); }
+      .mobile-tab-icon { font-size: 20px; }
+
+      .topbar-username { display: none; }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-tabs { display: none !important; }
+    }
+
+    /* ── Overlay (click-away) ─────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+    }
+
+    /* ── iPad Scrolling Fix ───────────────────────── */
+    .module-frame {
+      -webkit-overflow-scrolling: touch;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <!-- Fallback sichtbar bis React lädt -->
+    <div id="fallback" style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1e293b;">
+      <div style="font-size:48px;">🏫</div>
+      <div style="font-size:18px;font-weight:600;">KRS Hub wird geladen…</div>
+      <div style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+      <noscript><p style="color:#dc2626;margin-top:16px;">JavaScript muss aktiviert sein!</p></noscript>
+    </div>
+  </div>
+
+  <script>
+    // CDN-Verfügbarkeitsprüfung
+    if (!window.React || !window.ReactDOM) {
+      document.getElementById('fallback').innerHTML = '<div style="font-size:48px;">⚠️</div>'
+        + '<div style="font-size:18px;font-weight:600;color:#dc2626;">React konnte nicht geladen werden</div>'
+        + '<p style="color:#64748b;max-width:400px;text-align:center;line-height:1.6;">Die CDN-Bibliotheken sind nicht erreichbar. Bitte prüfe deine Internetverbindung und lade die Seite neu.</p>'
+        + '<button onclick="location.reload()" style="padding:10px 24px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;font-size:14px;">Seite neu laden</button>';
+      throw new Error('React/ReactDOM not loaded from CDN');
+    }
+    // ═══════════════════════════════════════════════════
+    // KRS Hub — Shell Application
+    // ═══════════════════════════════════════════════════
+
+    const { useState, useEffect, useCallback, useRef, useMemo } = React;
+    const e = React.createElement;
+
+    // ── Config ─────────────────────────────────────
+    const CONFIG = {
+      APP_NAME: 'KRS Hub',
+      SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
+      VERSION: '2.0.0-phase1',
+      INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
+      SESSION_MAX_DAYS: 7,
+      PIN_MAX_ATTEMPTS: 5,
+      PIN_LOCKOUT_MINUTES: 15,
+      PIN_PEPPER: 'KRS-Hub-2026-Schriesheim',
+      ALLOWED_ORIGINS: [
+        window.location.origin,
+        'https://kurpfalz-realschule.github.io'
+      ],
+      MODULES: [
+        {
+          id: 'connect',
+          name: 'Connect',
+          icon: '💬',
+          desc: 'Nachrichten & Channels',
+          url: 'https://kurpfalz-realschule.github.io/krs-connect/',
+          color: '#2563eb'
+        },
+        {
+          id: 'plan',
+          name: 'Klassenarbeiten',
+          icon: '📅',
+          desc: 'Prüfungsplanung',
+          url: 'https://kurpfalz-realschule.github.io/krs-klassenarbeitsplan/',
+          color: '#16a34a'
+        },
+        {
+          id: 'buchung',
+          name: 'iPad-Buchung',
+          icon: '📱',
+          desc: 'Medien & Geräte buchen',
+          url: 'https://kurpfalz-realschule.github.io/ipad-buchung/',
+          color: '#7c3aed'
+        }
+      ],
+      EXTERNAL_LINKS: [
+        { id: 'homepage', name: 'Homepage', icon: '🌐', url: 'https://realschule-schriesheim.de/' },
+        { id: 'untis', name: 'Untis', icon: '📊', url: 'https://mese.webuntis.com/WebUntis/?school=KRS+Schriesheim#/basic/login' },
+        { id: 'kalender', name: 'Kalender', icon: '🗓️', url: 'https://realschule-schriesheim.de/terminuebersicht-im-kalenderformat/' }
+      ],
+      // Phase 2: iServ OAuth (vorbereitet, noch nicht aktiv)
+      ISERV: {
+        ENABLED: false,
+        BASE_URL: 'https://krs.sh-schulen.de',
+        AUTH_ENDPOINT: '/iserv/auth/auth',
+        TOKEN_ENDPOINT: '/iserv/auth/public/token',
+        USERINFO_ENDPOINT: '/iserv/auth/userinfo',
+        SCOPES: 'openid profile email groups iserv:uuid iserv:roles'
+      }
+    };
+
+    // ── Lehrkräfte der KRS (Admin-vorbefüllte Liste) ─
+    // → Nur diese Personen können sich registrieren
+    // → Kürzel + Name müssen übereinstimmen
+    // → Wird in Phase 2 durch iServ-Gruppen ersetzt
+    const LEHRKRAEFTE = [
+      { kuerzel: 'Ko', name: 'Kotzan', vorname: 'Norbert', role: 'admin', avatar_color: '#7c6ff7' },
+      { kuerzel: 'Ca', name: 'Carse', vorname: 'Petra', role: 'admin', avatar_color: '#e74c8b' },
+      { kuerzel: 'Sch', name: 'Schmitt', vorname: 'Daniel', role: 'admin', avatar_color: '#2563eb' },
+      { kuerzel: 'Jo', name: 'Joos', vorname: 'Nadine', role: 'teacher', avatar_color: '#16a34a' },
+      { kuerzel: 'Ja', name: 'Jacob', vorname: 'Charlotte', role: 'teacher', avatar_color: '#d97706' },
+      { kuerzel: 'Sp', name: 'Spingel', vorname: 'Silke', role: 'teacher', avatar_color: '#0ea5e9' },
+      { kuerzel: 'Ma', name: 'Martinez', vorname: 'Manuel', role: 'teacher', avatar_color: '#dc2626' },
+      { kuerzel: 'PSch', name: 'Schmitt P.', vorname: 'Peter', role: 'teacher', avatar_color: '#8b5cf6' },
+      { kuerzel: 'Scha', name: 'Scharmann', vorname: 'Katharina', role: 'teacher', avatar_color: '#ec4899' },
+      { kuerzel: 'We', name: 'Weber', vorname: 'Julia', role: 'teacher', avatar_color: '#14b8a6' },
+      { kuerzel: 'Ge', name: 'Gehrig', vorname: 'Denise', role: 'teacher', avatar_color: '#f59e0b' },
+      { kuerzel: 'Fi', name: 'Fischer', vorname: '', role: 'teacher', avatar_color: '#6366f1' },
+      { kuerzel: 'Mü', name: 'Müller', vorname: '', role: 'teacher', avatar_color: '#84cc16' },
+      // ── Weitere Lehrkräfte hier ergänzen ──
+      // { kuerzel: 'XX', name: 'Nachname', vorname: 'Vorname', role: 'teacher', avatar_color: '#...' },
+    ];
+
+    console.log('%c🏫 KRS Hub v' + CONFIG.VERSION + ' — Phase 1 (PIN-Login)', 'color:#2563eb;font-weight:bold;font-size:14px');
+
+    // ─── Test-/CI-Hooks: forceMode-Override + Version-Marker ──────
+    // Tests/Smoke-Checks setzen ?forceMode=demo um den PIN-Login zu skippen.
+    window.KRS_HUB_VERSION = CONFIG.VERSION;
+    const __HUB_QS = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+    window.__KRS_HUB_FORCE_DEMO = __HUB_QS.get('forceMode') === 'demo';
+
+    // ── Toast System ───────────────────────────────
+    let toastId = 0;
+    const toastListeners = new Set();
+
+    function showToast(message, type = 'info') {
+      const toast = { id: ++toastId, message, type };
+      toastListeners.forEach(fn => fn(toast));
+      setTimeout(() => {
+        toastListeners.forEach(fn => fn({ ...toast, remove: true }));
+      }, 4000);
+    }
+
+    function ToastContainer() {
+      const [toasts, setToasts] = useState([]);
+
+      useEffect(() => {
+        const handler = (toast) => {
+          if (toast.remove) {
+            setToasts(prev => prev.filter(t => t.id !== toast.id));
+          } else {
+            setToasts(prev => [...prev, toast]);
+          }
+        };
+        toastListeners.add(handler);
+        return () => toastListeners.delete(handler);
+      }, []);
+
+      if (!toasts.length) return null;
+      return e('div', { className: 'toast-container' },
+        toasts.map(t =>
+          e('div', { key: t.id, className: 'toast ' + t.type, role: 'alert' },
+            e('span', null, t.type === 'success' ? '✓' : t.type === 'error' ? '✗' : 'ℹ'),
+            e('span', null, t.message)
+          )
+        )
+      );
+    }
+
+    // ═══════════════════════════════════════════════
+    // PIN AUTH SERVICE — Phase 1 (client-seitig)
+    // ═══════════════════════════════════════════════
+
+    const PinAuthService = {
+      // ── Crypto Helpers (PBKDF2 mit 200k Iterationen) ──
+      async hashPin(pin, salt = null) {
+        if (!salt) {
+          salt = new Uint8Array(16);
+          crypto.getRandomValues(salt);
+        } else if (typeof salt === 'string') {
+          salt = new Uint8Array(salt.match(/.{2}/g).map(b => parseInt(b, 16)));
+        }
+        const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2,'0')).join('');
+        // PBKDF2: PIN + Pepper als Key-Material, Salt, 200k Iterationen
+        const keyMaterial = await crypto.subtle.importKey(
+          'raw', new TextEncoder().encode(pin + CONFIG.PIN_PEPPER), 'PBKDF2', false, ['deriveBits']
+        );
+        const derivedBits = await crypto.subtle.deriveBits(
+          { name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, keyMaterial, 256
+        );
+        const hashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2,'0')).join('');
+        return { salt: saltHex, hash: hashHex };
+      },
+
+      async verifyPin(pin, storedSalt, storedHash) {
+        const { hash } = await this.hashPin(pin, storedSalt);
+        // Constant-time comparison to prevent timing attacks
+        if (hash.length !== storedHash.length) return false;
+        let diff = 0;
+        for (let i = 0; i < hash.length; i++) diff |= hash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+        return diff === 0;
+      },
+
+      // ── Storage Helpers ─────────────────────────
+      // localStorage: User-Liste (unkritisch: Kürzel, Name)
+      // sessionStorage: PIN-Hashes, aktive Session (weg bei Tab-Close)
+
+      getKnownUsers() {
+        try {
+          return JSON.parse(localStorage.getItem('krs_known_users') || '[]');
+        } catch { return []; }
+      },
+
+      saveKnownUsers(users) {
+        localStorage.setItem('krs_known_users', JSON.stringify(users));
+      },
+
+      getPinData() {
+        try {
+          return JSON.parse(sessionStorage.getItem('krs_pin_data') || '{}');
+        } catch { return {}; }
+      },
+
+      savePinData(data) {
+        sessionStorage.setItem('krs_pin_data', JSON.stringify(data));
+      },
+
+      getSession() {
+        try {
+          const sess = JSON.parse(sessionStorage.getItem('krs_session'));
+          if (!sess) return null;
+          // Prüfe Session-Ablauf (7 Tage)
+          const created = new Date(sess.created_at);
+          const maxAge = CONFIG.SESSION_MAX_DAYS * 24 * 60 * 60 * 1000;
+          if (Date.now() - created.getTime() > maxAge) {
+            this.clearSession();
+            return null;
+          }
+          return sess;
+        } catch { return null; }
+      },
+
+      saveSession(kuerzel) {
+        sessionStorage.setItem('krs_session', JSON.stringify({
+          user_kuerzel: kuerzel,
+          created_at: new Date().toISOString(),
+          last_activity: new Date().toISOString(),
+          login_method: 'pin'
+        }));
+      },
+
+      updateActivity() {
+        try {
+          const sess = JSON.parse(sessionStorage.getItem('krs_session'));
+          if (sess) {
+            sess.last_activity = new Date().toISOString();
+            sessionStorage.setItem('krs_session', JSON.stringify(sess));
+          }
+        } catch {}
+      },
+
+      clearSession() {
+        sessionStorage.removeItem('krs_session');
+      },
+
+      // ── Lockout (Brute-Force-Schutz) ───────────
+      getLockout(kuerzel) {
+        try {
+          const data = JSON.parse(sessionStorage.getItem('krs_lockout_' + kuerzel) || '{}');
+          if (data.locked_until && new Date(data.locked_until) > new Date()) {
+            return data;
+          }
+          if (data.locked_until) {
+            sessionStorage.removeItem('krs_lockout_' + kuerzel);
+            return { attempts: 0 };
+          }
+          return data;
+        } catch { return { attempts: 0 }; }
+      },
+
+      recordFailedAttempt(kuerzel) {
+        const data = this.getLockout(kuerzel);
+        data.attempts = (data.attempts || 0) + 1;
+        if (data.attempts >= CONFIG.PIN_MAX_ATTEMPTS) {
+          data.locked_until = new Date(Date.now() + CONFIG.PIN_LOCKOUT_MINUTES * 60 * 1000).toISOString();
+        }
+        sessionStorage.setItem('krs_lockout_' + kuerzel, JSON.stringify(data));
+        return data;
+      },
+
+      clearLockout(kuerzel) {
+        sessionStorage.removeItem('krs_lockout_' + kuerzel);
+      },
+
+      isLockedOut(kuerzel) {
+        const data = this.getLockout(kuerzel);
+        return data.locked_until && new Date(data.locked_until) > new Date();
+      },
+
+      getRemainingLockoutMinutes(kuerzel) {
+        const data = this.getLockout(kuerzel);
+        if (!data.locked_until) return 0;
+        const remaining = new Date(data.locked_until) - new Date();
+        return Math.max(0, Math.ceil(remaining / 60000));
+      },
+
+      // ── Main Auth Methods ──────────────────────
+      async setupPin(kuerzel, pin) {
+        const lehrkraft = LEHRKRAEFTE.find(l => l.kuerzel === kuerzel);
+        if (!lehrkraft) throw new Error('Kürzel nicht in Lehrkräfte-Liste');
+
+        const { salt, hash } = await this.hashPin(pin);
+
+        // PIN-Hash in sessionStorage (weg bei Tab-Close)
+        const pinData = this.getPinData();
+        pinData[kuerzel] = { salt, hash };
+        this.savePinData(pinData);
+
+        // User-Info in localStorage (unkritisch)
+        const users = this.getKnownUsers();
+        const existing = users.findIndex(u => u.kuerzel === kuerzel);
+        const userEntry = {
+          kuerzel: lehrkraft.kuerzel,
+          name: lehrkraft.name,
+          vorname: lehrkraft.vorname,
+          display_name: lehrkraft.vorname ? lehrkraft.vorname + ' ' + lehrkraft.name : lehrkraft.name,
+          role: lehrkraft.role,
+          avatar_color: lehrkraft.avatar_color,
+          registered_at: new Date().toISOString()
+        };
+        if (existing >= 0) users[existing] = userEntry;
+        else users.push(userEntry);
+        this.saveKnownUsers(users);
+
+        // Session starten
+        this.saveSession(kuerzel);
+        this.clearLockout(kuerzel);
+
+        return this.getProfile(kuerzel);
+      },
+
+      async loginWithPin(kuerzel, pin) {
+        if (this.isLockedOut(kuerzel)) {
+          const mins = this.getRemainingLockoutMinutes(kuerzel);
+          throw new Error('Konto gesperrt. Noch ' + mins + ' Min. warten.');
+        }
+
+        const pinData = this.getPinData();
+        const stored = pinData[kuerzel];
+        if (!stored) throw new Error('PIN nicht gesetzt. Bitte zuerst registrieren.');
+
+        const valid = await this.verifyPin(pin, stored.salt, stored.hash);
+        if (!valid) {
+          const lockout = this.recordFailedAttempt(kuerzel);
+          const remaining = CONFIG.PIN_MAX_ATTEMPTS - lockout.attempts;
+          if (remaining <= 0) {
+            throw new Error('Zu viele Fehlversuche! ' + CONFIG.PIN_LOCKOUT_MINUTES + ' Min. gesperrt.');
+          }
+          throw new Error('Falsche PIN. Noch ' + remaining + ' Versuch(e).');
+        }
+
+        this.clearLockout(kuerzel);
+        this.saveSession(kuerzel);
+        return this.getProfile(kuerzel);
+      },
+
+      getProfile(kuerzel) {
+        const users = this.getKnownUsers();
+        const user = users.find(u => u.kuerzel === kuerzel);
+        if (!user) return null;
+        return {
+          id: 'krs-' + kuerzel,
+          kuerzel: user.kuerzel,
+          display_name: user.display_name,
+          lehrkraft_name: user.name,
+          role: user.role,
+          avatar_color: user.avatar_color,
+          email: (user.name || '').toLowerCase() + '@realschule-schriesheim.de'
+        };
+      },
+
+      hasPin(kuerzel) {
+        const pinData = this.getPinData();
+        return !!pinData[kuerzel];
+      },
+
+      getRegisteredKuerzel() {
+        return this.getKnownUsers().map(u => u.kuerzel);
+      },
+
+      signOut() {
+        this.clearSession();
+      },
+
+      // Vollständiges Zurücksetzen (Admin-Funktion)
+      resetAll() {
+        sessionStorage.removeItem('krs_session');
+        sessionStorage.removeItem('krs_pin_data');
+        localStorage.removeItem('krs_known_users');
+      }
+    };
+
+    // ── postMessage Security ───────────────────────
+    function createSecureNonce() {
+      const arr = new Uint8Array(16);
+      crypto.getRandomValues(arr);
+      return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    const moduleNonces = new Map();
+
+    function sendAuthToModule(iframe, moduleId, profile) {
+      if (!iframe?.contentWindow) return;
+      const nonce = createSecureNonce();
+      moduleNonces.set(moduleId, nonce);
+      iframe.contentWindow.postMessage({
+        type: 'KRS_HUB_AUTH',
+        nonce,
+        hub_verified: true,
+        user: profile ? {
+          id: profile.id,
+          email: profile.email,
+          display_name: profile.display_name,
+          kuerzel: profile.kuerzel,
+          lehrkraft_name: profile.lehrkraft_name,
+          role: profile.role,
+          avatar_color: profile.avatar_color
+        } : null
+      }, window.location.origin);
+    }
+
+    // ── Inactivity Timer ───────────────────────────
+    function useInactivityTimer(timeout, onTimeout) {
+      const timerRef = useRef(null);
+
+      const resetTimer = useCallback(() => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        if (timeout > 0 && timeout < 2147483647) { // Max safe setTimeout
+          timerRef.current = setTimeout(onTimeout, timeout);
+        }
+      }, [timeout, onTimeout]);
+
+      useEffect(() => {
+        const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+        events.forEach(ev => window.addEventListener(ev, resetTimer, { passive: true }));
+        resetTimer();
+        return () => {
+          events.forEach(ev => window.removeEventListener(ev, resetTimer));
+          if (timerRef.current) clearTimeout(timerRef.current);
+        };
+      }, [resetTimer]);
+    }
+
+    // ═══════════════════════════════════════════════
+    // COMPONENTS
+    // ═══════════════════════════════════════════════
+
+    // ── PIN Input Component ─────────────────────────
+    function PinInput({ value, onChange, length, autoFocus, disabled }) {
+      const inputRefs = useRef([]);
+      const pinLen = length || 4;
+
+      const handleChange = useCallback((index, val) => {
+        if (!/^\d*$/.test(val)) return;
+        const newPin = (value || '').split('');
+        newPin[index] = val.slice(-1);
+        const pinStr = newPin.join('').slice(0, pinLen);
+        onChange(pinStr);
+        if (val && index < pinLen - 1) {
+          inputRefs.current[index + 1]?.focus();
+        }
+      }, [value, onChange, pinLen]);
+
+      const handleKeyDown = useCallback((index, ev) => {
+        if (ev.key === 'Backspace' && !value?.[index] && index > 0) {
+          inputRefs.current[index - 1]?.focus();
+        }
+      }, [value]);
+
+      const handlePaste = useCallback((ev) => {
+        ev.preventDefault();
+        const pasted = ev.clipboardData.getData('text').replace(/\D/g, '').slice(0, pinLen);
+        onChange(pasted);
+        const focusIdx = Math.min(pasted.length, pinLen - 1);
+        inputRefs.current[focusIdx]?.focus();
+      }, [onChange, pinLen]);
+
+      return e('div', { className: 'pin-input-group' },
+        Array.from({ length: pinLen }, (_, i) =>
+          e('input', {
+            key: i,
+            ref: el => { inputRefs.current[i] = el; },
+            className: 'pin-digit',
+            type: 'tel',
+            inputMode: 'numeric',
+            maxLength: 1,
+            value: value?.[i] || '',
+            onChange: ev => handleChange(i, ev.target.value),
+            onKeyDown: ev => handleKeyDown(i, ev),
+            onPaste: i === 0 ? handlePaste : undefined,
+            autoFocus: autoFocus && i === 0,
+            disabled: disabled,
+            autoComplete: 'off'
+          })
+        )
+      );
+    }
+
+    // ── Login Screen (Kürzel + PIN) ──────────────────
+    function LoginScreen({ onLogin, onSetup }) {
+      const [kuerzel, setKuerzel] = useState('');
+      const [pin, setPin] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [status, setStatus] = useState(null);
+
+      // Remembered users (those who have registered on this device)
+      const rememberedUsers = useMemo(() => PinAuthService.getKnownUsers(), []);
+
+      // Auto-select first remembered user
+      useEffect(() => {
+        if (rememberedUsers.length === 1) {
+          setKuerzel(rememberedUsers[0].kuerzel);
+        }
+      }, []);
+
+      const handleSubmit = useCallback(async (ev) => {
+        ev.preventDefault();
+        if (!kuerzel || pin.length < 4) return;
+        setLoading(true);
+        setStatus(null);
+        try {
+          // Check if user has a PIN set up
+          if (!PinAuthService.hasPin(kuerzel)) {
+            // Redirect to setup
+            onSetup(kuerzel);
+            return;
+          }
+          const profile = await PinAuthService.loginWithPin(kuerzel, pin);
+          onLogin(profile);
+        } catch (err) {
+          setStatus({ type: 'error', msg: err.message || 'Anmeldung fehlgeschlagen' });
+          setPin('');
+        }
+        setLoading(false);
+      }, [kuerzel, pin, onLogin, onSetup]);
+
+      // Auto-submit when PIN is 4 digits
+      useEffect(() => {
+        if (pin.length === 4 && kuerzel && !loading) {
+          const form = document.querySelector('.login-card');
+          if (form) form.requestSubmit?.();
+        }
+      }, [pin, kuerzel, loading]);
+
+      const hasRegistered = rememberedUsers.length > 0;
+
+      return e('div', { className: 'login-screen' },
+        e('form', { className: 'login-card', onSubmit: handleSubmit },
+          e('div', { className: 'login-logo' }, '🏫'),
+          e('h1', null, CONFIG.APP_NAME),
+          e('p', null, CONFIG.SCHOOL_NAME, e('br'), 'Melde dich mit Kürzel & PIN an.'),
+
+          // Quick-select remembered users
+          hasRegistered && e('div', { className: 'remembered-users' },
+            rememberedUsers.map(u =>
+              e('button', {
+                key: u.kuerzel,
+                type: 'button',
+                className: 'remembered-chip' + (kuerzel === u.kuerzel ? ' selected' : ''),
+                onClick: () => { setKuerzel(u.kuerzel); setPin(''); setStatus(null); }
+              },
+                e('span', { className: 'chip-avatar', style: { background: u.avatar_color || '#64748b' } }, u.kuerzel),
+                u.vorname || u.name
+              )
+            )
+          ),
+
+          // Kürzel dropdown (if no remembered user selected)
+          (!hasRegistered || !kuerzel) && e('select', {
+            className: 'login-select',
+            value: kuerzel,
+            onChange: ev => { setKuerzel(ev.target.value); setPin(''); setStatus(null); },
+            disabled: loading
+          },
+            e('option', { value: '' }, '— Kürzel wählen —'),
+            LEHRKRAEFTE.map(l =>
+              e('option', { key: l.kuerzel, value: l.kuerzel },
+                l.kuerzel + ' — ' + (l.vorname ? l.vorname + ' ' + l.name : l.name)
+              )
+            )
+          ),
+
+          // PIN input
+          kuerzel && e(PinInput, {
+            value: pin,
+            onChange: setPin,
+            length: 4,
+            autoFocus: true,
+            disabled: loading
+          }),
+
+          kuerzel && e('button', {
+            className: 'login-btn',
+            type: 'submit',
+            disabled: loading || pin.length < 4
+          }, loading ? 'Anmelden…' : 'Anmelden'),
+
+          status && e('div', { className: 'login-status ' + status.type }, status.msg),
+
+          // Switch to registration
+          e('div', { className: 'login-switch' },
+            e('button', {
+              className: 'login-switch-btn',
+              type: 'button',
+              onClick: () => {
+                if (kuerzel) onSetup(kuerzel);
+                else setStatus({ type: 'error', msg: 'Bitte zuerst ein Kürzel wählen.' });
+              }
+            }, 'Erstmals hier? PIN einrichten →')
+          )
+        )
+      );
+    }
+
+    // ── PIN Setup Screen ─────────────────────────────
+    function PinSetupScreen({ initialKuerzel, onComplete, onBack }) {
+      const [kuerzel, setKuerzel] = useState(initialKuerzel || '');
+      const [pin, setPin] = useState('');
+      const [pinConfirm, setPinConfirm] = useState('');
+      const [step, setStep] = useState(1); // 1 = enter PIN, 2 = confirm PIN
+      const [loading, setLoading] = useState(false);
+      const [status, setStatus] = useState(null);
+
+      const lehrkraft = useMemo(() => LEHRKRAEFTE.find(l => l.kuerzel === kuerzel), [kuerzel]);
+
+      const handlePinSet = useCallback(() => {
+        if (pin.length < 4) {
+          setStatus({ type: 'error', msg: 'PIN muss 4 Ziffern haben.' });
+          return;
+        }
+        setStep(2);
+        setStatus(null);
+      }, [pin]);
+
+      const handleConfirm = useCallback(async () => {
+        if (pin !== pinConfirm) {
+          setStatus({ type: 'error', msg: 'PINs stimmen nicht überein. Bitte erneut.' });
+          setPinConfirm('');
+          return;
+        }
+        setLoading(true);
+        setStatus(null);
+        try {
+          const profile = await PinAuthService.setupPin(kuerzel, pin);
+          showToast('PIN eingerichtet! Willkommen, ' + (profile.display_name || kuerzel) + '!', 'success');
+          onComplete(profile);
+        } catch (err) {
+          setStatus({ type: 'error', msg: err.message || 'Fehler beim Einrichten' });
+        }
+        setLoading(false);
+      }, [pin, pinConfirm, kuerzel, onComplete]);
+
+      // Auto-advance when PIN confirm is 4 digits
+      useEffect(() => {
+        if (step === 2 && pinConfirm.length === 4) {
+          handleConfirm();
+        }
+      }, [pinConfirm, step, handleConfirm]);
+
+      return e('div', { className: 'login-screen' },
+        e('div', { className: 'login-card' },
+          e('div', { className: 'login-logo' }, '🔑'),
+          e('h1', null, 'PIN einrichten'),
+
+          // Kürzel selection
+          !kuerzel && e(React.Fragment, null,
+            e('p', null, 'Wähle dein Kürzel aus:'),
+            e('select', {
+              className: 'login-select',
+              value: kuerzel,
+              onChange: ev => setKuerzel(ev.target.value)
+            },
+              e('option', { value: '' }, '— Kürzel wählen —'),
+              LEHRKRAEFTE.map(l =>
+                e('option', { key: l.kuerzel, value: l.kuerzel },
+                  l.kuerzel + ' — ' + (l.vorname ? l.vorname + ' ' + l.name : l.name)
+                )
+              )
+            )
+          ),
+
+          // Show selected teacher
+          lehrkraft && e('p', null,
+            'Hallo, ', e('strong', null, lehrkraft.vorname + ' ' + lehrkraft.name), '!',
+            e('br'),
+            step === 1 ? 'Wähle eine 4-stellige PIN für den schnellen Login.' : 'Bitte PIN zur Bestätigung nochmal eingeben.'
+          ),
+
+          // Step 1: Enter PIN
+          lehrkraft && step === 1 && e(React.Fragment, null,
+            e(PinInput, {
+              value: pin,
+              onChange: setPin,
+              length: 4,
+              autoFocus: true,
+              disabled: loading
+            }),
+            e('button', {
+              className: 'login-btn',
+              type: 'button',
+              onClick: handlePinSet,
+              disabled: pin.length < 4
+            }, 'Weiter'),
+            e('div', { className: 'login-info' }, 'Die PIN wird nur auf diesem Gerät gespeichert.')
+          ),
+
+          // Step 2: Confirm PIN
+          lehrkraft && step === 2 && e(React.Fragment, null,
+            e(PinInput, {
+              value: pinConfirm,
+              onChange: setPinConfirm,
+              length: 4,
+              autoFocus: true,
+              disabled: loading
+            }),
+            e('button', {
+              className: 'login-btn',
+              type: 'button',
+              onClick: handleConfirm,
+              disabled: loading || pinConfirm.length < 4
+            }, loading ? 'Wird eingerichtet…' : 'PIN bestätigen')
+          ),
+
+          status && e('div', { className: 'login-status ' + status.type }, status.msg),
+
+          e('div', { className: 'login-switch' },
+            e('button', {
+              className: 'login-switch-btn',
+              type: 'button',
+              onClick: step === 2 ? () => { setStep(1); setPin(''); setPinConfirm(''); setStatus(null); } : onBack
+            }, step === 2 ? '← Andere PIN wählen' : '← Zurück zur Anmeldung')
+          )
+        )
+      );
+    }
+
+    // ── Lock Screen ──────────────────────────────────
+    function LockScreen({ profile, onUnlock, onSwitchUser }) {
+      const [pin, setPin] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [status, setStatus] = useState(null);
+
+      const handleUnlock = useCallback(async () => {
+        if (pin.length < 4) return;
+        setLoading(true);
+        setStatus(null);
+        try {
+          const result = await PinAuthService.loginWithPin(profile.kuerzel, pin);
+          onUnlock(result);
+        } catch (err) {
+          setStatus({ type: 'error', msg: err.message || 'Falsche PIN' });
+          setPin('');
+        }
+        setLoading(false);
+      }, [pin, profile, onUnlock]);
+
+      // Auto-submit when PIN is 4 digits
+      useEffect(() => {
+        if (pin.length === 4 && !loading) {
+          handleUnlock();
+        }
+      }, [pin, loading, handleUnlock]);
+
+      return e('div', { className: 'lock-screen' },
+        e('div', { className: 'lock-card' },
+          e('div', { className: 'lock-avatar', style: { background: profile?.avatar_color || '#64748b' } },
+            profile?.kuerzel || '?'
+          ),
+          e('h2', null, profile?.display_name || 'Gesperrt'),
+          e('p', null, 'Bildschirm gesperrt wegen Inaktivität.', e('br'), 'PIN eingeben zum Entsperren.'),
+
+          e(PinInput, {
+            value: pin,
+            onChange: setPin,
+            length: 4,
+            autoFocus: true,
+            disabled: loading
+          }),
+
+          e('button', {
+            className: 'login-btn',
+            type: 'button',
+            onClick: handleUnlock,
+            disabled: loading || pin.length < 4
+          }, loading ? 'Prüfe…' : 'Entsperren'),
+
+          status && e('div', { className: 'login-status ' + status.type }, status.msg),
+
+          e('button', {
+            className: 'lock-other-btn',
+            type: 'button',
+            onClick: onSwitchUser
+          }, 'Anderer Benutzer')
+        )
+      );
+    }
+
+    // ── Sidebar ────────────────────────────────────
+    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile }) {
+      return e('nav', { className: 'sidebar', role: 'navigation', 'aria-label': 'Hauptnavigation' },
+        e('div', { className: 'sidebar-logo', title: CONFIG.APP_NAME, onClick: () => onModuleSelect(null) }, '🏫'),
+
+        e('div', { className: 'sidebar-nav' },
+          CONFIG.MODULES.map(mod =>
+            e('button', {
+              key: mod.id,
+              className: 'nav-item' + (activeModule === mod.id ? ' active' : ''),
+              onClick: () => onModuleSelect(mod.id),
+              title: mod.name,
+              'aria-label': mod.name + (unreadCounts.get(mod.id) ? ' (' + unreadCounts.get(mod.id) + ' ungelesen)' : '')
+            },
+              e('span', { className: 'nav-icon' }, mod.icon),
+              e('span', { className: 'nav-label' }, mod.name),
+              unreadCounts.get(mod.id) > 0 && e('span', { className: 'nav-badge' }, unreadCounts.get(mod.id))
+            )
+          )
+        ),
+
+        // Separator
+        e('div', { style: { width: '80%', height: '1px', background: 'rgba(148,163,184,0.2)', margin: '8px auto' } }),
+
+        // Externe Links
+        e('div', { className: 'sidebar-nav', style: { flex: 'none' } },
+          CONFIG.EXTERNAL_LINKS.map(link =>
+            e('a', {
+              key: link.id,
+              className: 'nav-item',
+              href: link.url,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              title: link.name + ' (öffnet in neuem Tab)',
+              style: { textDecoration: 'none', color: 'inherit' }
+            },
+              e('span', { className: 'nav-icon' }, link.icon),
+              e('span', { className: 'nav-label' }, link.name)
+            )
+          )
+        ),
+
+        e('div', { className: 'sidebar-footer' },
+          profile?.role === 'admin' && e('button', {
+            className: 'nav-item',
+            title: 'Admin',
+            onClick: () => showToast('Admin-Panel kommt in Phase 2', 'info')
+          },
+            e('span', { className: 'nav-icon' }, '⚙️'),
+            e('span', { className: 'nav-label' }, 'Admin')
+          )
+        )
+      );
+    }
+
+    // ── Top Bar ────────────────────────────────────
+    function TopBar({ activeModule, profile, onMenuToggle, onUserMenuToggle, showUserMenu }) {
+      const mod = CONFIG.MODULES.find(m => m.id === activeModule);
+      const title = mod ? mod.icon + ' ' + mod.name : CONFIG.APP_NAME;
+      const initials = profile?.kuerzel || profile?.display_name?.charAt(0) || '?';
+
+      return e('header', { className: 'topbar' },
+        e('button', { className: 'hamburger', onClick: onMenuToggle, 'aria-label': 'Menü' }, '☰'),
+        e('div', { className: 'topbar-title' }, title),
+        e('div', {
+          className: 'topbar-user',
+          onClick: onUserMenuToggle,
+          title: 'Benutzermenu'
+        },
+          e('div', { className: 'avatar', style: { background: profile?.avatar_color || '#64748b' } }, initials),
+          e('span', { className: 'topbar-username' }, profile?.display_name || 'User')
+        )
+      );
+    }
+
+    // ── User Menu ──────────────────────────────────
+    function UserMenu({ profile, onClose, onLogout }) {
+      return e(React.Fragment, null,
+        e('div', { className: 'overlay', onClick: onClose }),
+        e('div', { className: 'user-menu', role: 'menu' },
+          e('div', { style: { padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' } },
+            profile?.email || 'Demo-Modus'
+          ),
+          e('div', { className: 'user-menu-divider' }),
+          e('button', { className: 'user-menu-item', role: 'menuitem', onClick: () => { showToast('Profil kommt in Phase 2', 'info'); onClose(); } },
+            '👤', ' Mein Profil'
+          ),
+          profile?.role === 'admin' && e('button', { className: 'user-menu-item', role: 'menuitem', onClick: () => { showToast('Admin-Panel kommt in Phase 2', 'info'); onClose(); } },
+            '⚙️', ' Administration'
+          ),
+          e('div', { className: 'user-menu-divider' }),
+          e('button', { className: 'user-menu-item danger', role: 'menuitem', onClick: onLogout },
+            '🚪', ' Abmelden'
+          )
+        )
+      );
+    }
+
+    // ── Mobile Tab Bar ─────────────────────────────
+    function MobileTabBar({ activeModule, onModuleSelect, unreadCounts }) {
+      return e('div', { className: 'mobile-tabs' },
+        CONFIG.MODULES.map(mod =>
+          e('button', {
+            key: mod.id,
+            className: 'mobile-tab' + (activeModule === mod.id ? ' active' : ''),
+            onClick: () => onModuleSelect(mod.id)
+          },
+            e('span', { className: 'mobile-tab-icon' }, mod.icon),
+            e('span', null, mod.name),
+            unreadCounts.get(mod.id) > 0 && e('span', {
+              className: 'nav-badge',
+              style: { position: 'absolute', top: '4px', right: 'calc(50% - 18px)' }
+            }, unreadCounts.get(mod.id))
+          )
+        ),
+        e('a', {
+          className: 'mobile-tab',
+          href: 'https://realschule-schriesheim.de/',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          style: { textDecoration: 'none', color: 'inherit' }
+        },
+          e('span', { className: 'mobile-tab-icon' }, '🌐'),
+          e('span', null, 'Web')
+        )
+      );
+    }
+
+    // ── Welcome Screen ─────────────────────────────
+    // ── Demo-Daten für Startseite ─────────────────
+    const DASHBOARD_DATA = {
+      weekLabel: 'Schulwoche 24',
+      termine: [
+        { date: 'Mo 23.03.', text: '9a Drogenprävention 3+4 Std.' },
+        { date: 'Mo 23.03.', text: '9d Drogenprävention 5+6 Std.' },
+        { date: 'Di 24.03.', text: '9c BORS Betriebsbesichtigung Freudenberg' },
+        { date: 'Di 24.03.', text: '8d BORS Betriebsbesichtigung Freudenberg' },
+        { date: 'Mi 25.03.', text: '9c Drogenprävention 5+6 Std.' },
+        { date: 'Mi 25.03.', text: '9b Drogenprävention 3+4 Std.' },
+        { date: 'Do+Fr 26.+27.03.', text: 'Planungstage Werkstattschule Te Kl. 8' }
+      ],
+      dienste: {
+        kueche: 'Nadine & Rouven',
+        hof: '9c'
+      },
+      mitteilungen: [
+        { title: 'Klassenbücher vervollständigen!', text: 'Tanja bittet darum, vor den Ferien alle Klassenbücher zu vervollständigen. Bitte zeitnah erledigen!' },
+        { title: 'Mathaisemarkt — Vielen Dank!', text: 'Danke an alle KuK! Eindrücke und Bilder auf der HP.' },
+        { title: 'Lehrerausflug 30.04.2026', text: 'Info siehe Aushang LZ. Organisation: Nadine.' },
+        { title: 'Schweigepflichtentbindungen', text: 'Formular von Regina auf Teams bereitgestellt.' }
+      ],
+      faqs: [
+        {
+          title: 'Projekttage & Schulfest 2026',
+          content: 'Projekttage 21.–23.07.2026, Schulfest-Vorbereitung 24.07.2026.\nKoordination: Nadine Joos & Charlotte Jacob.\nKostenneutral, pro KuK 12 SuS, mind. 2.–5. Std.\nProjektausschreibung in GLK am 16.04.2026.'
+        },
+        {
+          title: 'Mathaisemarkt — Beteiligte & Dank',
+          content: 'Mathaisemarktlauf: Silke Spingel & Manuel Martinez.\nWeinprämierung: Peter Schmitt & Katharina Scharmann.\nTanzprojekt: Julia Weber & Denise Gehrig.\nEindrücke und Bilder auf der Homepage.'
+        }
+      ],
+      downloadUrl: '#',
+      downloadLabel: 'FAQ Woche 24 (PDF)'
+    };
+
+    function WelcomeScreen({ onModuleSelect, profile }) {
+      const [openFaq, setOpenFaq] = useState(null);
+
+      const greeting = (() => {
+        const h = new Date().getHours();
+        if (h < 12) return 'Guten Morgen';
+        if (h < 17) return 'Guten Tag';
+        return 'Guten Abend';
+      })();
+
+      const firstName = profile?.display_name?.split(' ')[0] || 'Kolleg:in';
+
+      return e('div', { className: 'welcome' },
+
+        // ── Hero: Logo + Greeting ──
+        e('div', { className: 'welcome-hero' },
+          e('img', { className: 'welcome-logo', src: 'logo-krs.png', alt: 'KRS Logo' }),
+          e('div', { className: 'welcome-greeting' }, greeting + ', ' + firstName + '!'),
+          e('div', { className: 'welcome-sub' }, 'Kurpfalz-Realschule Schriesheim')
+        ),
+
+        // ── Quick-Access Module Cards ──
+        e('div', { className: 'module-cards' },
+          CONFIG.MODULES.map(mod =>
+            e('div', {
+              key: mod.id,
+              className: 'module-card',
+              onClick: () => onModuleSelect(mod.id)
+            },
+              e('div', { className: 'module-card-icon' }, mod.icon),
+              e('div', { className: 'module-card-title' }, mod.name)
+            )
+          ),
+          // Externe Links
+          CONFIG.EXTERNAL_LINKS.map(link =>
+            e('a', {
+              key: link.id,
+              className: 'module-card',
+              href: link.url,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              style: { textDecoration: 'none', color: 'inherit', opacity: 0.85 }
+            },
+              e('div', { className: 'module-card-icon' }, link.icon),
+              e('div', { className: 'module-card-title' }, link.name),
+              e('div', { style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, '↗')
+            )
+          )
+        ),
+
+        // ── Dashboard Sections ──
+        e('div', { className: 'dashboard-sections' },
+
+          // Dienste der Woche
+          e('div', { className: 'dienste-bar' },
+            e('div', { className: 'dienst-chip' },
+              e('span', { className: 'dienst-label' }, '🍽 Küchendienst'),
+              e('span', { className: 'dienst-value' }, DASHBOARD_DATA.dienste.kueche)
+            ),
+            e('div', { className: 'dienst-chip' },
+              e('span', { className: 'dienst-label' }, '🏫 Hofdienst'),
+              e('span', { className: 'dienst-value' }, DASHBOARD_DATA.dienste.hof)
+            )
+          ),
+
+          // Termine
+          e('div', { className: 'dashboard-section' },
+            e('div', { className: 'section-header' },
+              e('span', { className: 'section-header-left' },
+                e('span', { className: 'section-icon' }, '📅'),
+                'Termine diese Woche'
+              )
+            ),
+            e('div', { className: 'section-body' },
+              DASHBOARD_DATA.termine.map((t, i) =>
+                e('div', { key: i, className: 'termine-row' },
+                  e('span', { className: 'termine-date' }, t.date),
+                  e('span', { className: 'termine-text' }, t.text)
+                )
+              )
+            )
+          ),
+
+          // Mitteilungen
+          e('div', { className: 'dashboard-section' },
+            e('div', { className: 'section-header' },
+              e('span', { className: 'section-header-left' },
+                e('span', { className: 'section-icon' }, '📢'),
+                'Mitteilungen'
+              )
+            ),
+            e('div', { className: 'section-body' },
+              DASHBOARD_DATA.mitteilungen.map((m, i) =>
+                e('div', { key: i, className: 'mitteilung-row' },
+                  e('div', { className: 'mitteilung-title' }, m.title),
+                  e('div', { className: 'mitteilung-text' }, m.text)
+                )
+              )
+            )
+          ),
+
+          // FAQ & Infos
+          e('div', { className: 'dashboard-section' },
+            e('div', { className: 'section-header' },
+              e('span', { className: 'section-header-left' },
+                e('span', { className: 'section-icon' }, '💡'),
+                'FAQ & Infos — ' + DASHBOARD_DATA.weekLabel
+              ),
+              e('button', {
+                className: 'download-btn',
+                onClick: () => showToast('Download kommt in der finalen Version', 'info')
+              }, '⬇', ' ', DASHBOARD_DATA.downloadLabel)
+            ),
+            e('div', { className: 'section-body' },
+              DASHBOARD_DATA.faqs.map((faq, i) =>
+                e('div', { key: i, className: 'faq-row' },
+                  e('button', {
+                    className: 'faq-toggle',
+                    onClick: () => setOpenFaq(openFaq === i ? null : i)
+                  },
+                    faq.title,
+                    e('span', { className: 'faq-chevron' + (openFaq === i ? ' open' : '') }, '▸')
+                  ),
+                  openFaq === i ? e('div', { className: 'faq-detail' }, faq.content) : null
+                )
+              )
+            )
+          )
+        )
+      );
+    }
+
+    // ── Module Content (iframe loader) ─────────────
+    function ModuleContent({ activeModule, profile }) {
+      const framesRef = useRef({});
+
+      // Send auth to newly loaded iframe
+      const handleIframeLoad = useCallback((moduleId) => {
+        const iframe = framesRef.current[moduleId];
+        if (iframe && profile) {
+          sendAuthToModule(iframe, moduleId, profile);
+        }
+      }, [profile]);
+
+      // Listen for auth requests from modules
+      useEffect(() => {
+        const handler = (event) => {
+          // Origin validation
+          if (!CONFIG.ALLOWED_ORIGINS.includes(event.origin)) return;
+          if (event.data?.type === 'KRS_HUB_REQUEST_AUTH') {
+            const moduleId = event.data.moduleId;
+            const iframe = framesRef.current[moduleId];
+            if (iframe) {
+              sendAuthToModule(iframe, moduleId, profile);
+            }
+          }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+      }, [profile]);
+
+      if (!activeModule) {
+        return e(WelcomeScreen, { onModuleSelect: () => {}, profile });
+      }
+
+      return e('div', { className: 'content' },
+        CONFIG.MODULES.map(mod =>
+          e('iframe', {
+            key: mod.id,
+            ref: (el) => { if (el) framesRef.current[mod.id] = el; },
+            className: 'module-frame' + (activeModule === mod.id ? ' active' : ''),
+            src: activeModule === mod.id || framesRef.current[mod.id] ? mod.url : undefined,
+            title: mod.name,
+            sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups',
+            onLoad: () => handleIframeLoad(mod.id),
+            loading: 'lazy'
+          })
+        )
+      );
+    }
+
+    // ═══════════════════════════════════════════════
+    // MAIN APP
+    // ═══════════════════════════════════════════════
+
+    function App() {
+      const [authState, setAuthState] = useState('loading'); // loading, login, pin_setup, authenticated, locked
+      const [profile, setProfile] = useState(null);
+      const [setupKuerzel, setSetupKuerzel] = useState('');
+      const [activeModule, setActiveModule] = useState(null);
+      const [showUserMenu, setShowUserMenu] = useState(false);
+      const [unreadCounts, setUnreadCounts] = useState(new Map());
+
+      // ── Hash Router ────────────────────────────
+      useEffect(() => {
+        const handleHash = () => {
+          const hash = window.location.hash.slice(2);
+          const mod = CONFIG.MODULES.find(m => m.id === hash);
+          if (mod) setActiveModule(mod.id);
+          else if (!hash) setActiveModule(null);
+        };
+        window.addEventListener('hashchange', handleHash);
+        handleHash();
+        return () => window.removeEventListener('hashchange', handleHash);
+      }, []);
+
+      useEffect(() => {
+        const newHash = activeModule ? '#/' + activeModule : '#/';
+        if (window.location.hash !== newHash) {
+          window.location.hash = newHash;
+        }
+      }, [activeModule]);
+
+      // ── Auth Check (PIN-based) ─────────────────
+      useEffect(() => {
+        // CI/Test-Override: forceMode=demo → Auth überspringen mit Demo-Profil
+        if (window.__KRS_HUB_FORCE_DEMO === true) {
+          const demoProfile = {
+            kuerzel: 'Demo',
+            display_name: 'Demo Lehrer',
+            name: 'Demo',
+            vorname: 'Test',
+            role: 'admin',
+            avatar_color: '#7c6ff7'
+          };
+          setProfile(demoProfile);
+          setAuthState('authenticated');
+          return;
+        }
+        const sess = PinAuthService.getSession();
+        if (sess) {
+          const prof = PinAuthService.getProfile(sess.user_kuerzel);
+          if (prof) {
+            setProfile(prof);
+            setAuthState('authenticated');
+          } else {
+            PinAuthService.clearSession();
+            setAuthState('login');
+          }
+        } else {
+          setAuthState('login');
+        }
+      }, []);
+
+      // ── Inactivity → Lock Screen ───────────────
+      const handleInactivityLock = useCallback(() => {
+        if (authState === 'authenticated' && profile) {
+          showToast('Bildschirm gesperrt (Inaktivität)', 'info');
+          setAuthState('locked');
+        }
+      }, [authState, profile]);
+
+      useInactivityTimer(
+        authState === 'authenticated' ? CONFIG.INACTIVITY_TIMEOUT : Infinity,
+        handleInactivityLock
+      );
+
+      // ── Activity Tracking ─────────────────────
+      useEffect(() => {
+        if (authState !== 'authenticated') return;
+        const update = () => PinAuthService.updateActivity();
+        const events = ['mousedown', 'keydown', 'touchstart'];
+        events.forEach(ev => window.addEventListener(ev, update, { passive: true }));
+        return () => events.forEach(ev => window.removeEventListener(ev, update));
+      }, [authState]);
+
+      // ── postMessage listener for unread ────────
+      useEffect(() => {
+        const handler = (event) => {
+          if (!CONFIG.ALLOWED_ORIGINS.includes(event.origin)) return;
+          if (event.data?.type === 'KRS_HUB_UNREAD_UPDATE') {
+            setUnreadCounts(prev => {
+              const next = new Map(prev);
+              next.set(event.data.moduleId, event.data.count);
+              return next;
+            });
+          }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+      }, []);
+
+      // ── Handlers ───────────────────────────────
+      const handleLogin = useCallback((prof) => {
+        setProfile(prof);
+        setAuthState('authenticated');
+        showToast('Willkommen, ' + (prof.display_name || prof.kuerzel) + '!', 'success');
+      }, []);
+
+      const handleSetup = useCallback((kuerzel) => {
+        setSetupKuerzel(kuerzel || '');
+        setAuthState('pin_setup');
+      }, []);
+
+      const handleSetupComplete = useCallback((prof) => {
+        setProfile(prof);
+        setAuthState('authenticated');
+      }, []);
+
+      const handleUnlock = useCallback((prof) => {
+        setProfile(prof);
+        setAuthState('authenticated');
+        PinAuthService.updateActivity();
+        showToast('Willkommen zurück!', 'success');
+      }, []);
+
+      const handleLogout = useCallback(() => {
+        PinAuthService.signOut();
+        setAuthState('login');
+        setProfile(null);
+        setActiveModule(null);
+        setShowUserMenu(false);
+        showToast('Abgemeldet', 'info');
+      }, []);
+
+      const handleModuleSelect = useCallback((moduleId) => {
+        setActiveModule(moduleId);
+        setShowUserMenu(false);
+      }, []);
+
+      // ── Escape key ─────────────────────────────
+      useEffect(() => {
+        const handler = (ev) => {
+          if (ev.key === 'Escape' && showUserMenu) setShowUserMenu(false);
+        };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+      }, [showUserMenu]);
+
+      // ── Render ─────────────────────────────────
+      if (authState === 'loading') {
+        return e('div', { className: 'loading' },
+          e('div', { className: 'spinner' }),
+          e('span', { style: { color: 'var(--text-muted)', fontSize: '13px' } }, 'Lade KRS Hub…')
+        );
+      }
+
+      if (authState === 'login') {
+        return e(React.Fragment, null,
+          e(LoginScreen, { onLogin: handleLogin, onSetup: handleSetup }),
+          e(ToastContainer)
+        );
+      }
+
+      if (authState === 'pin_setup') {
+        return e(React.Fragment, null,
+          e(PinSetupScreen, {
+            initialKuerzel: setupKuerzel,
+            onComplete: handleSetupComplete,
+            onBack: () => setAuthState('login')
+          }),
+          e(ToastContainer)
+        );
+      }
+
+      if (authState === 'locked') {
+        return e(React.Fragment, null,
+          e(LockScreen, {
+            profile,
+            onUnlock: handleUnlock,
+            onSwitchUser: handleLogout
+          }),
+          e(ToastContainer)
+        );
+      }
+
+      // Authenticated
+      return e(React.Fragment, null,
+        e('div', { className: 'shell' },
+          e(Sidebar, {
+            activeModule,
+            onModuleSelect: handleModuleSelect,
+            unreadCounts,
+            profile
+          }),
+          e('div', { className: 'main' },
+            e(TopBar, {
+              activeModule,
+              profile,
+              onMenuToggle: () => {},
+              onUserMenuToggle: () => setShowUserMenu(v => !v),
+              showUserMenu
+            }),
+            activeModule
+              ? e(ModuleContent, { activeModule, profile })
+              : e(WelcomeScreen, { onModuleSelect: handleModuleSelect, profile }),
+            e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts })
+          )
+        ),
+        showUserMenu && e(UserMenu, { profile, onClose: () => setShowUserMenu(false), onLogout: handleLogout }),
+        e(ToastContainer)
+      );
+    }
+
+    // ── Error Boundary ─────────────────────────────
+    class ErrorBoundary extends React.Component {
+      constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+      static getDerivedStateFromError(error) { return { hasError: true, error }; }
+      componentDidCatch(error, info) { console.error('KRS Hub Error:', error, info); }
+      render() {
+        if (this.state.hasError) {
+          return e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px', padding: '32px', textAlign: 'center', fontFamily: 'var(--font)' } },
+            e('div', { style: { fontSize: '48px' } }, '⚠️'),
+            e('h2', { style: { fontSize: '20px', fontWeight: 700 } }, 'Ein Fehler ist aufgetreten'),
+            e('p', { style: { fontSize: '14px', color: '#64748b', maxWidth: '400px' } }, 'Die App hat einen unerwarteten Fehler. Bitte lade die Seite neu.'),
+            e('button', { onClick: () => location.reload(), style: { padding: '10px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' } }, 'Seite neu laden')
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    // ── Mount ──────────────────────────────────────
+    ReactDOM.createRoot(document.getElementById('root')).render(e(ErrorBoundary, null, e(App)));
+
+    // ── Service Worker Registration ────────────────
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
+    }
+
+    // ── iPad Keyboard Fix ──────────────────────────
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        const active = document.activeElement;
+        if (active?.tagName === 'TEXTAREA' || active?.tagName === 'INPUT') {
+          active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
+  </script>
+</body>
+</html>

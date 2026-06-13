@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KRS Connect</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f1f5f9;
+      --bg-card: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --radius: 10px;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); height: 100vh; }
+
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    .placeholder-icon { font-size: 56px; }
+    .placeholder h1 { font-size: 22px; font-weight: 700; }
+    .placeholder p { font-size: 14px; color: var(--text-muted); max-width: 400px; line-height: 1.6; }
+    .auth-status {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 24px;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .auth-status.connected { border-color: var(--success); }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.ok { background: #dcfce7; color: #16a34a; }
+    .badge.waiting { background: #fef3c7; color: #d97706; }
+  </style>
+</head>
+<body>
+  <div class="placeholder" id="app">
+    <div class="placeholder-icon">💬</div>
+    <h1>KRS Connect</h1>
+    <p>Kommunikationsmodul — Teams, Channels, Direktnachrichten und Threads für das Kollegium.</p>
+    <div class="auth-status" id="auth-status">
+      <span class="badge waiting">⏳ Warte auf Auth</span>
+      <span id="auth-details"></span>
+    </div>
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 16px;">
+      In der finalen Version wird hier die vollständige KRS Connect App geladen.<br>
+      Dieses Modul zeigt aktuell den Auth-Status der Shell-Verbindung.
+    </p>
+  </div>
+
+  <script>
+    // ── postMessage Handler ──────────────────────
+    let currentUser = null;
+
+    window.addEventListener('message', (event) => {
+      // Origin-Validierung
+      if (event.origin !== window.location.origin && !event.origin.includes('kurpfalz-realschule.github.io')) return;
+
+      if (event.data?.type === 'KRS_HUB_AUTH') {
+        currentUser = event.data.user;
+        const statusEl = document.getElementById('auth-status');
+        const detailsEl = document.getElementById('auth-details');
+
+        if (currentUser) {
+          statusEl.className = 'auth-status connected';
+          statusEl.innerHTML = '<span class="badge ok">✓ Verbunden</span>';
+          detailsEl.innerHTML = ' — ' + currentUser.display_name + ' (' + currentUser.kuerzel + ') — Rolle: ' + currentUser.role;
+          statusEl.appendChild(detailsEl);
+        }
+      }
+    });
+
+    // Auth bei Shell anfordern
+    window.parent.postMessage({ type: 'KRS_HUB_REQUEST_AUTH', moduleId: 'connect' }, '*');
+  </script>
+</body>
+</html>

@@ -906,9 +906,13 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '2.0.0-phase1',
+      VERSION: '2.1.0-phase2',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
       SESSION_MAX_DAYS: 7,
+      // Phase 2: EIN einheitlicher PIN für ALLE (Demo-Betrieb mit Seed-Daten).
+      // ⚠️ Kein echter Schutz auf öffentlicher URL — vor Echtdaten iServ-OAuth einbauen!
+      PIN_LENGTH: 5,
+      UNIVERSAL_PIN: '69198',
       PIN_MAX_ATTEMPTS: 5,
       PIN_LOCKOUT_MINUTES: 15,
       PIN_PEPPER: 'KRS-Hub-2026-Schriesheim',
@@ -980,7 +984,7 @@
       // { kuerzel: 'XX', name: 'Nachname', vorname: 'Vorname', role: 'teacher', avatar_color: '#...' },
     ];
 
-    console.log('%c🏫 KRS Hub v' + CONFIG.VERSION + ' — Phase 1 (PIN-Login)', 'color:#2563eb;font-weight:bold;font-size:14px');
+    console.log('%c🏫 KRS Hub v' + CONFIG.VERSION + ' — Phase 2 (Unified-Login, einheitl. PIN)', 'color:#2563eb;font-weight:bold;font-size:14px');
 
     // ─── Test-/CI-Hooks: forceMode-Override + Version-Marker ──────
     // Tests/Smoke-Checks setzen ?forceMode=demo um den PIN-Login zu skippen.
@@ -1223,6 +1227,33 @@
         return this.getProfile(kuerzel);
       },
 
+      // ── Phase 2: Universal-PIN-Login ───────────
+      // Kein per-User-PIN mehr: nur Kürzel wählen + einheitlichen PIN tippen.
+      // Der PIN-Vergleich passiert im UI (LoginScreen). Hier wird nur die
+      // Lehrkraft validiert, der bekannte User gespeichert und die Session gesetzt.
+      loginUniversal(kuerzel) {
+        const lehrkraft = LEHRKRAEFTE.find(l => l.kuerzel === kuerzel);
+        if (!lehrkraft) throw new Error('Kürzel nicht in Lehrkräfte-Liste');
+
+        const users = this.getKnownUsers();
+        const existing = users.findIndex(u => u.kuerzel === kuerzel);
+        const userEntry = {
+          kuerzel: lehrkraft.kuerzel,
+          name: lehrkraft.name,
+          vorname: lehrkraft.vorname,
+          display_name: lehrkraft.vorname ? lehrkraft.vorname + ' ' + lehrkraft.name : lehrkraft.name,
+          role: lehrkraft.role,
+          avatar_color: lehrkraft.avatar_color,
+          registered_at: new Date().toISOString()
+        };
+        if (existing >= 0) users[existing] = userEntry;
+        else users.push(userEntry);
+        this.saveKnownUsers(users);
+
+        this.saveSession(kuerzel);
+        return this.getProfile(kuerzel);
+      },
+
       getProfile(kuerzel) {
         const users = this.getKnownUsers();
         const user = users.find(u => u.kuerzel === kuerzel);
@@ -1384,28 +1415,29 @@
 
       const handleSubmit = useCallback(async (ev) => {
         ev.preventDefault();
-        if (!kuerzel || pin.length < 4) return;
+        if (!kuerzel || pin.length < CONFIG.PIN_LENGTH) return;
         setLoading(true);
         setStatus(null);
         try {
-          // Check if user has a PIN set up
-          if (!PinAuthService.hasPin(kuerzel)) {
-            // Redirect to setup
-            onSetup(kuerzel);
+          // Phase 2: einheitlicher PIN für alle — kein per-User-Setup mehr
+          if (pin !== CONFIG.UNIVERSAL_PIN) {
+            setStatus({ type: 'error', msg: 'Falsche PIN.' });
+            setPin('');
+            setLoading(false);
             return;
           }
-          const profile = await PinAuthService.loginWithPin(kuerzel, pin);
+          const profile = await PinAuthService.loginUniversal(kuerzel);
           onLogin(profile);
         } catch (err) {
           setStatus({ type: 'error', msg: err.message || 'Anmeldung fehlgeschlagen' });
           setPin('');
         }
         setLoading(false);
-      }, [kuerzel, pin, onLogin, onSetup]);
+      }, [kuerzel, pin, onLogin]);
 
-      // Auto-submit when PIN is 4 digits
+      // Auto-submit when PIN reaches required length
       useEffect(() => {
-        if (pin.length === 4 && kuerzel && !loading) {
+        if (pin.length === CONFIG.PIN_LENGTH && kuerzel && !loading) {
           const form = document.querySelector('.login-card');
           if (form) form.requestSubmit?.();
         }
@@ -1417,7 +1449,7 @@
         e('form', { className: 'login-card', onSubmit: handleSubmit },
           e('div', { className: 'login-logo' }, '🏫'),
           e('h1', null, CONFIG.APP_NAME),
-          e('p', null, CONFIG.SCHOOL_NAME, e('br'), 'Melde dich mit Kürzel & PIN an.'),
+          e('p', null, CONFIG.SCHOOL_NAME, e('br'), 'Kürzel wählen & gemeinsame PIN eingeben.'),
 
           // Quick-select remembered users
           hasRegistered && e('div', { className: 'remembered-users' },
@@ -1453,7 +1485,7 @@
           kuerzel && e(PinInput, {
             value: pin,
             onChange: setPin,
-            length: 4,
+            length: CONFIG.PIN_LENGTH,
             autoFocus: true,
             disabled: loading
           }),
@@ -1461,22 +1493,10 @@
           kuerzel && e('button', {
             className: 'login-btn',
             type: 'submit',
-            disabled: loading || pin.length < 4
+            disabled: loading || pin.length < CONFIG.PIN_LENGTH
           }, loading ? 'Anmelden…' : 'Anmelden'),
 
-          status && e('div', { className: 'login-status ' + status.type }, status.msg),
-
-          // Switch to registration
-          e('div', { className: 'login-switch' },
-            e('button', {
-              className: 'login-switch-btn',
-              type: 'button',
-              onClick: () => {
-                if (kuerzel) onSetup(kuerzel);
-                else setStatus({ type: 'error', msg: 'Bitte zuerst ein Kürzel wählen.' });
-              }
-            }, 'Erstmals hier? PIN einrichten →')
-          )
+          status && e('div', { className: 'login-status ' + status.type }, status.msg)
         )
       );
     }
@@ -1610,11 +1630,18 @@
       const [status, setStatus] = useState(null);
 
       const handleUnlock = useCallback(async () => {
-        if (pin.length < 4) return;
+        if (pin.length < CONFIG.PIN_LENGTH) return;
         setLoading(true);
         setStatus(null);
         try {
-          const result = await PinAuthService.loginWithPin(profile.kuerzel, pin);
+          // Phase 2: einheitlicher PIN
+          if (pin !== CONFIG.UNIVERSAL_PIN) {
+            setStatus({ type: 'error', msg: 'Falsche PIN' });
+            setPin('');
+            setLoading(false);
+            return;
+          }
+          const result = PinAuthService.loginUniversal(profile.kuerzel);
           onUnlock(result);
         } catch (err) {
           setStatus({ type: 'error', msg: err.message || 'Falsche PIN' });
@@ -1623,9 +1650,9 @@
         setLoading(false);
       }, [pin, profile, onUnlock]);
 
-      // Auto-submit when PIN is 4 digits
+      // Auto-submit when PIN reaches required length
       useEffect(() => {
-        if (pin.length === 4 && !loading) {
+        if (pin.length === CONFIG.PIN_LENGTH && !loading) {
           handleUnlock();
         }
       }, [pin, loading, handleUnlock]);
@@ -1641,7 +1668,7 @@
           e(PinInput, {
             value: pin,
             onChange: setPin,
-            length: 4,
+            length: CONFIG.PIN_LENGTH,
             autoFocus: true,
             disabled: loading
           }),
@@ -1650,7 +1677,7 @@
             className: 'login-btn',
             type: 'button',
             onClick: handleUnlock,
-            disabled: loading || pin.length < 4
+            disabled: loading || pin.length < CONFIG.PIN_LENGTH
           }, loading ? 'Prüfe…' : 'Entsperren'),
 
           status && e('div', { className: 'login-status ' + status.type }, status.msg),

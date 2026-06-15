@@ -980,6 +980,7 @@
       { kuerzel: 'Ge', name: 'Gehrig', vorname: 'Denise', role: 'teacher', avatar_color: '#f59e0b' },
       { kuerzel: 'Fi', name: 'Fischer', vorname: '', role: 'teacher', avatar_color: '#6366f1' },
       { kuerzel: 'Mü', name: 'Müller', vorname: '', role: 'teacher', avatar_color: '#84cc16' },
+      { kuerzel: 'Ta', name: 'Tanja', vorname: '', role: 'teacher', avatar_color: '#0891b2' },
       // ── Weitere Lehrkräfte hier ergänzen ──
       // { kuerzel: 'XX', name: 'Nachname', vorname: 'Vorname', role: 'teacher', avatar_color: '#...' },
     ];
@@ -1466,8 +1467,10 @@
             )
           ),
 
-          // Kürzel dropdown (if no remembered user selected)
-          (!hasRegistered || !kuerzel) && e('select', {
+          // Kürzel-Dropdown: IMMER sichtbar, damit auch nicht-gemerkte Kolleg:innen
+          // (z. B. zum Testen) auswählbar sind — nicht nur die auf diesem Gerät
+          // bereits angemeldeten Personen.
+          e('select', {
             className: 'login-select',
             value: kuerzel,
             onChange: ev => { setKuerzel(ev.target.value); setPin(''); setStatus(null); },

@@ -1641,6 +1641,13 @@
             setLoading(false);
             return;
           }
+          // Demo-/Test-Modus: kein echtes Lehrkraft-Kürzel → ohne loginUniversal
+          // entsperren (sonst würde 'Demo' die Lehrkräfte-Prüfung werfen).
+          if (window.__KRS_HUB_FORCE_DEMO === true) {
+            onUnlock(profile);
+            setLoading(false);
+            return;
+          }
           const result = PinAuthService.loginUniversal(profile.kuerzel);
           onUnlock(result);
         } catch (err) {
@@ -1767,7 +1774,7 @@
     }
 
     // ── User Menu ──────────────────────────────────
-    function UserMenu({ profile, onClose, onLogout }) {
+    function UserMenu({ profile, onClose, onLogout, onLock }) {
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu' },
@@ -1782,6 +1789,9 @@
             '⚙️', ' Administration'
           ),
           e('div', { className: 'user-menu-divider' }),
+          onLock && e('button', { className: 'user-menu-item', role: 'menuitem', onClick: onLock },
+            '🔒', ' Bildschirm sperren'
+          ),
           e('button', { className: 'user-menu-item danger', role: 'menuitem', onClick: onLogout },
             '🚪', ' Abmelden'
           )
@@ -2176,6 +2186,15 @@
         setShowUserMenu(false);
       }, []);
 
+      // Manuelles Sperren (Shared-iPad: weggehen → tippen → sperren)
+      const handleLock = useCallback(() => {
+        setShowUserMenu(false);
+        if (authState === 'authenticated' && profile) {
+          setAuthState('locked');
+          showToast('Bildschirm gesperrt', 'info');
+        }
+      }, [authState, profile]);
+
       // ── Escape key ─────────────────────────────
       useEffect(() => {
         const handler = (ev) => {
@@ -2245,7 +2264,7 @@
             e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts })
           )
         ),
-        showUserMenu && e(UserMenu, { profile, onClose: () => setShowUserMenu(false), onLogout: handleLogout }),
+        showUserMenu && e(UserMenu, { profile, onClose: () => setShowUserMenu(false), onLogout: handleLogout, onLock: handleLock }),
         e(ToastContainer)
       );
     }

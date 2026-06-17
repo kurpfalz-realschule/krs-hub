@@ -307,6 +307,7 @@
     }
 
     .module-card {
+      position: relative;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -941,9 +942,18 @@
           id: 'buchung',
           name: 'iPad-Buchung',
           icon: '📱',
-          desc: 'Medien & Geräte buchen',
+          desc: 'Medien & Geräte buchen (Sheet/GAS)',
           url: 'https://kurpfalz-realschule.github.io/ipad-buchung/',
           color: '#7c3aed'
+        },
+        {
+          id: 'buchung2',
+          name: 'iPad-Buchung (neu)',
+          icon: '📱',
+          badge: 'NEU',
+          desc: 'Medien & Geräte buchen — Supabase-nativ',
+          url: 'https://kurpfalz-realschule.github.io/ipad-buchung-neu/',
+          color: '#9333ea'
         },
         {
           id: 'projektwoche',
@@ -959,6 +969,15 @@
         { id: 'untis', name: 'Untis', icon: '📊', url: 'https://mese.webuntis.com/WebUntis/?school=KRS+Schriesheim#/basic/login' },
         { id: 'kalender', name: 'Kalender', icon: '🗓️', url: 'https://realschule-schriesheim.de/terminuebersicht-im-kalenderformat/' }
       ],
+      // Sprint 3: Hub-Admin (Edge-Function dashboard-admin, PIN-gated, service_role)
+      ADMIN: {
+        EDGE_URL: 'https://ooejsfixxiuobrpqgfqm.supabase.co/functions/v1/dashboard-admin',
+        ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vZWpzZml4eGl1b2JycHFnZnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjQ5MDYsImV4cCI6MjA4OTYwMDkwNn0.GbAv-sB4B8nNE3IPfiYIjbkMKs0Aq03c_-TUcmFY_5s',
+        SUPERADMINS: ['Ko'],                 // dürfen Rollen ändern
+        // GAS-Bridge: geschützter Admin-Endpoint des Klassenarbeitsplan-GAS.
+        // Leer lassen = Klassenarbeiten-Löschen deaktiviert (zeigt Hinweis).
+        GAS_KLASSENARBEIT_URL: ''
+      },
       // Phase 2: iServ OAuth (vorbereitet, noch nicht aktiv)
       ISERV: {
         ENABLED: false,
@@ -1000,6 +1019,7 @@
     window.KRS_HUB_VERSION = CONFIG.VERSION;
     const __HUB_QS = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
     window.__KRS_HUB_FORCE_DEMO = __HUB_QS.get('forceMode') === 'demo';
+    window.__KRS_HUB_FORCE_USER = __HUB_QS.get('forceUser') || null; // optional: Demo-Kürzel (z. B. Ko für Superadmin)
 
     // ── Toast System ───────────────────────────────
     let toastId = 0;
@@ -1710,7 +1730,7 @@
     }
 
     // ── Sidebar ────────────────────────────────────
-    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile }) {
+    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile, onAdmin }) {
       return e('nav', { className: 'sidebar', role: 'navigation', 'aria-label': 'Hauptnavigation' },
         e('div', { className: 'sidebar-logo', title: CONFIG.APP_NAME, onClick: () => onModuleSelect(null) }, '🏫'),
 
@@ -1725,6 +1745,7 @@
             },
               e('span', { className: 'nav-icon' }, mod.icon),
               e('span', { className: 'nav-label' }, mod.name),
+              mod.badge && e('span', { style: { background: 'var(--danger, #dc2626)', color: '#fff', fontSize: '8px', fontWeight: 800, padding: '1px 4px', borderRadius: '6px', marginLeft: '2px' } }, mod.badge),
               unreadCounts.get(mod.id) > 0 && e('span', { className: 'nav-badge' }, unreadCounts.get(mod.id))
             )
           )
@@ -1755,7 +1776,8 @@
           profile?.role === 'admin' && e('button', {
             className: 'nav-item',
             title: 'Admin',
-            onClick: () => showToast('Admin-Panel kommt in Phase 2', 'info')
+            'data-testid': 'sidebar-admin',
+            onClick: () => onAdmin && onAdmin()
           },
             e('span', { className: 'nav-icon' }, '⚙️'),
             e('span', { className: 'nav-label' }, 'Admin')
@@ -1785,7 +1807,7 @@
     }
 
     // ── User Menu ──────────────────────────────────
-    function UserMenu({ profile, onClose, onLogout, onLock }) {
+    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin }) {
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu' },
@@ -1796,7 +1818,7 @@
           e('button', { className: 'user-menu-item', role: 'menuitem', onClick: () => { showToast('Profil kommt in Phase 2', 'info'); onClose(); } },
             '👤', ' Mein Profil'
           ),
-          profile?.role === 'admin' && e('button', { className: 'user-menu-item', role: 'menuitem', onClick: () => { showToast('Admin-Panel kommt in Phase 2', 'info'); onClose(); } },
+          profile?.role === 'admin' && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-admin', onClick: () => { onAdmin ? onAdmin() : onClose(); } },
             '⚙️', ' Administration'
           ),
           e('div', { className: 'user-menu-divider' }),
@@ -1907,7 +1929,8 @@
               onClick: () => onModuleSelect(mod.id)
             },
               e('div', { className: 'module-card-icon' }, mod.icon),
-              e('div', { className: 'module-card-title' }, mod.name)
+              e('div', { className: 'module-card-title' }, mod.name),
+              mod.badge && e('div', { style: { position: 'absolute', top: '8px', right: '8px', background: 'var(--danger, #dc2626)', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '8px', letterSpacing: '0.5px' } }, mod.badge)
             )
           ),
           // Externe Links
@@ -2059,6 +2082,357 @@
     }
 
     // ═══════════════════════════════════════════════
+    // SPRINT 3 · HUB-ADMIN
+    // ═══════════════════════════════════════════════
+    // AdminService: demo ↔ produktiv. Produktiv läuft AUSSCHLIESSLICH über
+    // die PIN-gated Edge Function dashboard-admin (service_role, audit_log).
+    // Der Hub hält selbst keinen Supabase-Session-Token — Admin-Aktionen
+    // werden serverseitig per PIN autorisiert.
+
+    const __ADMIN_DEMO = window.__KRS_HUB_FORCE_DEMO === true;
+
+    function makeDemoAdminStore() {
+      // Lehrkräfte aus der vorhandenen Liste ableiten (stabile Demo-IDs)
+      const users = LEHRKRAEFTE.map((l, i) => ({
+        id: i + 1, kuerzel: l.kuerzel, name: l.name, vorname: l.vorname || '',
+        email: (l.kuerzel || ('u' + i)).toLowerCase() + '@realschule-schriesheim.de',
+        role: l.role === 'admin' ? 'admin' : 'member'
+      }));
+      const koffer = [
+        { id: 1, barcode: 'KOFFER-01', bezeichnung: 'iPad-Koffer 1 (16 Geräte)', typ: 'ipad_koffer', kapazitaet: 16, standort: 'Medienraum E04', aktiv: true },
+        { id: 2, barcode: 'KOFFER-02', bezeichnung: 'iPad-Koffer 2 (16 Geräte)', typ: 'ipad_koffer', kapazitaet: 16, standort: 'Medienraum E04', aktiv: true },
+        { id: 3, barcode: 'BEAMER-01', bezeichnung: 'Mobiler Beamer (Epson)', typ: 'beamer', kapazitaet: 1, standort: 'Lehrerzimmer', aktiv: true }
+      ];
+      const teams = [
+        { id: 1, name: 'Kollegium' }, { id: 2, name: 'Fachschaft Musik' }, { id: 3, name: 'SMV' }
+      ];
+      const members = { 1: [1,2,3,4], 2: [1,5], 3: [1,3] };
+      const klassenarbeiten = [
+        { id: 'ka1', klasse: '8a', fach: 'Mathematik', datum: '2026-06-24', lehrer: 'Joos' },
+        { id: 'ka2', klasse: '9b', fach: 'Deutsch', datum: '2026-06-26', lehrer: 'Weber' }
+      ];
+      return { users, koffer, teams, members, klassenarbeiten, _seq: 100 };
+    }
+
+    function AdminService(profile, pin) {
+      this.profile = profile;
+      this.pin = pin || null;
+      this.isDemo = __ADMIN_DEMO || !pin;
+      this.store = __ADMIN_DEMO ? (window.__ADMIN_STORE || (window.__ADMIN_STORE = makeDemoAdminStore())) : null;
+    }
+    AdminService.prototype.isSuperadmin = function () {
+      return CONFIG.ADMIN.SUPERADMINS.indexOf(this.profile && this.profile.kuerzel) !== -1;
+    };
+    AdminService.prototype._post = function (payload) {
+      return fetch(CONFIG.ADMIN.EDGE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': CONFIG.ADMIN.ANON_KEY, 'Authorization': 'Bearer ' + CONFIG.ADMIN.ANON_KEY },
+        body: JSON.stringify(Object.assign({ kuerzel: this.profile.kuerzel, pin: this.pin }, payload))
+      }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+    };
+
+    // ── Lehrkräfte ──
+    AdminService.prototype.listUsers = function () {
+      if (this.isDemo) return Promise.resolve(this.store.users.slice());
+      return this._post({ action: 'list', table: 'users' }).then(function (j) { return j.rows || []; });
+    };
+    AdminService.prototype.saveUser = function (u) {
+      if (this.isDemo) {
+        if (u.id) { var ex = this.store.users.find(function (x) { return x.id === u.id; }); Object.assign(ex, u); return Promise.resolve(ex); }
+        var row = Object.assign({ id: ++this.store._seq, role: 'member' }, u); this.store.users.push(row); return Promise.resolve(row);
+      }
+      return this._post({ action: 'upsert', table: 'users', payload: u }).then(function (j) { return j.row; });
+    };
+    AdminService.prototype.setRole = function (id, role) {
+      if (!this.isSuperadmin()) return Promise.reject(new Error('nur Superadmin'));
+      if (this.isDemo) { var ex = this.store.users.find(function (x) { return x.id === id; }); if (ex) ex.role = role; return Promise.resolve(true); }
+      return this._post({ action: 'set_role', table: 'users', id: id, payload: { role: role } });
+    };
+    AdminService.prototype.importUsers = function (rows) {
+      var self = this;
+      return Promise.all(rows.map(function (r) { return self.saveUser(r); }));
+    };
+
+    // ── iPad-Koffer ──
+    AdminService.prototype.listKoffer = function () {
+      if (this.isDemo) return Promise.resolve(this.store.koffer.slice());
+      return this._post({ action: 'list', table: 'koffer_physisch' }).then(function (j) { return j.rows || []; });
+    };
+    AdminService.prototype.saveKoffer = function (k) {
+      if (this.isDemo) {
+        if (k.id) { var ex = this.store.koffer.find(function (x) { return x.id === k.id; }); Object.assign(ex, k); return Promise.resolve(ex); }
+        var row = Object.assign({ id: ++this.store._seq, aktiv: true }, k); this.store.koffer.push(row); return Promise.resolve(row);
+      }
+      return this._post({ action: 'upsert', table: 'koffer_physisch', payload: k }).then(function (j) { return j.row; });
+    };
+
+    // ── Mitgliedschaften ──
+    AdminService.prototype.listTeams = function () {
+      if (this.isDemo) return Promise.resolve(this.store.teams.slice());
+      return this._post({ action: 'list', table: 'teams' }).then(function (j) { return j.rows || []; });
+    };
+    AdminService.prototype.listMembers = function (teamId) {
+      if (this.isDemo) {
+        var ids = this.store.members[teamId] || [];
+        var us = this.store.users;
+        return Promise.resolve(ids.map(function (id) { return us.find(function (u) { return u.id === id; }); }).filter(Boolean));
+      }
+      // Produktiv: team_members liefert {user_id,...} → auf {id} normalisieren
+      return this._post({ action: 'list', table: 'team_members', payload: { team_id: teamId } })
+        .then(function (j) { return (j.rows || []).map(function (r) { return { id: r.user_id, role: r.role }; }); });
+    };
+    AdminService.prototype.setMembership = function (teamId, userId, present) {
+      if (this.isDemo) {
+        var arr = this.store.members[teamId] || (this.store.members[teamId] = []);
+        var idx = arr.indexOf(userId);
+        if (present && idx === -1) arr.push(userId);
+        if (!present && idx !== -1) arr.splice(idx, 1);
+        return Promise.resolve(true);
+      }
+      return this._post({ action: present ? 'membership_add' : 'membership_remove', table: 'team_members', payload: { team_id: teamId, user_id: userId } });
+    };
+
+    // ── Klassenarbeiten (GAS-Bridge) ──
+    AdminService.prototype.listKlassenarbeiten = function () {
+      if (this.isDemo) return Promise.resolve(this.store.klassenarbeiten.slice());
+      if (!CONFIG.ADMIN.GAS_KLASSENARBEIT_URL) return Promise.reject(new Error('GAS-Endpoint nicht konfiguriert'));
+      return this._post({ action: 'gas_proxy', payload: { op: 'list' } }).then(function (j) { return j.rows || []; });
+    };
+    AdminService.prototype.deleteKlassenarbeit = function (id) {
+      if (this.isDemo) { this.store.klassenarbeiten = this.store.klassenarbeiten.filter(function (k) { return k.id !== id; }); return Promise.resolve(true); }
+      if (!CONFIG.ADMIN.GAS_KLASSENARBEIT_URL) return Promise.reject(new Error('GAS-Endpoint nicht konfiguriert'));
+      return this._post({ action: 'gas_proxy', payload: { op: 'delete', id: id } });
+    };
+
+    // ── CSV-Parser (Header-Erkennung, Excel-tauglich) ──
+    function parseUsersCSV(text) {
+      var lines = text.replace(/\r\n/g, '\n').split('\n').filter(function (l) { return l.trim(); });
+      if (!lines.length) return { valid: [], errors: [] };
+      var delim = (lines[0].indexOf(';') > -1) ? ';' : ',';
+      var header = lines[0].split(delim).map(function (h) { return h.trim().toLowerCase(); });
+      var hasHeader = header.some(function (h) { return /kürzel|kuerzel|name|email|e-mail/.test(h); });
+      var rows = hasHeader ? lines.slice(1) : lines;
+      var col = function (names) { for (var i = 0; i < header.length; i++) { if (names.indexOf(header[i]) > -1) return i; } return -1; };
+      var ci = hasHeader ? { k: col(['kürzel','kuerzel','kuerzel ']), n: col(['name','nachname']), v: col(['vorname']), e: col(['email','e-mail','mail']) } : { k: 0, n: 1, v: 2, e: 3 };
+      var valid = [], errors = [];
+      rows.forEach(function (line, idx) {
+        var c = line.split(delim).map(function (x) { return x.trim().replace(/^"(.*)"$/, '$1'); });
+        var u = { kuerzel: c[ci.k] || '', name: c[ci.n] || '', vorname: ci.v > -1 ? (c[ci.v] || '') : '', email: ci.e > -1 ? (c[ci.e] || '') : '', role: 'member' };
+        if (!u.kuerzel || !u.name) { errors.push({ line: idx + 1, raw: line, reason: 'Kürzel oder Name fehlt' }); return; }
+        valid.push(u);
+      });
+      return { valid: valid, errors: errors };
+    }
+
+    // ── Admin-Panel UI ──
+    const ADM = {
+      overlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
+      panel: { background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '760px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
+      head: { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', borderBottom: '1px solid #e2e8f0' },
+      tabs: { display: 'flex', gap: '4px', padding: '8px 12px', borderBottom: '1px solid #e2e8f0', flexWrap: 'wrap' },
+      tab: function (a) { return { minHeight: '40px', padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: a ? '#2563eb' : '#f1f5f9', color: a ? '#fff' : '#334155' }; },
+      body: { padding: '16px 18px', overflowY: 'auto' },
+      row: { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '6px' },
+      input: { minHeight: '40px', padding: '0 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', width: '100%' },
+      btn: function (kind) { var c = { primary: '#2563eb', danger: '#dc2626', ghost: '#475569' }[kind] || '#2563eb'; return { minHeight: '40px', padding: '0 14px', borderRadius: '8px', border: kind === 'ghost' ? '1px solid #cbd5e1' : 'none', background: kind === 'ghost' ? '#fff' : c, color: kind === 'ghost' ? '#334155' : '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }; }
+    };
+
+    function AdminPanel({ profile, onClose }) {
+      const [pin, setPin] = useState('');
+      const [authed, setAuthed] = useState(__ADMIN_DEMO);
+      const [svc, setSvc] = useState(() => new AdminService(profile, null));
+      const [tab, setTab] = useState('lehrer');
+      const [busy, setBusy] = useState(false);
+
+      const unlock = useCallback(() => {
+        if (__ADMIN_DEMO) { setAuthed(true); return; }
+        if (pin.length < 4) { showToast('PIN zu kurz', 'error'); return; }
+        setBusy(true);
+        const s = new AdminService(profile, pin);
+        s._post({ action: 'verify_only' })
+          .then(() => { setSvc(s); setAuthed(true); showToast('Admin entsperrt', 'success'); })
+          .catch((err) => showToast(err.message || 'PIN falsch', 'error'))
+          .finally(() => setBusy(false));
+      }, [pin, profile]);
+
+      // ESC schließt
+      useEffect(() => {
+        const h = (ev) => { if (ev.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', h);
+        return () => document.removeEventListener('keydown', h);
+      }, [onClose]);
+
+      const header = e('div', { style: ADM.head },
+        e('span', { style: { fontSize: '20px' } }, '⚙️'),
+        e('div', { style: { flex: 1 } },
+          e('div', { style: { fontWeight: 700, fontSize: '16px' } }, 'Administration'),
+          e('div', { style: { fontSize: '12px', color: '#64748b' } }, (profile && profile.display_name) + (svc.isSuperadmin() ? ' · Superadmin' : '') + (__ADMIN_DEMO ? ' · Demo' : ''))
+        ),
+        e('button', { style: ADM.btn('ghost'), onClick: onClose, 'aria-label': 'Schließen', 'data-testid': 'admin-close' }, '✕')
+      );
+
+      if (!authed) {
+        return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel' },
+          e('div', { style: ADM.panel }, header,
+            e('div', { style: ADM.body },
+              e('p', { style: { fontSize: '14px', marginBottom: '12px', color: '#334155' } }, 'Bitte Admin-PIN eingeben, um fortzufahren.'),
+              e('input', { style: ADM.input, type: 'password', inputMode: 'numeric', value: pin, placeholder: 'Admin-PIN', 'data-testid': 'admin-pin',
+                onChange: (ev) => setPin(ev.target.value), onKeyDown: (ev) => { if (ev.key === 'Enter') unlock(); } }),
+              e('div', { style: { marginTop: '12px' } },
+                e('button', { style: ADM.btn('primary'), onClick: unlock, disabled: busy, 'data-testid': 'admin-unlock' }, busy ? 'Prüfe …' : 'Entsperren'))
+            )
+          )
+        );
+      }
+
+      const tabs = [['lehrer','👤 Lehrkräfte'],['koffer','📱 iPad-Koffer'],['mitglieder','👥 Mitgliedschaften'],['ka','📅 Klassenarbeiten']];
+      return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel', onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
+        e('div', { style: ADM.panel },
+          header,
+          e('div', { style: ADM.tabs, role: 'tablist' },
+            tabs.map(([id, label]) => e('button', { key: id, style: ADM.tab(tab === id), onClick: () => setTab(id), 'data-testid': 'admin-tab-' + id, role: 'tab', 'aria-selected': tab === id }, label))
+          ),
+          e('div', { style: ADM.body },
+            tab === 'lehrer' && e(AdminLehrer, { svc: svc }),
+            tab === 'koffer' && e(AdminKoffer, { svc: svc }),
+            tab === 'mitglieder' && e(AdminMitglieder, { svc: svc }),
+            tab === 'ka' && e(AdminKlassenarbeiten, { svc: svc })
+          )
+        )
+      );
+    }
+
+    function AdminLehrer({ svc }) {
+      const [users, setUsers] = useState([]);
+      const [form, setForm] = useState({ kuerzel: '', name: '', vorname: '', email: '' });
+      const [csv, setCsv] = useState('');
+      const [preview, setPreview] = useState(null);
+      const reload = useCallback(() => { svc.listUsers().then(setUsers).catch((e2) => showToast(e2.message, 'error')); }, [svc]);
+      useEffect(reload, [reload]);
+
+      const add = () => {
+        if (!form.kuerzel || !form.name) { showToast('Kürzel und Name nötig', 'error'); return; }
+        svc.saveUser(form).then(() => { showToast('Lehrkraft gespeichert', 'success'); setForm({ kuerzel: '', name: '', vorname: '', email: '' }); reload(); })
+          .catch((e2) => showToast(e2.message, 'error'));
+      };
+      const toggleRole = (u) => {
+        svc.setRole(u.id, u.role === 'admin' ? 'member' : 'admin')
+          .then(() => { showToast('Rolle geändert', 'success'); reload(); })
+          .catch((e2) => showToast(e2.message, 'error'));
+      };
+      const doImport = () => {
+        const res = parseUsersCSV(csv); setPreview(res);
+      };
+      const confirmImport = () => {
+        if (!preview || !preview.valid.length) return;
+        svc.importUsers(preview.valid).then(() => { showToast(preview.valid.length + ' importiert', 'success'); setCsv(''); setPreview(null); reload(); })
+          .catch((e2) => showToast(e2.message, 'error'));
+      };
+
+      return e('div', { 'data-testid': 'admin-lehrer' },
+        e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Neue Lehrkraft'),
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' } },
+          e('input', { style: ADM.input, placeholder: 'Kürzel', value: form.kuerzel, 'data-testid': 'lehrer-kuerzel', onChange: (ev) => setForm(Object.assign({}, form, { kuerzel: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'Name', value: form.name, 'data-testid': 'lehrer-name', onChange: (ev) => setForm(Object.assign({}, form, { name: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'Vorname', value: form.vorname, onChange: (ev) => setForm(Object.assign({}, form, { vorname: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'E-Mail', value: form.email, onChange: (ev) => setForm(Object.assign({}, form, { email: ev.target.value })) })
+        ),
+        e('button', { style: ADM.btn('primary'), onClick: add, 'data-testid': 'lehrer-add' }, '＋ Hinzufügen'),
+
+        e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'CSV-Import (Kürzel;Name;Vorname;E-Mail)'),
+        e('textarea', { style: Object.assign({}, ADM.input, { minHeight: '64px', padding: '8px 10px' }), value: csv, placeholder: 'Kürzel;Name;Vorname;E-Mail\nMu;Müller;Eva;mu@realschule-schriesheim.de', 'data-testid': 'lehrer-csv', onChange: (ev) => setCsv(ev.target.value) }),
+        e('div', { style: { marginTop: '6px', display: 'flex', gap: '8px' } },
+          e('button', { style: ADM.btn('ghost'), onClick: doImport, 'data-testid': 'lehrer-csv-preview' }, 'Vorschau'),
+          preview && preview.valid.length > 0 && e('button', { style: ADM.btn('primary'), onClick: confirmImport, 'data-testid': 'lehrer-csv-confirm' }, 'Import (' + preview.valid.length + ')')
+        ),
+        preview && e('div', { style: { fontSize: '12px', color: '#475569', marginTop: '6px' }, 'data-testid': 'lehrer-csv-result' },
+          preview.valid.length + ' gültig, ' + preview.errors.length + ' fehlerhaft'),
+
+        e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Lehrkräfte (' + users.length + ')'),
+        users.map((u) => e('div', { key: u.id, style: ADM.row, 'data-testid': 'lehrer-row' },
+          e('div', { style: { flex: 1 } },
+            e('div', { style: { fontSize: '13px', fontWeight: 600 } }, (u.vorname ? u.vorname + ' ' : '') + u.name + ' (' + u.kuerzel + ')'),
+            e('div', { style: { fontSize: '11px', color: '#64748b' } }, u.email || '–')),
+          e('span', { style: { fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: u.role === 'admin' ? '#ede9fe' : '#f1f5f9', color: u.role === 'admin' ? '#6d28d9' : '#475569' }, 'data-testid': 'lehrer-role' }, u.role),
+          svc.isSuperadmin() && e('button', { style: ADM.btn('ghost'), onClick: () => toggleRole(u), 'data-testid': 'lehrer-togglerole' }, u.role === 'admin' ? '→ member' : '→ admin')
+        ))
+      );
+    }
+
+    function AdminKoffer({ svc }) {
+      const [koffer, setKoffer] = useState([]);
+      const [form, setForm] = useState({ barcode: '', bezeichnung: '', typ: 'ipad_koffer', kapazitaet: 1, standort: '' });
+      const reload = useCallback(() => { svc.listKoffer().then(setKoffer).catch((e2) => showToast(e2.message, 'error')); }, [svc]);
+      useEffect(reload, [reload]);
+      const add = () => {
+        if (!form.barcode || !form.bezeichnung) { showToast('Barcode und Bezeichnung nötig', 'error'); return; }
+        svc.saveKoffer(Object.assign({}, form, { kapazitaet: Number(form.kapazitaet) || 1 }))
+          .then(() => { showToast('Koffer gespeichert', 'success'); setForm({ barcode: '', bezeichnung: '', typ: 'ipad_koffer', kapazitaet: 1, standort: '' }); reload(); })
+          .catch((e2) => showToast(e2.message, 'error'));
+      };
+      const toggleAktiv = (k) => { svc.saveKoffer({ id: k.id, aktiv: !k.aktiv }).then(() => reload()).catch((e2) => showToast(e2.message, 'error')); };
+      return e('div', { 'data-testid': 'admin-koffer' },
+        e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Neuer Koffer / Gerät'),
+        e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' } },
+          e('input', { style: ADM.input, placeholder: 'Barcode', value: form.barcode, 'data-testid': 'koffer-barcode', onChange: (ev) => setForm(Object.assign({}, form, { barcode: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'Bezeichnung', value: form.bezeichnung, 'data-testid': 'koffer-bez', onChange: (ev) => setForm(Object.assign({}, form, { bezeichnung: ev.target.value })) }),
+          e('select', { style: ADM.input, value: form.typ, onChange: (ev) => setForm(Object.assign({}, form, { typ: ev.target.value })) },
+            e('option', { value: 'ipad_koffer' }, 'iPad-Koffer'), e('option', { value: 'beamer' }, 'Beamer'), e('option', { value: 'sonstiges' }, 'Sonstiges')),
+          e('input', { style: ADM.input, type: 'number', min: 0, placeholder: 'Kapazität', value: form.kapazitaet, onChange: (ev) => setForm(Object.assign({}, form, { kapazitaet: ev.target.value })) }),
+          e('input', { style: Object.assign({}, ADM.input, { gridColumn: '1 / 3' }), placeholder: 'Standort', value: form.standort, onChange: (ev) => setForm(Object.assign({}, form, { standort: ev.target.value })) })
+        ),
+        e('button', { style: ADM.btn('primary'), onClick: add, 'data-testid': 'koffer-add' }, '＋ Anlegen'),
+        e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Bestand (' + koffer.length + ')'),
+        koffer.map((k) => e('div', { key: k.id, style: ADM.row, 'data-testid': 'koffer-row' },
+          e('div', { style: { flex: 1 } },
+            e('div', { style: { fontSize: '13px', fontWeight: 600 } }, k.bezeichnung),
+            e('div', { style: { fontSize: '11px', color: '#64748b' } }, k.barcode + ' · ' + (k.standort || '–'))),
+          e('span', { style: { fontSize: '11px', fontWeight: 700, color: k.aktiv ? '#16a34a' : '#dc2626' } }, k.aktiv ? 'aktiv' : 'inaktiv'),
+          e('button', { style: ADM.btn('ghost'), onClick: () => toggleAktiv(k), 'data-testid': 'koffer-toggle' }, k.aktiv ? 'deaktivieren' : 'aktivieren')
+        ))
+      );
+    }
+
+    function AdminMitglieder({ svc }) {
+      const [teams, setTeams] = useState([]);
+      const [teamId, setTeamId] = useState(null);
+      const [members, setMembers] = useState([]);
+      const [allUsers, setAllUsers] = useState([]);
+      useEffect(() => { svc.listTeams().then((t) => { setTeams(t); if (t[0]) setTeamId(t[0].id); }); svc.listUsers().then(setAllUsers); }, [svc]);
+      const reloadMembers = useCallback(() => { if (teamId != null) svc.listMembers(teamId).then(setMembers); }, [svc, teamId]);
+      useEffect(reloadMembers, [reloadMembers]);
+      const memberIds = new Set(members.map((m) => m.id));
+      const toggle = (u) => { svc.setMembership(teamId, u.id, !memberIds.has(u.id)).then(() => { showToast('Mitgliedschaft aktualisiert', 'success'); reloadMembers(); }).catch((e2) => showToast(e2.message, 'error')); };
+      return e('div', { 'data-testid': 'admin-mitglieder' },
+        e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Forum / Team'),
+        e('select', { style: ADM.input, value: teamId || '', 'data-testid': 'mitglieder-team', onChange: (ev) => setTeamId(Number(ev.target.value)) },
+          teams.map((t) => e('option', { key: t.id, value: t.id }, t.name))),
+        e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Mitglieder (' + members.length + ')'),
+        allUsers.map((u) => e('div', { key: u.id, style: ADM.row, 'data-testid': 'mitglieder-row' },
+          e('div', { style: { flex: 1, fontSize: '13px' } }, (u.vorname ? u.vorname + ' ' : '') + u.name + ' (' + u.kuerzel + ')'),
+          e('button', { style: ADM.btn(memberIds.has(u.id) ? 'ghost' : 'primary'), onClick: () => toggle(u), 'data-testid': 'mitglieder-toggle' }, memberIds.has(u.id) ? '✓ Mitglied' : '+ hinzufügen')
+        ))
+      );
+    }
+
+    function AdminKlassenarbeiten({ svc }) {
+      const [items, setItems] = useState([]);
+      const [err, setErr] = useState(null);
+      const reload = useCallback(() => { svc.listKlassenarbeiten().then((r) => { setItems(r); setErr(null); }).catch((e2) => setErr(e2.message)); }, [svc]);
+      useEffect(reload, [reload]);
+      const del = (k) => { svc.deleteKlassenarbeit(k.id).then(() => { showToast('Gelöscht', 'success'); reload(); }).catch((e2) => showToast(e2.message, 'error')); };
+      if (err) return e('div', { 'data-testid': 'admin-ka' }, e('p', { style: { fontSize: '13px', color: '#d97706' } }, '⚠ ' + err + ' — Klassenarbeiten-Löschen läuft über den GAS-Admin-Endpoint (CONFIG.ADMIN.GAS_KLASSENARBEIT_URL).'));
+      return e('div', { 'data-testid': 'admin-ka' },
+        e('p', { style: { fontSize: '12px', color: '#64748b', marginBottom: '8px' } }, 'Quelle: Klassenarbeitsplan (GAS-Bridge). Löschen ist endgültig.'),
+        items.map((k) => e('div', { key: k.id, style: ADM.row, 'data-testid': 'ka-row' },
+          e('div', { style: { flex: 1, fontSize: '13px' } }, k.datum + ' · ' + k.klasse + ' ' + k.fach + (k.lehrer ? ' (' + k.lehrer + ')' : '')),
+          e('button', { style: ADM.btn('danger'), onClick: () => del(k), 'data-testid': 'ka-delete' }, 'Löschen')
+        )),
+        items.length === 0 && e('p', { style: { fontSize: '13px', color: '#64748b' } }, 'Keine Klassenarbeiten.')
+      );
+    }
+
+    // ═══════════════════════════════════════════════
     // MAIN APP
     // ═══════════════════════════════════════════════
 
@@ -2068,6 +2442,7 @@
       const [setupKuerzel, setSetupKuerzel] = useState('');
       const [activeModule, setActiveModule] = useState(null);
       const [showUserMenu, setShowUserMenu] = useState(false);
+      const [showAdmin, setShowAdmin] = useState(false);
       const [unreadCounts, setUnreadCounts] = useState(new Map());
 
       // ── Hash Router ────────────────────────────
@@ -2094,8 +2469,15 @@
       useEffect(() => {
         // CI/Test-Override: forceMode=demo → Auth überspringen mit Demo-Profil
         if (window.__KRS_HUB_FORCE_DEMO === true) {
-          const demoProfile = {
-            kuerzel: 'Demo',
+          const __fu = window.__KRS_HUB_FORCE_USER;
+          const __match = __fu && LEHRKRAEFTE.find(l => l.kuerzel === __fu);
+          const demoProfile = __match ? {
+            kuerzel: __match.kuerzel,
+            display_name: (__match.vorname ? __match.vorname + ' ' : '') + __match.name,
+            name: __match.name, vorname: __match.vorname || '',
+            role: 'admin', avatar_color: __match.avatar_color
+          } : {
+            kuerzel: __fu || 'Demo',
             display_name: 'Demo Lehrer',
             name: 'Demo',
             vorname: 'Test',
@@ -2259,7 +2641,8 @@
             activeModule,
             onModuleSelect: handleModuleSelect,
             unreadCounts,
-            profile
+            profile,
+            onAdmin: () => setShowAdmin(true)
           }),
           e('div', { className: 'main' },
             e(TopBar, {
@@ -2275,7 +2658,8 @@
             e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts })
           )
         ),
-        showUserMenu && e(UserMenu, { profile, onClose: () => setShowUserMenu(false), onLogout: handleLogout, onLock: handleLock }),
+        showUserMenu && e(UserMenu, { profile, onClose: () => setShowUserMenu(false), onLogout: handleLogout, onLock: handleLock, onAdmin: () => { setShowAdmin(true); setShowUserMenu(false); } }),
+        showAdmin && profile?.role === 'admin' && e(AdminPanel, { profile, onClose: () => setShowAdmin(false) }),
         e(ToastContainer)
       );
     }

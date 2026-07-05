@@ -1493,38 +1493,41 @@
     // ── Welcome Screen ─────────────────────────────
     // ── Demo-Daten für Startseite ─────────────────
     const DASHBOARD_DATA = {
-      weekLabel: 'Schulwoche 24',
+      weekLabel: 'Schulwoche 35',
       termine: [
-        { date: 'Mo 23.03.', text: '9a Drogenprävention 3+4 Std.' },
-        { date: 'Mo 23.03.', text: '9d Drogenprävention 5+6 Std.' },
-        { date: 'Di 24.03.', text: '9c BORS Betriebsbesichtigung Freudenberg' },
-        { date: 'Di 24.03.', text: '8d BORS Betriebsbesichtigung Freudenberg' },
-        { date: 'Mi 25.03.', text: '9c Drogenprävention 5+6 Std.' },
-        { date: 'Mi 25.03.', text: '9b Drogenprävention 3+4 Std.' },
-        { date: 'Do+Fr 26.+27.03.', text: 'Planungstage Werkstattschule Te Kl. 8' }
+        { date: 'Mo 06.07.', text: '5a AUV Belohnungstag am Push-Gelände (Lehrkraft A & B)' },
+        { date: 'Mo 06.07.', text: '6b Katastrophenschutztag bei Feuerwehr, 2.–5. Std. (Lehrkraft C)' },
+        { date: 'Di 07.07.', text: '9c AUV Kletterpark Wald-Michelbach (Lehrkraft D, E & F)' },
+        { date: 'Di 07.07.', text: '6a Katastrophenschutztag bei Feuerwehr, 2.–5. Std. (Lehrkraft G & H)' },
+        { date: 'Mi 08.07.', text: 'Mündliche Prüfungen GMRS Heidelberg' },
+        { date: 'Mi 08.07.', text: '7er Gewaltschutztraining während Sportunterricht' },
+        { date: 'Do 09.07.', text: 'Mündliche Prüfungen KRS' },
+        { date: 'Do 09.07.', text: 'DB 13:15 Uhr + AG Teams u. ZWK' },
+        { date: 'Fr 10.07.', text: '10a+10c AUV (Lehrkraft I & J)' },
+        { date: 'Fr 10.07.', text: 'Energiewendetruck für Klassenstufe 7' }
       ],
       dienste: {
         kueche: 'Lehrkraft C & Lehrkraft D',
         hof: '9c'
       },
       mitteilungen: [
-        { title: 'Klassenbücher vervollständigen!', text: 'Die Schulleitung bittet darum, vor den Ferien alle Klassenbücher zu vervollständigen. Bitte zeitnah erledigen!' },
-        { title: 'Mathaisemarkt — Vielen Dank!', text: 'Danke an alle KuK! Eindrücke und Bilder auf der HP.' },
-        { title: 'Lehrerausflug 30.04.2026', text: 'Info siehe Aushang LZ. Organisation: Lehrkraft C.' },
-        { title: 'Schweigepflichtentbindungen', text: 'Formular vom Sekretariat auf Teams bereitgestellt.' }
+        { title: 'Frau Carse krankheitsbedingt abwesend', text: 'Die Schulleiterin ist die komplette Woche (bis 10.07.) krankheitsbedingt nicht im Haus.' },
+        { title: 'Mi 08.07.: Keine SL im Haus', text: 'Vertretungsplanung übernimmt Lehrkraft K. Dienstältester im Haus: Lehrkraft L.' },
+        { title: 'DB am Do 09.07., 13:15 Uhr', text: 'Ab 13:00 Uhr kleiner Fingerfood-Snack anlässlich eines Geburtstags. Im Anschluss Aufteilung in 2 AGs ab ca. 14:15 Uhr.' },
+        { title: 'USB-Sticks Prüfungen', text: 'Bitte alle USB-Sticks von den Englisch-/Französisch-Hörverstehen-Prüfungen zurückgeben.' }
       ],
       faqs: [
         {
-          title: 'Projekttage & Schulfest 2026',
-          content: 'Projekttage 21.–23.07.2026, Schulfest-Vorbereitung 24.07.2026.\nKoordination: Lehrkraft C & Lehrkraft D.\nKostenneutral, pro KuK 12 SuS, mind. 2.–5. Std.\nProjektausschreibung in GLK am 16.04.2026.'
+          title: 'Mündliche Prüfungen & Dienstbesprechung',
+          content: 'Mi 08.07.: Mündliche Prüfungen GMRS Heidelberg, keine SL im Haus (Vertretungsplanung: Lehrkraft K, Dienstältester: Lehrkraft L).\nFrau Carse ist krankheitsbedingt die ganze Woche abwesend.\nDo 09.07., 13:15 Uhr: DB (ca. 46–60 Min.), davor ab 13:00 Uhr Fingerfood-Snack.\nTagesordnung: Ablauf Projekttage & Schulfest, Ausblick Abschlussfeier, TEAMS 2.0, NEO, Verschiedenes.\nAb ca. 14:15 Uhr Aufteilung in 2 AGs: AG 1 Feedback/Evaluation ZWK, AG 2 TEAMS 2.0 (Laptop oder iPad mitbringen).'
         },
         {
-          title: 'Mathaisemarkt — Beteiligte & Dank',
-          content: 'Mathaisemarktlauf: Lehrkraft E & Lehrkraft F.\nWeinprämierung: Lehrkraft G & Lehrkraft H.\nTanzprojekt: Lehrkraft B & Lehrkraft C.\nEindrücke und Bilder auf der Homepage.'
+          title: 'Neue Homepage & NEO',
+          content: 'Die Schulhomepage wurde neu aufgesetzt. Bitte alle Kolleg:innen ihre Bereiche/AGs auf Aktualität prüfen und Rückmeldung geben.\nTest-Link (noch nicht die finale Adresse): https://test.realschule-schriesheim.de/\nNEO wird im Laufe der zweiten Wochenhälfte zur Noteneingabe freigeschaltet.\nUSB-Sticks der Hörverstehen-Prüfungen bitte zurückgeben.'
         }
       ],
       downloadUrl: '#',
-      downloadLabel: 'FAQ Woche 24 (PDF)'
+      downloadLabel: 'FAQ Woche 35 (PDF)'
     };
 
     function WelcomeScreen({ onModuleSelect, profile }) {

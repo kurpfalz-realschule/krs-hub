@@ -874,6 +874,10 @@
     </div>
   </div>
 
+  <!-- S2: Tenant-Konfiguration — schulspezifische, NICHT-personenbezogene
+       Werte (E-Mail-Domain, Homepage-Links) liegen in tenant.js
+       (Whitelabel-Muster). Der App-Code bleibt schul-neutral. -->
+  <script src="tenant.js"></script>
   <script>
     // CDN-Verfügbarkeitsprüfung
     if (!window.React || !window.ReactDOM) {
@@ -894,14 +898,16 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.0.0-unified-login',
+      VERSION: '3.1.0-s2-klarnamen',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
       // Gleiche Origin + gleiches Projekt wie Connect → EINE Session für beide.
       SUPABASE_URL: 'https://ooejsfixxiuobrpqgfqm.supabase.co',
       SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vZWpzZml4eGl1b2JycHFnZnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjQ5MDYsImV4cCI6MjA4OTYwMDkwNn0.GbAv-sB4B8nNE3IPfiYIjbkMKs0Aq03c_-TUcmFY_5s',
-      ALLOWED_EMAIL_DOMAIN: 'realschule-schriesheim.de',
+      // S2: Domain kommt aus tenant.js. Fail-closed: fehlt tenant.js,
+      // matcht keine Domain → Login wird abgelehnt (kein offenes Gate).
+      ALLOWED_EMAIL_DOMAIN: (window.KRS_TENANT && window.KRS_TENANT.EMAIL_DOMAIN) || '',
       ALLOWED_ORIGINS: [
         window.location.origin,
         'https://kurpfalz-realschule.github.io'
@@ -950,9 +956,9 @@
         }
       ],
       EXTERNAL_LINKS: [
-        { id: 'homepage', name: 'Homepage', icon: '🌐', url: 'https://realschule-schriesheim.de/' },
+        { id: 'homepage', name: 'Homepage', icon: '🌐', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#' },
         { id: 'untis', name: 'Untis', icon: '📊', url: 'https://mese.webuntis.com/WebUntis/?school=KRS+Schriesheim#/basic/login' },
-        { id: 'kalender', name: 'Kalender', icon: '🗓️', url: 'https://realschule-schriesheim.de/terminuebersicht-im-kalenderformat/' }
+        { id: 'kalender', name: 'Kalender', icon: '🗓️', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' }
       ],
       // Sprint 3: Hub-Admin (Edge-Function dashboard-admin, PIN-gated, service_role)
       ADMIN: {
@@ -974,27 +980,22 @@
       }
     };
 
-    // ── Lehrkräfte der KRS (Admin-vorbefüllte Liste) ─
-    // → Nur diese Personen können sich registrieren
-    // → Kürzel + Name müssen übereinstimmen
-    // → Wird in Phase 2 durch iServ-Gruppen ersetzt
-    const LEHRKRAEFTE = [
-      { kuerzel: 'Ko', name: 'Kotzan', vorname: 'Norbert', role: 'admin', avatar_color: '#7c6ff7' },
-      { kuerzel: 'Ca', name: 'Carse', vorname: 'Petra', role: 'admin', avatar_color: '#e74c8b' },
-      { kuerzel: 'Sch', name: 'Schmitt', vorname: 'Daniel', role: 'admin', avatar_color: '#2563eb' },
-      { kuerzel: 'Jo', name: 'Joos', vorname: 'Nadine', role: 'teacher', avatar_color: '#16a34a' },
-      { kuerzel: 'Ja', name: 'Jacob', vorname: 'Charlotte', role: 'teacher', avatar_color: '#d97706' },
-      { kuerzel: 'Sp', name: 'Spingel', vorname: 'Silke', role: 'teacher', avatar_color: '#0ea5e9' },
-      { kuerzel: 'Ma', name: 'Martinez', vorname: 'Manuel', role: 'teacher', avatar_color: '#dc2626' },
-      { kuerzel: 'PSch', name: 'Schmitt P.', vorname: 'Peter', role: 'teacher', avatar_color: '#8b5cf6' },
-      { kuerzel: 'Scha', name: 'Scharmann', vorname: 'Katharina', role: 'teacher', avatar_color: '#ec4899' },
-      { kuerzel: 'We', name: 'Weber', vorname: 'Julia', role: 'teacher', avatar_color: '#14b8a6' },
-      { kuerzel: 'Ge', name: 'Gehrig', vorname: 'Denise', role: 'teacher', avatar_color: '#f59e0b' },
-      { kuerzel: 'Fi', name: 'Fischer', vorname: '', role: 'teacher', avatar_color: '#6366f1' },
-      { kuerzel: 'Mü', name: 'Müller', vorname: '', role: 'teacher', avatar_color: '#84cc16' },
-      { kuerzel: 'Ap', name: 'Appel', vorname: 'Tanja', role: 'teacher', avatar_color: '#0891b2' },
-      // ── Weitere Lehrkräfte hier ergänzen ──
-      // { kuerzel: 'XX', name: 'Nachname', vorname: 'Vorname', role: 'teacher', avatar_color: '#...' },
+    // ── Demo-Kollegium (anonymisiert) ────────────────
+    // S2 (2026-07-03): Klarnamen echter Lehrkräfte sind aus dem Client
+    // entfernt (DSGVO). Produktiv kommt das Kollegium serverseitig aus der
+    // SECURITY-DEFINER-RPC get_kollegium_public() — nur für eingeloggte
+    // App-User; siehe SupabaseAuthService.getKollegium().
+    // Diese Liste dient NUR dem Demo-/Test-Modus (forceMode=demo).
+    // 'Ko' bleibt als Demo-Kürzel für forceUser=Ko (Superadmin-Pfad).
+    const DEMO_KOLLEGIUM = [
+      { kuerzel: 'Ko', name: 'Demo-Admin',  vorname: '', role: 'admin',   avatar_color: '#7c6ff7' },
+      { kuerzel: 'L2', name: 'Lehrkraft B', vorname: '', role: 'admin',   avatar_color: '#e74c8b' },
+      { kuerzel: 'L3', name: 'Lehrkraft C', vorname: '', role: 'teacher', avatar_color: '#2563eb' },
+      { kuerzel: 'L4', name: 'Lehrkraft D', vorname: '', role: 'teacher', avatar_color: '#16a34a' },
+      { kuerzel: 'L5', name: 'Lehrkraft E', vorname: '', role: 'teacher', avatar_color: '#d97706' },
+      { kuerzel: 'L6', name: 'Lehrkraft F', vorname: '', role: 'teacher', avatar_color: '#0ea5e9' },
+      { kuerzel: 'L7', name: 'Lehrkraft G', vorname: '', role: 'teacher', avatar_color: '#dc2626' },
+      { kuerzel: 'L8', name: 'Lehrkraft H', vorname: '', role: 'teacher', avatar_color: '#8b5cf6' }
     ];
 
     console.log('%c🏫 KRS Hub v' + CONFIG.VERSION + ' — Unified Login Modell B (Supabase, Session geteilt mit Connect)', 'color:#2563eb;font-weight:bold;font-size:14px');
@@ -1085,13 +1086,11 @@
         try { const c = await this.ensureClient(); await c.auth.signOut({ scope: 'local' }); } catch {}
       },
       // Kürzel: Module (z. B. Klassenarbeitsplan) erwarten 'Ko'-Stil.
-      // Quelle: 1) explizites Mapping (Edge-Function/admin_whitelist-Stil),
-      // 2) Spalte users.kuerzel (Backfill aus lehrer.csv), 3) Notbehelf.
-      KUERZEL_BY_EMAIL: {
-        'kotzan@realschule-schriesheim.de': 'Ko',
-        'carse@realschule-schriesheim.de': 'Ca',
-        'schmitt@realschule-schriesheim.de': 'Sch',
-      },
+      // S2: Kein hartkodiertes E-Mail-Mapping mehr (Klarnamen/Adressen raus).
+      // Quelle: 1) Spalte users.kuerzel (DB ist die Wahrheit, Backfill aus
+      // lehrer.csv), 2) Notbehelf deriveKuerzel(). Das leere Objekt bleibt,
+      // damit die Lookup-Kette in loadProfile unverändert funktioniert.
+      KUERZEL_BY_EMAIL: {},
       deriveKuerzel(email, displayName) {
         const nachname = (displayName || '').trim().split(/\s+/).pop() || email;
         return nachname.slice(0, 1).toUpperCase() + nachname.slice(1, 2).toLowerCase();
@@ -1116,7 +1115,32 @@
           email,
         };
       },
+      // S2: Kollegiumsliste — produktiv über die SECURITY-DEFINER-RPC
+      // get_kollegium_public() (liefert nur kuerzel/display_name/role/
+      // avatar_color, nur an eingeloggte App-User; anon hat kein EXECUTE).
+      // Im Demo-Modus kommt die anonymisierte DEMO_KOLLEGIUM-Liste zurück.
+      _kollegiumCache: null,
+      async getKollegium() {
+        if (window.__KRS_HUB_FORCE_DEMO === true) {
+          return DEMO_KOLLEGIUM.map((l, i) => ({
+            id: i + 1,
+            kuerzel: l.kuerzel,
+            display_name: (l.vorname ? l.vorname + ' ' : '') + l.name,
+            role: l.role === 'admin' ? 'admin' : 'member',
+            avatar_color: l.avatar_color
+          }));
+        }
+        if (this._kollegiumCache) return this._kollegiumCache;
+        const c = await this.ensureClient();
+        const { data, error } = await c.rpc('get_kollegium_public');
+        if (error) throw new Error('Kollegium laden fehlgeschlagen: ' + error.message);
+        this._kollegiumCache = data || [];
+        return this._kollegiumCache;
+      },
     };
+    // Für Module/Tests erreichbar (z. B. Lehrerlisten in iframe-Modulen):
+    window.KRSHub = window.KRSHub || {};
+    window.KRSHub.getKollegium = () => SupabaseAuthService.getKollegium();
 
     // ── postMessage Security ───────────────────────
     function createSecureNonce() {
@@ -1204,7 +1228,7 @@
           const profile = session?.user ? await SupabaseAuthService.loadProfile(session.user) : null;
           if (!profile) {
             await SupabaseAuthService.signOut();
-            setStatus({ type: 'error', msg: 'Kein Benutzerprofil gefunden. Bitte bei Norbert Kotzan melden.' });
+            setStatus({ type: 'error', msg: 'Kein Benutzerprofil gefunden. Bitte beim IT-Admin der Schule melden.' });
             setLoading(false);
             return;
           }
@@ -1455,7 +1479,7 @@
         ),
         e('a', {
           className: 'mobile-tab',
-          href: 'https://realschule-schriesheim.de/',
+          href: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#',
           target: '_blank',
           rel: 'noopener noreferrer',
           style: { textDecoration: 'none', color: 'inherit' }
@@ -1480,23 +1504,23 @@
         { date: 'Do+Fr 26.+27.03.', text: 'Planungstage Werkstattschule Te Kl. 8' }
       ],
       dienste: {
-        kueche: 'Nadine & Rouven',
+        kueche: 'Lehrkraft C & Lehrkraft D',
         hof: '9c'
       },
       mitteilungen: [
-        { title: 'Klassenbücher vervollständigen!', text: 'Tanja bittet darum, vor den Ferien alle Klassenbücher zu vervollständigen. Bitte zeitnah erledigen!' },
+        { title: 'Klassenbücher vervollständigen!', text: 'Die Schulleitung bittet darum, vor den Ferien alle Klassenbücher zu vervollständigen. Bitte zeitnah erledigen!' },
         { title: 'Mathaisemarkt — Vielen Dank!', text: 'Danke an alle KuK! Eindrücke und Bilder auf der HP.' },
-        { title: 'Lehrerausflug 30.04.2026', text: 'Info siehe Aushang LZ. Organisation: Nadine.' },
-        { title: 'Schweigepflichtentbindungen', text: 'Formular von Regina auf Teams bereitgestellt.' }
+        { title: 'Lehrerausflug 30.04.2026', text: 'Info siehe Aushang LZ. Organisation: Lehrkraft C.' },
+        { title: 'Schweigepflichtentbindungen', text: 'Formular vom Sekretariat auf Teams bereitgestellt.' }
       ],
       faqs: [
         {
           title: 'Projekttage & Schulfest 2026',
-          content: 'Projekttage 21.–23.07.2026, Schulfest-Vorbereitung 24.07.2026.\nKoordination: Nadine Joos & Charlotte Jacob.\nKostenneutral, pro KuK 12 SuS, mind. 2.–5. Std.\nProjektausschreibung in GLK am 16.04.2026.'
+          content: 'Projekttage 21.–23.07.2026, Schulfest-Vorbereitung 24.07.2026.\nKoordination: Lehrkraft C & Lehrkraft D.\nKostenneutral, pro KuK 12 SuS, mind. 2.–5. Std.\nProjektausschreibung in GLK am 16.04.2026.'
         },
         {
           title: 'Mathaisemarkt — Beteiligte & Dank',
-          content: 'Mathaisemarktlauf: Silke Spingel & Manuel Martinez.\nWeinprämierung: Peter Schmitt & Katharina Scharmann.\nTanzprojekt: Julia Weber & Denise Gehrig.\nEindrücke und Bilder auf der Homepage.'
+          content: 'Mathaisemarktlauf: Lehrkraft E & Lehrkraft F.\nWeinprämierung: Lehrkraft G & Lehrkraft H.\nTanzprojekt: Lehrkraft B & Lehrkraft C.\nEindrücke und Bilder auf der Homepage.'
         }
       ],
       downloadUrl: '#',
@@ -1722,10 +1746,11 @@
     const __ADMIN_DEMO = window.__KRS_HUB_FORCE_DEMO === true;
 
     function makeDemoAdminStore() {
-      // Lehrkräfte aus der vorhandenen Liste ableiten (stabile Demo-IDs)
-      const users = LEHRKRAEFTE.map((l, i) => ({
+      // Demo-Lehrkräfte aus der anonymisierten Liste ableiten (stabile IDs).
+      // S2: Demo-E-Mails auf example.org — keine Schul-Domain im Client-Code.
+      const users = DEMO_KOLLEGIUM.map((l, i) => ({
         id: i + 1, kuerzel: l.kuerzel, name: l.name, vorname: l.vorname || '',
-        email: (l.kuerzel || ('u' + i)).toLowerCase() + '@realschule-schriesheim.de',
+        email: (l.kuerzel || ('u' + i)).toLowerCase() + '@example.org',
         role: l.role === 'admin' ? 'admin' : 'member'
       }));
       const koffer = [
@@ -1738,8 +1763,8 @@
       ];
       const members = { 1: [1,2,3,4], 2: [1,5], 3: [1,3] };
       const klassenarbeiten = [
-        { id: 'ka1', klasse: '8a', fach: 'Mathematik', datum: '2026-06-24', lehrer: 'Joos' },
-        { id: 'ka2', klasse: '9b', fach: 'Deutsch', datum: '2026-06-26', lehrer: 'Weber' }
+        { id: 'ka1', klasse: '8a', fach: 'Mathematik', datum: '2026-06-24', lehrer: 'Lehrkraft C' },
+        { id: 'ka2', klasse: '9b', fach: 'Deutsch', datum: '2026-06-26', lehrer: 'Lehrkraft D' }
       ];
       return { users, koffer, teams, members, klassenarbeiten, _seq: 100 };
     }
@@ -1970,7 +1995,7 @@
         e('button', { style: ADM.btn('primary'), onClick: add, 'data-testid': 'lehrer-add' }, '＋ Hinzufügen'),
 
         e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'CSV-Import (Kürzel;Name;Vorname;E-Mail)'),
-        e('textarea', { style: Object.assign({}, ADM.input, { minHeight: '64px', padding: '8px 10px' }), value: csv, placeholder: 'Kürzel;Name;Vorname;E-Mail\nMu;Müller;Eva;mu@realschule-schriesheim.de', 'data-testid': 'lehrer-csv', onChange: (ev) => setCsv(ev.target.value) }),
+        e('textarea', { style: Object.assign({}, ADM.input, { minHeight: '64px', padding: '8px 10px' }), value: csv, placeholder: 'Kürzel;Name;Vorname;E-Mail\nMu;Muster;Eva;mu@schule.example', 'data-testid': 'lehrer-csv', onChange: (ev) => setCsv(ev.target.value) }),
         e('div', { style: { marginTop: '6px', display: 'flex', gap: '8px' } },
           e('button', { style: ADM.btn('ghost'), onClick: doImport, 'data-testid': 'lehrer-csv-preview' }, 'Vorschau'),
           preview && preview.valid.length > 0 && e('button', { style: ADM.btn('primary'), onClick: confirmImport, 'data-testid': 'lehrer-csv-confirm' }, 'Import (' + preview.valid.length + ')')
@@ -2208,7 +2233,7 @@
         // CI/Test-Override: forceMode=demo → Auth überspringen mit Demo-Profil
         if (window.__KRS_HUB_FORCE_DEMO === true) {
           const __fu = window.__KRS_HUB_FORCE_USER;
-          const __match = __fu && LEHRKRAEFTE.find(l => l.kuerzel === __fu);
+          const __match = __fu && DEMO_KOLLEGIUM.find(l => l.kuerzel === __fu);
           const demoProfile = __match ? {
             kuerzel: __match.kuerzel,
             display_name: (__match.vorname ? __match.vorname + ' ' : '') + __match.name,

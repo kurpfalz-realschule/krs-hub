@@ -4,13 +4,14 @@
 // Strategie: Network-First für HTML, Cache-First für CDN
 // ═══════════════════════════════════════════════
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0'; // S2: tenant.js ergänzt (Klarnamen-Auslagerung)
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)
 const LOCAL_ASSETS = [
   './',
   './index.html',
+  './tenant.js',
   './manifest.json',
   './logo-krs.png',
   './modules/connect.html',

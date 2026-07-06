@@ -4,7 +4,7 @@
 // Strategie: Network-First für HTML, Cache-First für CDN
 // ═══════════════════════════════════════════════
 
-const VERSION = '1.2.0'; // S2: tenant.js ergänzt (Klarnamen-Auslagerung)
+const VERSION = '1.3.0'; // B1: Schulleitungs-Board (FAQs + Termine, hub_infos)
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)

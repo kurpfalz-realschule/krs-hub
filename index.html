@@ -18,6 +18,9 @@
   <!-- Supabase JS v2 via CDN (mit Fallback) — Unified Login Modell B -->
   <script crossorigin src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>if(!(window.supabase&&window.supabase.createClient)){document.write('<scr'+'ipt src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\/scr'+'ipt>')}</script>
+  <!-- DOMPurify (XSS-Schutz für Schulleitungs-Board Richtext) mit Fallback -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+  <script>if(!window.DOMPurify){document.write('<scr'+'ipt src="https://unpkg.com/dompurify@3.2.4/dist/purify.min.js"><\/scr'+'ipt>')}</script>
   <!-- Phase 3: iServ OAuth wird hier eingebunden -->
 
   <style>
@@ -898,7 +901,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.1.0-s2-klarnamen',
+      VERSION: '3.2.0-schulleitungs-board',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1141,6 +1144,137 @@
     // Für Module/Tests erreichbar (z. B. Lehrerlisten in iframe-Modulen):
     window.KRSHub = window.KRSHub || {};
     window.KRSHub.getKollegium = () => SupabaseAuthService.getKollegium();
+
+    // ═══════════════════════════════════════════════
+    // Schulleitungs-Board (FAQs + wichtige Termine)
+    // Lesen: alle eingeloggten Lehrkräfte.
+    // Schreiben: nur role='admin' oder users.hub_editor (RLS-erzwungen,
+    // Tabelle hub_infos, RPC is_hub_editor — Migration 2026-07-05).
+    // ═══════════════════════════════════════════════
+
+    // XSS-Schutz: alles HTML aus dem Richtext-Editor läuft beim Speichern
+    // UND beim Rendern durch dieselbe Allowlist. Fail-safe: ohne DOMPurify
+    // wird auf reinen Text zurückgefallen (niemals rohes HTML rendern).
+    const INFO_HTML_ALLOW = {
+      ALLOWED_TAGS: ['b', 'strong', 'i', 'em', 'u', 'p', 'br', 'div', 'span', 'ul', 'ol', 'li', 'a'],
+      ALLOWED_ATTR: ['href', 'target', 'rel'],
+      ALLOW_DATA_ATTR: false
+    };
+    function sanitizeInfoHtml(html) {
+      if (!html) return '';
+      if (window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+        const clean = window.DOMPurify.sanitize(String(html), INFO_HTML_ALLOW);
+        // Links immer in neuem Tab, ohne Opener-Zugriff
+        const tpl = document.createElement('template');
+        tpl.innerHTML = clean;
+        tpl.content.querySelectorAll('a').forEach(a => {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+          const href = a.getAttribute('href') || '';
+          if (!/^https?:\/\//i.test(href) && !href.startsWith('mailto:')) a.removeAttribute('href');
+        });
+        return tpl.innerHTML;
+      }
+      // Fallback ohne DOMPurify: nur Text (Zeilenumbrüche erhalten)
+      const div = document.createElement('div');
+      div.textContent = String(html).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
+      return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    // Demo-Daten (nur forceMode=demo / Tests — keine echten Namen)
+    const DEMO_HUB_INFOS = [
+      { id: 'demo-t1', typ: 'termin', titel: 'Dienstbesprechung 13:15 Uhr', inhalt_html: 'Mit anschließenden AGs.', datum: '2099-07-09', position: 0 },
+      { id: 'demo-t2', typ: 'termin', titel: 'Mündliche Prüfungen', inhalt_html: '', datum: '2099-07-08', position: 0 },
+      { id: 'demo-f1', typ: 'faq', titel: 'Wie buche ich iPads?', inhalt_html: 'Über die Kachel <b>iPad-Buchung</b> auf der Startseite.', datum: null, position: 1 },
+      { id: 'demo-f2', typ: 'faq', titel: 'Wer hilft bei Technik-Fragen?', inhalt_html: 'Der IT-Admin — am besten per Connect-Nachricht.', datum: null, position: 2 }
+    ];
+
+    const HubInfoService = {
+      _demo() { return window.__KRS_HUB_FORCE_DEMO === true; },
+      _store() {
+        if (!window.__HUB_INFO_STORE) window.__HUB_INFO_STORE = DEMO_HUB_INFOS.map(x => Object.assign({}, x));
+        return window.__HUB_INFO_STORE;
+      },
+      async list() {
+        if (this._demo()) return this._store().map(x => Object.assign({}, x));
+        const c = await SupabaseAuthService.ensureClient();
+        const { data, error } = await c.from('hub_infos').select('*')
+          .order('datum', { ascending: true, nullsFirst: false })
+          .order('position', { ascending: true })
+          .order('created_at', { ascending: true });
+        if (error) throw new Error('Infos laden fehlgeschlagen: ' + error.message);
+        return data || [];
+      },
+      // Editor-Status serverseitig prüfen (UI-Anzeige; Schreibrechte
+      // erzwingt ohnehin die RLS-Policy — UI-Verstecken ist nur Komfort).
+      async isEditor(profile) {
+        if (this._demo()) {
+          // Demo: Rolle aus DEMO_KOLLEGIUM (forceUser=L3 → member → kein
+          // Editor; Ko/L2 → admin → Editor). Fallback: Demo-Profil-Rolle.
+          const k = profile && profile.kuerzel;
+          const entry = k ? DEMO_KOLLEGIUM.find(l => l.kuerzel === k) : null;
+          if (entry) return entry.role === 'admin';
+          return (profile && profile.role === 'admin') === true;
+        }
+        try {
+          const c = await SupabaseAuthService.ensureClient();
+          const { data, error } = await c.rpc('is_hub_editor');
+          if (error) return false;
+          return data === true;
+        } catch { return false; }
+      },
+      async save(item) {
+        const row = {
+          typ: item.typ,
+          titel: (item.titel || '').trim().slice(0, 300),
+          inhalt_html: sanitizeInfoHtml(item.inhalt_html || '').slice(0, 20000),
+          datum: item.typ === 'termin' ? (item.datum || null) : null,
+          position: Number.isFinite(item.position) ? item.position : 0
+        };
+        if (this._demo()) {
+          const store = this._store();
+          if (item.id) {
+            const idx = store.findIndex(x => x.id === item.id);
+            if (idx >= 0) store[idx] = Object.assign({}, store[idx], row);
+          } else {
+            store.push(Object.assign({ id: 'demo-' + Date.now() }, row));
+          }
+          return;
+        }
+        const c = await SupabaseAuthService.ensureClient();
+        const q = item.id
+          ? c.from('hub_infos').update(row).eq('id', item.id)
+          : c.from('hub_infos').insert(row);
+        const { error } = await q;
+        if (error) throw new Error('Speichern fehlgeschlagen: ' + error.message);
+      },
+      async remove(id) {
+        if (this._demo()) {
+          const store = this._store();
+          const idx = store.findIndex(x => x.id === id);
+          if (idx >= 0) store.splice(idx, 1);
+          return;
+        }
+        const c = await SupabaseAuthService.ensureClient();
+        const { error } = await c.from('hub_infos').delete().eq('id', id);
+        if (error) throw new Error('Löschen fehlgeschlagen: ' + error.message);
+      }
+    };
+
+    // "Mo 06.07." aus ISO-Datum (Europa/Berlin-Logik: reines Kalenderdatum)
+    function fmtInfoDatum(iso) {
+      if (!iso) return '';
+      const d = new Date(iso + 'T12:00:00');
+      if (isNaN(d)) return iso;
+      const wd = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()];
+      const p = n => String(n).padStart(2, '0');
+      return wd + ' ' + p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.';
+    }
+    function todayIso() {
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
 
     // ── postMessage Security ───────────────────────
     function createSecureNonce() {
@@ -1530,8 +1664,147 @@
       downloadLabel: 'FAQ Woche 35 (PDF)'
     };
 
+    // ── Schulleitungs-Board: Editor-Modal (Richtext) ──
+    // Stale-Closure-sicher: Inhalt wird beim Speichern direkt aus dem
+    // contentEditable-Ref gelesen (KRS-Falle v40/v42), nicht aus State.
+    function InfoEditModal({ item, typ, onDone, onClose }) {
+      const isNew = !item;
+      const [titel, setTitel] = useState(item ? item.titel : '');
+      const [datum, setDatum] = useState(item && item.datum ? item.datum : todayIso());
+      const [busy, setBusy] = useState(false);
+      const bodyRef = useRef(null);
+
+      // Initialen Inhalt EINMAL setzen (nicht bei jedem Render)
+      useEffect(() => {
+        if (bodyRef.current) bodyRef.current.innerHTML = sanitizeInfoHtml(item ? item.inhalt_html : '');
+      }, []);
+
+      // ESC schließt (ohne Speichern)
+      useEffect(() => {
+        const h = (ev) => { if (ev.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', h);
+        return () => window.removeEventListener('keydown', h);
+      }, [onClose]);
+
+      const fmt = (cmd) => {
+        // execCommand ist deprecated, aber für dieses Mini-Toolbar-Szenario
+        // in allen Zielbrowsern (Safari/iPad, Chrome, Firefox) zuverlässig.
+        if (bodyRef.current) bodyRef.current.focus();
+        if (cmd === 'link') {
+          const url = window.prompt('Link-Adresse (https://…):', 'https://');
+          if (url && /^https?:\/\//i.test(url)) document.execCommand('createLink', false, url);
+          return;
+        }
+        document.execCommand(cmd, false, null);
+      };
+
+      const save = async () => {
+        const t = titel.trim();
+        if (!t) { showToast('Bitte einen Titel eingeben', 'error'); return; }
+        if (typ === 'termin' && !datum) { showToast('Bitte ein Datum wählen', 'error'); return; }
+        setBusy(true);
+        try {
+          await HubInfoService.save({
+            id: item ? item.id : null,
+            typ,
+            titel: t,
+            datum,
+            position: item ? item.position : 0,
+            inhalt_html: bodyRef.current ? bodyRef.current.innerHTML : ''
+          });
+          showToast(isNew ? 'Eintrag erstellt' : 'Eintrag gespeichert', 'success');
+          onDone();
+        } catch (err) {
+          showToast(err.message || 'Speichern fehlgeschlagen', 'error');
+          setBusy(false);
+        }
+      };
+
+      const tbBtn = { border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: '6px', minWidth: '34px', height: '30px', cursor: 'pointer', fontSize: '13px' };
+      return e('div', { className: 'feedback-overlay', role: 'dialog', 'aria-modal': 'true', 'data-testid': 'info-edit-modal', onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
+        e('div', { className: 'feedback-modal' },
+          e('div', { className: 'feedback-title' }, typ === 'termin' ? '📅 ' : '💡 ', (isNew ? 'Neuer ' : '') + (typ === 'termin' ? 'Termin' : 'FAQ-Eintrag') + (isNew ? '' : ' bearbeiten')),
+          e('div', { className: 'feedback-label' }, 'Titel'),
+          e('input', {
+            className: 'login-input', type: 'text', value: titel, maxLength: 300,
+            'data-testid': 'info-edit-titel', placeholder: typ === 'termin' ? 'z. B. Dienstbesprechung 13:15 Uhr' : 'z. B. Wie buche ich iPads?',
+            onChange: (ev) => setTitel(ev.target.value),
+            style: { width: '100%', marginBottom: '10px' }
+          }),
+          typ === 'termin' && e(React.Fragment, null,
+            e('div', { className: 'feedback-label' }, 'Datum'),
+            e('input', {
+              className: 'login-input', type: 'date', value: datum,
+              'data-testid': 'info-edit-datum',
+              onChange: (ev) => setDatum(ev.target.value),
+              style: { width: '100%', marginBottom: '10px' }
+            })
+          ),
+          e('div', { className: 'feedback-label' }, typ === 'termin' ? 'Details (optional)' : 'Antwort'),
+          e('div', { style: { display: 'flex', gap: '6px', marginBottom: '6px' } },
+            e('button', { style: Object.assign({ fontWeight: 700 }, tbBtn), title: 'Fett', 'aria-label': 'Fett', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('bold') }, 'F'),
+            e('button', { style: Object.assign({ fontStyle: 'italic' }, tbBtn), title: 'Kursiv', 'aria-label': 'Kursiv', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('italic') }, 'K'),
+            e('button', { style: Object.assign({ textDecoration: 'underline' }, tbBtn), title: 'Unterstrichen', 'aria-label': 'Unterstrichen', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('underline') }, 'U'),
+            e('button', { style: tbBtn, title: 'Aufzählung', 'aria-label': 'Aufzählung', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('insertUnorderedList') }, '• Liste'),
+            e('button', { style: tbBtn, title: 'Link einfügen', 'aria-label': 'Link einfügen', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('link') }, '🔗')
+          ),
+          e('div', {
+            ref: bodyRef, contentEditable: true, 'data-testid': 'info-edit-body',
+            style: { minHeight: '110px', maxHeight: '40vh', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', lineHeight: 1.5, background: 'var(--bg-card)', outline: 'none' }
+          }),
+          e('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' } },
+            'Text markieren und mit den Knöpfen formatieren. Beim Speichern werden nur sichere Formatierungen übernommen.'),
+          e('div', { className: 'feedback-actions', style: { marginTop: '12px' } },
+            e('button', { className: 'feedback-btn feedback-btn-cancel', onClick: onClose, disabled: busy }, 'Abbrechen'),
+            e('button', { className: 'feedback-btn feedback-btn-send', 'data-testid': 'info-edit-save', onClick: save, disabled: busy }, busy ? 'Speichere …' : 'Speichern')
+          )
+        )
+      );
+    }
+
     function WelcomeScreen({ onModuleSelect, profile }) {
       const [openFaq, setOpenFaq] = useState(null);
+
+      // ── Schulleitungs-Board: Live-Daten + Editor-Status ──
+      const [infos, setInfos] = useState(null);          // null = lädt
+      const [isEditor, setIsEditor] = useState(false);
+      const [editState, setEditState] = useState(null);  // {typ, item|null}
+      const reloadInfos = useCallback(() => {
+        HubInfoService.list()
+          .then(rows => setInfos(rows))
+          .catch(() => setInfos([]));
+      }, []);
+      useEffect(() => {
+        let alive = true;
+        HubInfoService.list()
+          .then(rows => { if (alive) setInfos(rows); })
+          .catch(() => { if (alive) setInfos([]); });
+        HubInfoService.isEditor(profile)
+          .then(ok => { if (alive) setIsEditor(ok === true); })
+          .catch(() => {});
+        return () => { alive = false; };
+      }, [profile]);
+
+      const heute = todayIso();
+      const termine = (infos || []).filter(x => x.typ === 'termin' && (!x.datum || x.datum >= heute))
+        .sort((a, b) => String(a.datum || '').localeCompare(String(b.datum || '')));
+      const faqs = (infos || []).filter(x => x.typ === 'faq')
+        .sort((a, b) => (a.position - b.position) || String(a.created_at || '').localeCompare(String(b.created_at || '')));
+
+      const deleteInfo = (item) => {
+        if (!window.confirm('„' + item.titel + '" wirklich löschen?')) return;
+        HubInfoService.remove(item.id)
+          .then(() => { showToast('Eintrag gelöscht', 'success'); reloadInfos(); })
+          .catch(err => showToast(err.message || 'Löschen fehlgeschlagen', 'error'));
+      };
+
+      const editBtnStyle = { border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '14px', padding: '4px 6px', borderRadius: '6px', minWidth: '32px', minHeight: '32px' };
+      const addBtnStyle = { border: '1px dashed var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', minHeight: '32px' };
+      const rowActions = (item) => isEditor && e('span', { style: { marginLeft: 'auto', whiteSpace: 'nowrap', flexShrink: 0 } },
+        e('button', { style: editBtnStyle, title: 'Bearbeiten', 'aria-label': 'Bearbeiten: ' + item.titel, 'data-testid': 'info-edit-' + item.id, onClick: (ev) => { ev.stopPropagation(); setEditState({ typ: item.typ, item }); } }, '✏️'),
+        e('button', { style: editBtnStyle, title: 'Löschen', 'aria-label': 'Löschen: ' + item.titel, 'data-testid': 'info-delete-' + item.id, onClick: (ev) => { ev.stopPropagation(); deleteInfo(item); } }, '🗑')
+      );
+
       // H-1: Intro nur beim ersten Mal zeigen, „nicht mehr anzeigen" merken.
       const [introDismissed, setIntroDismissed] = useState(() => {
         try { return localStorage.getItem('krs_hub_intro_dismissed') === '1'; } catch (e) { return false; }
@@ -1622,20 +1895,37 @@
             )
           ),
 
-          // Termine
-          e('div', { className: 'dashboard-section' },
+          // Wichtige Termine (Schulleitungs-Board, live aus hub_infos)
+          e('div', { className: 'dashboard-section', 'data-testid': 'board-termine' },
             e('div', { className: 'section-header' },
               e('span', { className: 'section-header-left' },
                 e('span', { className: 'section-icon' }, '📅'),
-                'Termine diese Woche'
-              )
+                'Wichtige Termine'
+              ),
+              isEditor && e('button', { style: addBtnStyle, 'data-testid': 'board-add-termin', onClick: () => setEditState({ typ: 'termin', item: null }) }, '+ Termin')
             ),
             e('div', { className: 'section-body' },
-              DASHBOARD_DATA.termine.map((t, i) =>
-                e('div', { key: i, className: 'termine-row' },
-                  e('span', { className: 'termine-date' }, t.date),
-                  e('span', { className: 'termine-text' }, t.text)
+              infos === null && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '6px 0' } }, 'Lade Termine …'),
+              infos !== null && termine.length === 0 && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '6px 0' } }, 'Zurzeit keine anstehenden Termine.'),
+              termine.map(t =>
+                e('div', { key: t.id, className: 'termine-row', style: { display: 'flex', alignItems: 'flex-start', gap: '8px' } },
+                  e('span', { className: 'termine-date' }, fmtInfoDatum(t.datum)),
+                  e('span', { className: 'termine-text', style: { flex: 1 } },
+                    t.titel,
+                    t.inhalt_html ? e('div', {
+                      style: { fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' },
+                      dangerouslySetInnerHTML: { __html: sanitizeInfoHtml(t.inhalt_html) }
+                    }) : null
+                  ),
+                  rowActions(t)
                 )
+              ),
+              e('div', { style: { marginTop: '8px' } },
+                e('a', {
+                  href: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#',
+                  target: '_blank', rel: 'noopener noreferrer',
+                  style: { fontSize: '12px', color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }
+                }, 'Alle Termine im Schulkalender ↗')
               )
             )
           ),
@@ -1658,34 +1948,48 @@
             )
           ),
 
-          // FAQ & Infos
-          e('div', { className: 'dashboard-section' },
+          // FAQ (Schulleitungs-Board, live aus hub_infos)
+          e('div', { className: 'dashboard-section', 'data-testid': 'board-faq' },
             e('div', { className: 'section-header' },
               e('span', { className: 'section-header-left' },
                 e('span', { className: 'section-icon' }, '💡'),
-                'FAQ & Infos — ' + DASHBOARD_DATA.weekLabel
+                'FAQ & Infos der Schulleitung'
               ),
-              e('button', {
-                className: 'download-btn',
-                onClick: () => showToast('Download kommt in der finalen Version', 'info')
-              }, '⬇', ' ', DASHBOARD_DATA.downloadLabel)
+              isEditor && e('button', { style: addBtnStyle, 'data-testid': 'board-add-faq', onClick: () => setEditState({ typ: 'faq', item: null }) }, '+ FAQ')
             ),
             e('div', { className: 'section-body' },
-              DASHBOARD_DATA.faqs.map((faq, i) =>
-                e('div', { key: i, className: 'faq-row' },
-                  e('button', {
-                    className: 'faq-toggle',
-                    onClick: () => setOpenFaq(openFaq === i ? null : i)
-                  },
-                    faq.title,
-                    e('span', { className: 'faq-chevron' + (openFaq === i ? ' open' : '') }, '▸')
+              infos === null && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '6px 0' } }, 'Lade FAQs …'),
+              infos !== null && faqs.length === 0 && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '6px 0' } }, 'Noch keine Einträge.'),
+              faqs.map(faq =>
+                e('div', { key: faq.id, className: 'faq-row' },
+                  e('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } },
+                    e('button', {
+                      className: 'faq-toggle', style: { flex: 1 },
+                      onClick: () => setOpenFaq(openFaq === faq.id ? null : faq.id)
+                    },
+                      faq.titel,
+                      e('span', { className: 'faq-chevron' + (openFaq === faq.id ? ' open' : '') }, '▸')
+                    ),
+                    rowActions(faq)
                   ),
-                  openFaq === i ? e('div', { className: 'faq-detail' }, faq.content) : null
+                  openFaq === faq.id ? e('div', {
+                    className: 'faq-detail',
+                    dangerouslySetInnerHTML: { __html: sanitizeInfoHtml(faq.inhalt_html) }
+                  }) : null
                 )
               )
             )
           )
-        )
+        ),
+
+        // ── Editor-Modal (nur Editoren erreichen die Buttons; Rechte
+        //    erzwingt serverseitig die RLS-Policy) ──
+        editState && e(InfoEditModal, {
+          item: editState.item,
+          typ: editState.typ,
+          onDone: () => { setEditState(null); reloadInfos(); },
+          onClose: () => setEditState(null)
+        })
       );
     }
 

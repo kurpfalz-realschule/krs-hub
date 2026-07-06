@@ -901,7 +901,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.3.0-admin-login',
+      VERSION: '3.4.0-changelog',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1278,6 +1278,79 @@
       return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
     }
 
+    // ── Changelog ("Was ist neu") + Update-Hinweis ──────────────────
+    // Neueste Version zuerst. Angezeigt im Benutzermenü. Der UpdateBanner
+    // pollt die live index.html und vergleicht die Version (löst das
+    // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
+    const KRS_HUB_CHANGELOG = [
+      { v: '3.4.0', date: '06.07.2026', items: ['Neu: Versions- & „Was ist neu"-Anzeige (unten im Benutzermenü)', 'Automatischer Update-Hinweis: bei einer neuen Version erscheint ein Reload-Banner — kein manuelles Cache-Leeren mehr nötig'] },
+      { v: '3.3.0', date: '06.07.2026', items: ['Admin-Panel ohne PIN: wer als Admin eingeloggt ist, verwaltet direkt (Login statt Admin-PIN)', 'Schulleitungs-Board: Schulleitung pflegt FAQs & wichtige Termine direkt auf der Startseite'] },
+      { v: '3.2.0', date: '05.07.2026', items: ['Schulleitungs-Board (FAQs & Termine) auf der Hub-Startseite'] },
+      { v: '3.1.0', date: '03.07.2026', items: ['Kollegiumsliste kommt sicher aus dem Backend (keine Klarnamen mehr im Quelltext)'] },
+      { v: '3.0.0', date: '02.07.2026', items: ['Einheitlicher Login mit E-Mail + Passwort, Session geteilt mit KRS Connect'] },
+      { label: 'Juni 2026', date: '06.–30.06.2026', items: ['Umzug in die Schul-Organisation', 'Hub-Admin-Panel (Lehrkräfte, iPad-Koffer, Rollen)', 'Neue iPad-Buchung mit Barcodes', 'Bildschirmsperre für geteilte iPads'] },
+      { label: 'Ab März 2026', date: '2026', items: ['KRS Hub als gemeinsames Dach für Connect, Klassenarbeitsplan, iPad-Buchung u. a.'] },
+    ];
+
+    function UpdateBanner() {
+      const [newVersion, setNewVersion] = useState(null);
+      const [dismissed, setDismissed] = useState(false);
+      useEffect(() => {
+        if (window.__KRS_HUB_FORCE_DEMO) return; // im Test-/Demo-Modus nicht pollen
+        const current = window.KRS_HUB_VERSION;
+        let stopped = false;
+        const check = async () => {
+          try {
+            const res = await fetch('index.html?_=' + Date.now(), { cache: 'no-store' });
+            if (!res.ok) return;
+            const txt = await res.text();
+            const m = txt.match(/VERSION:\s*'([^']+)'/);
+            const remote = m && m[1];
+            if (!stopped && remote && remote !== current) setNewVersion(remote);
+          } catch (e) { /* offline / CDN — ignorieren */ }
+        };
+        check();
+        const id = setInterval(check, 5 * 60 * 1000); // alle 5 Minuten
+        const onFocus = () => check();
+        window.addEventListener('focus', onFocus);
+        return () => { stopped = true; clearInterval(id); window.removeEventListener('focus', onFocus); };
+      }, []);
+      if (!newVersion || dismissed) return null;
+      return e('div', { role: 'alert', style: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000, background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', padding: '10px 14px', fontSize: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' } },
+        e('span', null, '🔄 Neue Version ' + newVersion + ' verfügbar — du nutzt v' + window.KRS_HUB_VERSION + '.'),
+        e('button', { onClick: () => location.reload(), style: { background: '#ea7624', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: 700, cursor: 'pointer' } }, 'Jetzt aktualisieren'),
+        e('button', { onClick: () => setDismissed(true), style: { background: 'transparent', color: '#cbd5e1', border: '1px solid #475569', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' } }, 'Später')
+      );
+    }
+
+    function ChangelogModal({ onClose }) {
+      useEffect(() => {
+        const h = (ev) => { if (ev.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', h);
+        return () => document.removeEventListener('keydown', h);
+      }, [onClose]);
+      return e('div', { style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }, 'data-testid': 'changelog-modal', onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
+        e('div', { style: { background: '#fff', borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' } },
+          e('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 18px', borderBottom: '1px solid #e2e8f0' } },
+            e('span', { style: { fontSize: '20px' } }, '🆕'),
+            e('div', { style: { flex: 1, fontWeight: 700, fontSize: '16px' } }, 'Was ist neu'),
+            e('span', { style: { fontSize: '12px', color: '#64748b' }, 'data-testid': 'changelog-version' }, 'v' + window.KRS_HUB_VERSION),
+            e('button', { onClick: onClose, 'aria-label': 'Schließen', style: { border: '1px solid #cbd5e1', background: '#fff', borderRadius: '8px', minWidth: '34px', height: '30px', cursor: 'pointer' } }, '✕')
+          ),
+          e('div', { style: { padding: '14px 18px', overflowY: 'auto' } },
+            KRS_HUB_CHANGELOG.map((rel, i) =>
+              e('div', { key: i, style: { marginBottom: '16px' } },
+                e('div', { style: { fontWeight: 700, fontSize: '14px', color: '#1e293b', marginBottom: '4px' } }, (rel.v ? 'v' + rel.v : rel.label) + ' · ' + rel.date),
+                e('ul', { style: { margin: 0, paddingLeft: '20px' } },
+                  rel.items.map((it, j) => e('li', { key: j, style: { fontSize: '13px', color: '#334155', marginBottom: '3px', lineHeight: 1.45 } }, it))
+                )
+              )
+            )
+          )
+        )
+      );
+    }
+
     // ── postMessage Security ───────────────────────
     function createSecureNonce() {
       const arr = new Uint8Array(16);
@@ -1564,7 +1637,7 @@
     }
 
     // ── User Menu ──────────────────────────────────
-    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback }) {
+    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew }) {
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu' },
@@ -1585,12 +1658,18 @@
           onFeedback && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-feedback', onClick: onFeedback },
             '📣', ' Feedback geben'
           ),
+          onWhatsNew && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-whatsnew', onClick: onWhatsNew },
+            '🆕', ' Was ist neu'
+          ),
           e('div', { className: 'user-menu-divider' }),
           onLock && e('button', { className: 'user-menu-item', role: 'menuitem', onClick: onLock },
             '🔒', ' Bildschirm sperren'
           ),
           e('button', { className: 'user-menu-item danger', role: 'menuitem', onClick: onLogout },
             '🚪', ' Abmelden'
+          ),
+          e('div', { style: { padding: '8px 12px 4px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }, 'data-testid': 'hub-version' },
+            'KRS Hub v' + (window.KRS_HUB_VERSION || '?')
           )
         )
       );
@@ -2496,6 +2575,7 @@
       const [activeModule, setActiveModule] = useState(null);
       const [showUserMenu, setShowUserMenu] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
+      const [showChangelog, setShowChangelog] = useState(false);
       const [showHelp, setShowHelp] = useState(false);       // H-2
       const [showFeedback, setShowFeedback] = useState(false); // H-3
       const [unreadCounts, setUnreadCounts] = useState(new Map());
@@ -2692,6 +2772,7 @@
 
       // Authenticated
       return e(React.Fragment, null,
+        e(UpdateBanner),
         e('div', { className: 'shell' },
           e(Sidebar, {
             activeModule,
@@ -2721,11 +2802,13 @@
           onLock: handleLock,
           onAdmin: () => { setShowAdmin(true); setShowUserMenu(false); },
           onHelp: () => { setShowHelp(true); setShowUserMenu(false); },
-          onFeedback: () => { setShowFeedback(true); setShowUserMenu(false); }
+          onFeedback: () => { setShowFeedback(true); setShowUserMenu(false); },
+          onWhatsNew: () => { setShowChangelog(true); setShowUserMenu(false); }
         }),
         showAdmin && profile?.role === 'admin' && e(AdminPanel, { profile, onClose: () => setShowAdmin(false) }),
         showHelp && e(HelpModal, { profile, onClose: () => setShowHelp(false) }),
         showFeedback && e(HubFeedbackModal, { profile, onClose: () => setShowFeedback(false) }),
+        showChangelog && e(ChangelogModal, { onClose: () => setShowChangelog(false) }),
         e(ToastContainer)
       );
     }

@@ -4,7 +4,7 @@
 // Strategie: Network-First für HTML, Cache-First für CDN
 // ═══════════════════════════════════════════════
 
-const VERSION = '1.4.0'; // Admin-Panel: Login-Auth statt PIN (dashboard-admin v5)
+const VERSION = '1.5.0'; // Version+Changelog-Anzeige & Update-Banner
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)

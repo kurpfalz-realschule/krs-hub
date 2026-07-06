@@ -901,7 +901,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.2.0-schulleitungs-board',
+      VERSION: '3.3.0-admin-login',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -963,11 +963,13 @@
         { id: 'untis', name: 'Untis', icon: '📊', url: 'https://mese.webuntis.com/WebUntis/?school=KRS+Schriesheim#/basic/login' },
         { id: 'kalender', name: 'Kalender', icon: '🗓️', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' }
       ],
-      // Sprint 3: Hub-Admin (Edge-Function dashboard-admin, PIN-gated, service_role)
+      // Sprint 3: Hub-Admin (Edge-Function dashboard-admin, LOGIN-gated via JWT, service_role)
+      // v5 (2026-07-06): kein PIN mehr — Autorisierung über das Supabase-Login
+      // (role='admin' in users). Aufruf mit Session-Access-Token als Bearer.
       ADMIN: {
         EDGE_URL: 'https://ooejsfixxiuobrpqgfqm.supabase.co/functions/v1/dashboard-admin',
         ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vZWpzZml4eGl1b2JycHFnZnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjQ5MDYsImV4cCI6MjA4OTYwMDkwNn0.GbAv-sB4B8nNE3IPfiYIjbkMKs0Aq03c_-TUcmFY_5s',
-        SUPERADMINS: ['Ko'],                 // dürfen Rollen ändern
+        SUPERADMINS: ['Ktz', 'Ko'],          // dürfen Rollen ändern (Ktz = Norbert live, Ko = Legacy)
         // GAS-Bridge: geschützter Admin-Endpoint des Klassenarbeitsplan-GAS.
         // Leer lassen = Klassenarbeiten-Löschen deaktiviert (zeigt Hinweis).
         GAS_KLASSENARBEIT_URL: ''
@@ -2046,9 +2048,9 @@
     // SPRINT 3 · HUB-ADMIN
     // ═══════════════════════════════════════════════
     // AdminService: demo ↔ produktiv. Produktiv läuft AUSSCHLIESSLICH über
-    // die PIN-gated Edge Function dashboard-admin (service_role, audit_log).
-    // Der Hub hält selbst keinen Supabase-Session-Token — Admin-Aktionen
-    // werden serverseitig per PIN autorisiert.
+    // die LOGIN-gated Edge Function dashboard-admin (service_role, audit_log).
+    // v5 (2026-07-06): kein PIN mehr — der Hub schickt sein Supabase-Session-
+    // Access-Token; die Funktion autorisiert per role='admin' in users.
 
     const __ADMIN_DEMO = window.__KRS_HUB_FORCE_DEMO === true;
 
@@ -2076,21 +2078,29 @@
       return { users, koffer, teams, members, klassenarbeiten, _seq: 100 };
     }
 
-    function AdminService(profile, pin) {
+    function AdminService(profile) {
       this.profile = profile;
-      this.pin = pin || null;
-      this.isDemo = __ADMIN_DEMO || !pin;
+      this.isDemo = __ADMIN_DEMO;
       this.store = __ADMIN_DEMO ? (window.__ADMIN_STORE || (window.__ADMIN_STORE = makeDemoAdminStore())) : null;
     }
     AdminService.prototype.isSuperadmin = function () {
       return CONFIG.ADMIN.SUPERADMINS.indexOf(this.profile && this.profile.kuerzel) !== -1;
     };
+    // v5: Autorisierung über das Login. Wir schicken das Supabase-Session-
+    // Access-Token als Bearer; die Edge Function leitet Kürzel/Rolle daraus
+    // ab (kein PIN, kein Kürzel/PIN mehr im Body).
     AdminService.prototype._post = function (payload) {
-      return fetch(CONFIG.ADMIN.EDGE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': CONFIG.ADMIN.ANON_KEY, 'Authorization': 'Bearer ' + CONFIG.ADMIN.ANON_KEY },
-        body: JSON.stringify(Object.assign({ kuerzel: this.profile.kuerzel, pin: this.pin }, payload))
-      }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+      return SupabaseAuthService.ensureClient().then(function (c) {
+        return c.auth.getSession().then(function (res) {
+          var token = res && res.data && res.data.session && res.data.session.access_token;
+          if (!token) throw new Error('Nicht eingeloggt — bitte neu anmelden.');
+          return fetch(CONFIG.ADMIN.EDGE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': CONFIG.ADMIN.ANON_KEY, 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify(payload)
+          }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
+        });
+      });
     };
 
     // ── Lehrkräfte ──
@@ -2200,22 +2210,11 @@
     };
 
     function AdminPanel({ profile, onClose }) {
-      const [pin, setPin] = useState('');
-      const [authed, setAuthed] = useState(__ADMIN_DEMO);
-      const [svc, setSvc] = useState(() => new AdminService(profile, null));
+      // v5: Kein PIN mehr. Das Panel wird ohnehin nur für profile.role==='admin'
+      // gerendert (siehe App-Render), und die Edge Function autorisiert
+      // serverseitig per Login-JWT. Also direkt entsperrt.
+      const [svc] = useState(() => new AdminService(profile));
       const [tab, setTab] = useState('lehrer');
-      const [busy, setBusy] = useState(false);
-
-      const unlock = useCallback(() => {
-        if (__ADMIN_DEMO) { setAuthed(true); return; }
-        if (pin.length < 4) { showToast('PIN zu kurz', 'error'); return; }
-        setBusy(true);
-        const s = new AdminService(profile, pin);
-        s._post({ action: 'verify_only' })
-          .then(() => { setSvc(s); setAuthed(true); showToast('Admin entsperrt', 'success'); })
-          .catch((err) => showToast(err.message || 'PIN falsch', 'error'))
-          .finally(() => setBusy(false));
-      }, [pin, profile]);
 
       // ESC schließt
       useEffect(() => {
@@ -2232,20 +2231,6 @@
         ),
         e('button', { style: ADM.btn('ghost'), onClick: onClose, 'aria-label': 'Schließen', 'data-testid': 'admin-close' }, '✕')
       );
-
-      if (!authed) {
-        return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel' },
-          e('div', { style: ADM.panel }, header,
-            e('div', { style: ADM.body },
-              e('p', { style: { fontSize: '14px', marginBottom: '12px', color: '#334155' } }, 'Bitte Admin-PIN eingeben, um fortzufahren.'),
-              e('input', { style: ADM.input, type: 'password', inputMode: 'numeric', value: pin, placeholder: 'Admin-PIN', 'data-testid': 'admin-pin',
-                onChange: (ev) => setPin(ev.target.value), onKeyDown: (ev) => { if (ev.key === 'Enter') unlock(); } }),
-              e('div', { style: { marginTop: '12px' } },
-                e('button', { style: ADM.btn('primary'), onClick: unlock, disabled: busy, 'data-testid': 'admin-unlock' }, busy ? 'Prüfe …' : 'Entsperren'))
-            )
-          )
-        );
-      }
 
       const tabs = [['lehrer','👤 Lehrkräfte'],['koffer','📱 iPad-Koffer'],['mitglieder','👥 Mitgliedschaften'],['ka','📅 Klassenarbeiten']];
       return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel', onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },

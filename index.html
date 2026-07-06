@@ -901,7 +901,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.4.0-changelog',
+      VERSION: '3.5.0-board-editable',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1183,12 +1183,26 @@
       return div.innerHTML.replace(/\n/g, '<br>');
     }
 
+    // Reiner Text aus (evtl. HTML-)Inhalt — für Dienst-Werte (Küche/Hof),
+    // die als kurze Klartext-Angabe gepflegt werden. Immer über die
+    // Sanitize-Allowlist, dann textContent → nie rohes HTML im DOM.
+    function htmlToText(html) {
+      if (!html) return '';
+      const div = document.createElement('div');
+      div.innerHTML = sanitizeInfoHtml(String(html));
+      return (div.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+
     // Demo-Daten (nur forceMode=demo / Tests — keine echten Namen)
     const DEMO_HUB_INFOS = [
       { id: 'demo-t1', typ: 'termin', titel: 'Dienstbesprechung 13:15 Uhr', inhalt_html: 'Mit anschließenden AGs.', datum: '2099-07-09', position: 0 },
       { id: 'demo-t2', typ: 'termin', titel: 'Mündliche Prüfungen', inhalt_html: '', datum: '2099-07-08', position: 0 },
       { id: 'demo-f1', typ: 'faq', titel: 'Wie buche ich iPads?', inhalt_html: 'Über die Kachel <b>iPad-Buchung</b> auf der Startseite.', datum: null, position: 1 },
-      { id: 'demo-f2', typ: 'faq', titel: 'Wer hilft bei Technik-Fragen?', inhalt_html: 'Der IT-Admin — am besten per Connect-Nachricht.', datum: null, position: 2 }
+      { id: 'demo-f2', typ: 'faq', titel: 'Wer hilft bei Technik-Fragen?', inhalt_html: 'Der IT-Admin — am besten per Connect-Nachricht.', datum: null, position: 2 },
+      { id: 'demo-m1', typ: 'mitteilung', titel: 'Beispiel-Mitteilung', inhalt_html: 'Kurzer <b>Hinweis</b> ans Kollegium.', datum: null, position: 0 },
+      { id: 'demo-m2', typ: 'mitteilung', titel: 'USB-Sticks zurückgeben', inhalt_html: 'Bitte alle USB-Sticks der Prüfungen zurückgeben.', datum: null, position: 1 },
+      { id: 'demo-d1', typ: 'dienst', titel: '🍽 Küchendienst', inhalt_html: 'Klasse 9a', datum: null, position: 0 },
+      { id: 'demo-d2', typ: 'dienst', titel: '🏫 Hofdienst', inhalt_html: 'Klasse 9c', datum: null, position: 1 }
     ];
 
     const HubInfoService = {
@@ -1283,6 +1297,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.5.0', date: '06.07.2026', items: ['Schulleitung/Admins können jetzt auch die Mitteilungen und die Dienste-Leiste (Küchen- & Hofdienst) direkt auf der Startseite pflegen — anlegen, ändern, löschen', 'Dienste sind flexibel: weitere Dienste lassen sich per „+ Dienst" ergänzen'] },
       { v: '3.4.0', date: '06.07.2026', items: ['Neu: Versions- & „Was ist neu"-Anzeige (unten im Benutzermenü)', 'Automatischer Update-Hinweis: bei einer neuen Version erscheint ein Reload-Banner — kein manuelles Cache-Leeren mehr nötig'] },
       { v: '3.3.0', date: '06.07.2026', items: ['Admin-Panel ohne PIN: wer als Admin eingeloggt ist, verwaltet direkt (Login statt Admin-PIN)', 'Schulleitungs-Board: Schulleitung pflegt FAQs & wichtige Termine direkt auf der Startseite'] },
       { v: '3.2.0', date: '05.07.2026', items: ['Schulleitungs-Board (FAQs & Termine) auf der Hub-Startseite'] },
@@ -1750,14 +1765,26 @@
     // contentEditable-Ref gelesen (KRS-Falle v40/v42), nicht aus State.
     function InfoEditModal({ item, typ, onDone, onClose }) {
       const isNew = !item;
+      // typ='dienst' nutzt ein einfaches Klartext-Feld statt Richtext.
+      const isPlain = typ === 'dienst';
+      // Pro-Typ-Beschriftungen (ein Modal für termin/faq/mitteilung/dienst).
+      const META = {
+        termin:     { icon: '📅 ', name: 'Termin',       neu: 'Neuer ', titelLabel: 'Titel',       titelPh: 'z. B. Dienstbesprechung 13:15 Uhr', bodyLabel: 'Details (optional)' },
+        faq:        { icon: '💡 ', name: 'FAQ-Eintrag',   neu: 'Neuer ', titelLabel: 'Titel',       titelPh: 'z. B. Wie buche ich iPads?',       bodyLabel: 'Antwort' },
+        mitteilung: { icon: '📢 ', name: 'Mitteilung',    neu: 'Neue ',  titelLabel: 'Titel',       titelPh: 'z. B. USB-Sticks zurückgeben',     bodyLabel: 'Text' },
+        dienst:     { icon: '🧹 ', name: 'Dienst',        neu: 'Neuer ', titelLabel: 'Bezeichnung', titelPh: 'z. B. 🍽 Küchendienst',            bodyLabel: 'Zuständig' }
+      };
+      const meta = META[typ] || META.faq;
       const [titel, setTitel] = useState(item ? item.titel : '');
       const [datum, setDatum] = useState(item && item.datum ? item.datum : todayIso());
+      const [plainVal, setPlainVal] = useState(item ? htmlToText(item.inhalt_html) : '');
       const [busy, setBusy] = useState(false);
       const bodyRef = useRef(null);
 
-      // Initialen Inhalt EINMAL setzen (nicht bei jedem Render)
+      // Initialen Richtext-Inhalt EINMAL setzen (nicht bei jedem Render).
+      // Für typ='dienst' (Plain-Feld) gibt es keinen bodyRef.
       useEffect(() => {
-        if (bodyRef.current) bodyRef.current.innerHTML = sanitizeInfoHtml(item ? item.inhalt_html : '');
+        if (!isPlain && bodyRef.current) bodyRef.current.innerHTML = sanitizeInfoHtml(item ? item.inhalt_html : '');
       }, []);
 
       // ESC schließt (ohne Speichern)
@@ -1781,7 +1808,7 @@
 
       const save = async () => {
         const t = titel.trim();
-        if (!t) { showToast('Bitte einen Titel eingeben', 'error'); return; }
+        if (!t) { showToast('Bitte ' + (isPlain ? 'eine Bezeichnung' : 'einen Titel') + ' eingeben', 'error'); return; }
         if (typ === 'termin' && !datum) { showToast('Bitte ein Datum wählen', 'error'); return; }
         setBusy(true);
         try {
@@ -1791,7 +1818,8 @@
             titel: t,
             datum,
             position: item ? item.position : 0,
-            inhalt_html: bodyRef.current ? bodyRef.current.innerHTML : ''
+            // Plain-Typ (dienst): Klartext-Wert; sonst Richtext aus dem Editor.
+            inhalt_html: isPlain ? plainVal : (bodyRef.current ? bodyRef.current.innerHTML : '')
           });
           showToast(isNew ? 'Eintrag erstellt' : 'Eintrag gespeichert', 'success');
           onDone();
@@ -1804,11 +1832,11 @@
       const tbBtn = { border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: '6px', minWidth: '34px', height: '30px', cursor: 'pointer', fontSize: '13px' };
       return e('div', { className: 'feedback-overlay', role: 'dialog', 'aria-modal': 'true', 'data-testid': 'info-edit-modal', onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
         e('div', { className: 'feedback-modal' },
-          e('div', { className: 'feedback-title' }, typ === 'termin' ? '📅 ' : '💡 ', (isNew ? 'Neuer ' : '') + (typ === 'termin' ? 'Termin' : 'FAQ-Eintrag') + (isNew ? '' : ' bearbeiten')),
-          e('div', { className: 'feedback-label' }, 'Titel'),
+          e('div', { className: 'feedback-title' }, meta.icon, (isNew ? meta.neu : '') + meta.name + (isNew ? '' : ' bearbeiten')),
+          e('div', { className: 'feedback-label' }, meta.titelLabel),
           e('input', {
             className: 'login-input', type: 'text', value: titel, maxLength: 300,
-            'data-testid': 'info-edit-titel', placeholder: typ === 'termin' ? 'z. B. Dienstbesprechung 13:15 Uhr' : 'z. B. Wie buche ich iPads?',
+            'data-testid': 'info-edit-titel', placeholder: meta.titelPh,
             onChange: (ev) => setTitel(ev.target.value),
             style: { width: '100%', marginBottom: '10px' }
           }),
@@ -1821,20 +1849,29 @@
               style: { width: '100%', marginBottom: '10px' }
             })
           ),
-          e('div', { className: 'feedback-label' }, typ === 'termin' ? 'Details (optional)' : 'Antwort'),
-          e('div', { style: { display: 'flex', gap: '6px', marginBottom: '6px' } },
-            e('button', { style: Object.assign({ fontWeight: 700 }, tbBtn), title: 'Fett', 'aria-label': 'Fett', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('bold') }, 'F'),
-            e('button', { style: Object.assign({ fontStyle: 'italic' }, tbBtn), title: 'Kursiv', 'aria-label': 'Kursiv', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('italic') }, 'K'),
-            e('button', { style: Object.assign({ textDecoration: 'underline' }, tbBtn), title: 'Unterstrichen', 'aria-label': 'Unterstrichen', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('underline') }, 'U'),
-            e('button', { style: tbBtn, title: 'Aufzählung', 'aria-label': 'Aufzählung', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('insertUnorderedList') }, '• Liste'),
-            e('button', { style: tbBtn, title: 'Link einfügen', 'aria-label': 'Link einfügen', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('link') }, '🔗')
-          ),
-          e('div', {
-            ref: bodyRef, contentEditable: true, 'data-testid': 'info-edit-body',
-            style: { minHeight: '110px', maxHeight: '40vh', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', lineHeight: 1.5, background: 'var(--bg-card)', outline: 'none' }
-          }),
-          e('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' } },
-            'Text markieren und mit den Knöpfen formatieren. Beim Speichern werden nur sichere Formatierungen übernommen.'),
+          e('div', { className: 'feedback-label' }, meta.bodyLabel),
+          isPlain
+            ? e('input', {
+                className: 'login-input', type: 'text', value: plainVal, maxLength: 300,
+                'data-testid': 'info-edit-plain', placeholder: 'z. B. Klasse 9c (leer lassen = „—")',
+                onChange: (ev) => setPlainVal(ev.target.value),
+                style: { width: '100%', marginBottom: '4px' }
+              })
+            : e(React.Fragment, null,
+                e('div', { style: { display: 'flex', gap: '6px', marginBottom: '6px' } },
+                  e('button', { style: Object.assign({ fontWeight: 700 }, tbBtn), title: 'Fett', 'aria-label': 'Fett', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('bold') }, 'F'),
+                  e('button', { style: Object.assign({ fontStyle: 'italic' }, tbBtn), title: 'Kursiv', 'aria-label': 'Kursiv', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('italic') }, 'K'),
+                  e('button', { style: Object.assign({ textDecoration: 'underline' }, tbBtn), title: 'Unterstrichen', 'aria-label': 'Unterstrichen', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('underline') }, 'U'),
+                  e('button', { style: tbBtn, title: 'Aufzählung', 'aria-label': 'Aufzählung', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('insertUnorderedList') }, '• Liste'),
+                  e('button', { style: tbBtn, title: 'Link einfügen', 'aria-label': 'Link einfügen', onMouseDown: ev => ev.preventDefault(), onClick: () => fmt('link') }, '🔗')
+                ),
+                e('div', {
+                  ref: bodyRef, contentEditable: true, 'data-testid': 'info-edit-body',
+                  style: { minHeight: '110px', maxHeight: '40vh', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px', fontSize: '14px', lineHeight: 1.5, background: 'var(--bg-card)', outline: 'none' }
+                }),
+                e('div', { style: { fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' } },
+                  'Text markieren und mit den Knöpfen formatieren. Beim Speichern werden nur sichere Formatierungen übernommen.')
+              ),
           e('div', { className: 'feedback-actions', style: { marginTop: '12px' } },
             e('button', { className: 'feedback-btn feedback-btn-cancel', onClick: onClose, disabled: busy }, 'Abbrechen'),
             e('button', { className: 'feedback-btn feedback-btn-send', 'data-testid': 'info-edit-save', onClick: save, disabled: busy }, busy ? 'Speichere …' : 'Speichern')
@@ -1870,6 +1907,10 @@
       const termine = (infos || []).filter(x => x.typ === 'termin' && (!x.datum || x.datum >= heute))
         .sort((a, b) => String(a.datum || '').localeCompare(String(b.datum || '')));
       const faqs = (infos || []).filter(x => x.typ === 'faq')
+        .sort((a, b) => (a.position - b.position) || String(a.created_at || '').localeCompare(String(b.created_at || '')));
+      const mitteilungen = (infos || []).filter(x => x.typ === 'mitteilung')
+        .sort((a, b) => (a.position - b.position) || String(a.created_at || '').localeCompare(String(b.created_at || '')));
+      const dienste = (infos || []).filter(x => x.typ === 'dienst')
         .sort((a, b) => (a.position - b.position) || String(a.created_at || '').localeCompare(String(b.created_at || '')));
 
       const deleteInfo = (item) => {
@@ -1964,16 +2005,29 @@
         // ── Dashboard Sections ──
         e('div', { className: 'dashboard-sections' },
 
-          // Dienste der Woche
-          e('div', { className: 'dienste-bar' },
-            e('div', { className: 'dienst-chip' },
-              e('span', { className: 'dienst-label' }, '🍽 Küchendienst'),
-              e('span', { className: 'dienst-value' }, DASHBOARD_DATA.dienste.kueche)
+          // Dienste der Woche (Schulleitungs-Board, live aus hub_infos)
+          (isEditor || dienste.length > 0) && e('div', { 'data-testid': 'board-dienste', style: { width: '100%' } },
+            isEditor && e('div', { className: 'section-header', style: { marginBottom: '8px' } },
+              e('span', { className: 'section-header-left' },
+                e('span', { className: 'section-icon' }, '🧹'),
+                'Dienste'
+              ),
+              e('button', { style: addBtnStyle, 'data-testid': 'board-add-dienst', onClick: () => setEditState({ typ: 'dienst', item: null }) }, '+ Dienst')
             ),
-            e('div', { className: 'dienst-chip' },
-              e('span', { className: 'dienst-label' }, '🏫 Hofdienst'),
-              e('span', { className: 'dienst-value' }, DASHBOARD_DATA.dienste.hof)
-            )
+            (dienste.length === 0)
+              ? (isEditor && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '2px 0 4px' } }, 'Noch keine Dienste eingetragen.'))
+              : e('div', { className: 'dienste-bar' },
+                  dienste.map(d =>
+                    e('div', { key: d.id, className: 'dienst-chip' },
+                      e('span', { className: 'dienst-label' }, d.titel),
+                      e('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } },
+                        e('span', { className: 'dienst-value', style: { flex: 1, minWidth: 0 } }, htmlToText(d.inhalt_html) || '—'),
+                        isEditor && e('button', { style: editBtnStyle, title: 'Bearbeiten', 'aria-label': 'Bearbeiten: ' + d.titel, 'data-testid': 'info-edit-' + d.id, onClick: () => setEditState({ typ: 'dienst', item: d }) }, '✏️'),
+                        isEditor && e('button', { style: editBtnStyle, title: 'Löschen', 'aria-label': 'Löschen: ' + d.titel, 'data-testid': 'info-delete-' + d.id, onClick: () => deleteInfo(d) }, '🗑')
+                      )
+                    )
+                  )
+                )
           ),
 
           // Wichtige Termine (Schulleitungs-Board, live aus hub_infos)
@@ -2011,19 +2065,28 @@
             )
           ),
 
-          // Mitteilungen
-          e('div', { className: 'dashboard-section' },
+          // Mitteilungen (Schulleitungs-Board, live aus hub_infos)
+          e('div', { className: 'dashboard-section', 'data-testid': 'board-mitteilungen' },
             e('div', { className: 'section-header' },
               e('span', { className: 'section-header-left' },
                 e('span', { className: 'section-icon' }, '📢'),
                 'Mitteilungen'
-              )
+              ),
+              isEditor && e('button', { style: addBtnStyle, 'data-testid': 'board-add-mitteilung', onClick: () => setEditState({ typ: 'mitteilung', item: null }) }, '+ Mitteilung')
             ),
             e('div', { className: 'section-body' },
-              DASHBOARD_DATA.mitteilungen.map((m, i) =>
-                e('div', { key: i, className: 'mitteilung-row' },
-                  e('div', { className: 'mitteilung-title' }, m.title),
-                  e('div', { className: 'mitteilung-text' }, m.text)
+              infos === null && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '6px 0' } }, 'Lade Mitteilungen …'),
+              infos !== null && mitteilungen.length === 0 && e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', padding: '6px 0' } }, 'Zurzeit keine Mitteilungen.'),
+              mitteilungen.map(m =>
+                e('div', { key: m.id, className: 'mitteilung-row', style: { display: 'flex', alignItems: 'flex-start', gap: '8px' } },
+                  e('div', { style: { flex: 1, minWidth: 0 } },
+                    e('div', { className: 'mitteilung-title' }, m.titel),
+                    m.inhalt_html ? e('div', {
+                      className: 'mitteilung-text',
+                      dangerouslySetInnerHTML: { __html: sanitizeInfoHtml(m.inhalt_html) }
+                    }) : null
+                  ),
+                  rowActions(m)
                 )
               )
             )

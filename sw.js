@@ -4,7 +4,7 @@
 // Strategie: Network-First für HTML, Cache-First für CDN
 // ═══════════════════════════════════════════════
 
-const VERSION = '1.5.0'; // Version+Changelog-Anzeige & Update-Banner
+const VERSION = '1.6.0'; // Board: Mitteilungen & Dienste editierbar
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)

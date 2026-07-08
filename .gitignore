@@ -1,0 +1,5 @@
+
+# Lern-Coach Backups (nicht deployen)
+*.pre-coach.bak
+*.backup-*
+.DS_Store

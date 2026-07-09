@@ -901,8 +901,8 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.5.0-board-editable',
-      INACTIVITY_TIMEOUT: 10 * 60 * 1000, // 10 Minuten → Lock-Screen (Shared-iPad-Schutz)
+      VERSION: '3.6.0-autolock-optin',
+      INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
       // Gleiche Origin + gleiches Projekt wie Connect → EINE Session für beide.
@@ -1316,6 +1316,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.6.0', date: '08.07.2026', items: ['Auto-Sperre bei Inaktivität ist jetzt OPTIONAL — standardmäßig aus. Einschalten im Profil-Menü → „Auto-Sperre bei Inaktivität" (Minuten wählbar). Manuelles „Jetzt sperren" bleibt.', 'Neu: Modul „Notizen & Aufgaben" (persönlich, mit #Tags) — als Kachel auf der Startseite und in Connect', 'Neu: Admin kann Passwörter für Kolleg:innen zurücksetzen (Admin → Lehrkräfte → 🔑 Passwort)'] },
       { v: '3.5.0', date: '06.07.2026', items: ['Schulleitung/Admins können jetzt auch die Mitteilungen und die Dienste-Leiste (Küchen- & Hofdienst) direkt auf der Startseite pflegen — anlegen, ändern, löschen', 'Dienste sind flexibel: weitere Dienste lassen sich per „+ Dienst" ergänzen'] },
       { v: '3.4.0', date: '06.07.2026', items: ['Neu: Versions- & „Was ist neu"-Anzeige (unten im Benutzermenü)', 'Automatischer Update-Hinweis: bei einer neuen Version erscheint ein Reload-Banner — kein manuelles Cache-Leeren mehr nötig'] },
       { v: '3.3.0', date: '06.07.2026', items: ['Admin-Panel ohne PIN: wer als Admin eingeloggt ist, verwaltet direkt (Login statt Admin-PIN)', 'Schulleitungs-Board: Schulleitung pflegt FAQs & wichtige Termine direkt auf der Startseite'] },
@@ -1671,7 +1672,7 @@
     }
 
     // ── User Menu ──────────────────────────────────
-    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew }) {
+    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew, autolock, autolockMin, onToggleAutolock, onSetAutolockMin }) {
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu' },
@@ -1696,8 +1697,18 @@
             '🆕', ' Was ist neu'
           ),
           e('div', { className: 'user-menu-divider' }),
+          onToggleAutolock && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-autolock', 'aria-pressed': !!autolock, onClick: onToggleAutolock },
+            autolock ? '🔒' : '🔓', ' Auto-Sperre bei Inaktivität: ', e('strong', { style: { marginLeft: '4px', color: autolock ? 'var(--success, #16a34a)' : 'var(--text-muted)' } }, autolock ? ('An (' + (autolockMin || 10) + ' Min)') : 'Aus')
+          ),
+          onToggleAutolock && autolock && onSetAutolockMin && e('div', { style: { padding: '2px 12px 8px 38px', display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' } },
+            'Sperren nach ',
+            e('select', { value: autolockMin || 10, 'data-testid': 'usermenu-autolock-min', onChange: (ev) => onSetAutolockMin(parseInt(ev.target.value, 10)), style: { fontSize: '12px', padding: '2px 4px', borderRadius: '6px', border: '1px solid var(--border)' } },
+              [5, 10, 15, 30].map((m) => e('option', { key: m, value: m }, m))
+            ),
+            ' Min'
+          ),
           onLock && e('button', { className: 'user-menu-item', role: 'menuitem', onClick: onLock },
-            '🔒', ' Bildschirm sperren'
+            '🔒', ' Jetzt sperren'
           ),
           e('button', { className: 'user-menu-item danger', role: 'menuitem', onClick: onLogout },
             '🚪', ' Abmelden'
@@ -2689,6 +2700,9 @@
       const [showHelp, setShowHelp] = useState(false);       // H-2
       const [showFeedback, setShowFeedback] = useState(false); // H-3
       const [unreadCounts, setUnreadCounts] = useState(new Map());
+      // Auto-Sperre bei Inaktivität — OPT-IN (Default aus), pro Gerät gespeichert
+      const [autolock, setAutolock] = useState(() => { try { return localStorage.getItem('krs_hub_autolock') === '1'; } catch (e) { return false; } });
+      const [autolockMin, setAutolockMin] = useState(() => { try { var v = parseInt(localStorage.getItem('krs_hub_autolock_min') || '10', 10); return [5, 10, 15, 30].indexOf(v) !== -1 ? v : 10; } catch (e) { return 10; } });
 
       // ── Hash Router ────────────────────────────
       useEffect(() => {
@@ -2775,8 +2789,9 @@
         }
       }, [authState, profile]);
 
+      // Timer nur armen, wenn Auto-Sperre eingeschaltet ist (sonst nie sperren)
       useInactivityTimer(
-        authState === 'authenticated' ? CONFIG.INACTIVITY_TIMEOUT : Infinity,
+        (authState === 'authenticated' && autolock) ? autolockMin * 60 * 1000 : Infinity,
         handleInactivityLock
       );
 
@@ -2844,6 +2859,20 @@
           showToast('Bildschirm gesperrt', 'info');
         }
       }, [authState, profile]);
+
+      // Auto-Sperre ein/aus (opt-in, pro Gerät). Menü bleibt offen zum Feinjustieren.
+      const toggleAutolock = useCallback(() => {
+        setAutolock((v) => {
+          const nv = !v;
+          try { localStorage.setItem('krs_hub_autolock', nv ? '1' : '0'); } catch (e) {}
+          showToast(nv ? 'Auto-Sperre eingeschaltet' : 'Auto-Sperre ausgeschaltet', 'info');
+          return nv;
+        });
+      }, []);
+      const setAutolockMinutes = useCallback((m) => {
+        setAutolockMin(m);
+        try { localStorage.setItem('krs_hub_autolock_min', String(m)); } catch (e) {}
+      }, []);
 
       // ── Escape key ─────────────────────────────
       useEffect(() => {
@@ -2913,7 +2942,8 @@
           onAdmin: () => { setShowAdmin(true); setShowUserMenu(false); },
           onHelp: () => { setShowHelp(true); setShowUserMenu(false); },
           onFeedback: () => { setShowFeedback(true); setShowUserMenu(false); },
-          onWhatsNew: () => { setShowChangelog(true); setShowUserMenu(false); }
+          onWhatsNew: () => { setShowChangelog(true); setShowUserMenu(false); },
+          autolock, autolockMin, onToggleAutolock: toggleAutolock, onSetAutolockMin: setAutolockMinutes
         }),
         showAdmin && profile?.role === 'admin' && e(AdminPanel, { profile, onClose: () => setShowAdmin(false) }),
         showHelp && e(HelpModal, { profile, onClose: () => setShowHelp(false) }),

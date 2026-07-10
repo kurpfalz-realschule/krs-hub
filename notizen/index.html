@@ -5,57 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>KRS Notizen & Aufgaben</title>
 <style>
-  :root{--accent:#2563eb;--accent2:#1d4ed8;--ink:#1e293b;--muted:#64748b;--bg:#f1f5f9;--card:#fff;
-    --line:#e2e8f0;--green:#16a34a;--amber:#d97706;--danger:#dc2626;--radius:12px;
+  /* v2.0 (10.07.2026): Redesign nach Vorbild Things / Apple Notes —
+     Suche, Tag-Filter, Aufgaben-Gruppen, Karten-Grid, +-Button statt Dauerformular */
+  :root{--accent:#2563eb;--accent2:#1d4ed8;--ink:#1c1c1e;--muted:#8a8a8e;--bg:#f7f7f9;--card:#fff;
+    --line:#ececf0;--green:#28a745;--amber:#d97706;--danger:#dc2626;--radius:14px;
+    --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04);
     --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif}
   *{margin:0;padding:0;box-sizing:border-box}
   body{font:15px/1.5 var(--font);color:var(--ink);background:var(--bg);min-height:100vh;min-height:100dvh}
-  button{font:inherit;cursor:pointer}
-  .top{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:30}
-  .top h1{font-size:18px;font-weight:800;display:flex;align-items:center;gap:8px}
-  .top .who{font-size:12px;opacity:.9;margin-top:2px}
-  .tabs{display:flex;gap:6px;background:rgba(255,255,255,.16);border-radius:10px;padding:3px;margin-top:10px;max-width:320px}
-  .tabs button{flex:1;border:none;background:none;color:#fff;padding:8px;border-radius:8px;font-weight:600;min-height:40px}
-  .tabs button.on{background:#fff;color:#2563eb}
-  .wrap{max-width:820px;margin:0 auto;padding:14px 12px 40px}
-  .filterbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
-  .filterbar .lbl{font-size:12px;color:var(--muted);margin-right:2px}
-  .tag{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:#fff;color:#334155;
-    border-radius:16px;padding:4px 10px;font-size:12.5px;min-height:32px}
-  .tag.sel{background:var(--accent);border-color:var(--accent);color:#fff}
-  .tag.clear{color:var(--danger);border-color:#fecaca;background:#fff}
-  .addcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:14px}
-  .addcard input,.addcard textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font:14px var(--font);margin-bottom:8px}
-  .addcard textarea{resize:vertical;min-height:60px}
-  .addrow{display:flex;gap:8px;flex-wrap:wrap}
-  .addrow input{flex:1;min-width:120px;margin-bottom:0}
-  .btn{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:600}
+  button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  input,textarea{font:inherit;color:var(--ink)}
+
+  /* ── Kopf: ruhig & hell (Apple-Notes-artig) ── */
+  .top{background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);padding:14px 16px 10px;position:sticky;top:0;z-index:30}
+  .top-inner{max-width:860px;margin:0 auto}
+  .top h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .top .who{font-size:12px;color:var(--muted);margin-top:1px}
+  .tabs{display:flex;gap:2px;background:#ececf0;border-radius:10px;padding:3px;margin-top:10px;max-width:340px}
+  .tabs button{flex:1;border:none;background:none;color:var(--ink);padding:7px;border-radius:8px;font-weight:600;min-height:38px;font-size:14px}
+  .tabs button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .searchrow{position:relative;margin-top:10px}
+  .searchrow .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);pointer-events:none}
+  .search{width:100%;border:none;background:#ececf0;border-radius:11px;padding:10px 36px;font-size:15px;outline:none}
+  .search:focus{background:#e4e4ea}
+  .search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;color:var(--muted);font-size:15px;padding:6px 8px;border-radius:50%}
+
+  .wrap{max-width:860px;margin:0 auto;padding:14px 12px 110px}
+
+  /* ── Tag-Chips: horizontal scrollbar ── */
+  .filterbar{display:flex;gap:6px;align-items:center;margin:2px 0 14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .filterbar::-webkit-scrollbar{display:none}
+  .tag{display:inline-flex;align-items:center;gap:4px;border:none;background:#ececf0;color:#3a3a3c;white-space:nowrap;
+    border-radius:16px;padding:6px 12px;font-size:13px;min-height:32px;font-weight:500}
+  .tag.sel{background:var(--accent);color:#fff}
+  .tag.clear{color:var(--danger);background:#fdecec}
+  .tag.mini{min-height:24px;padding:2px 9px;font-size:12px;background:#f1f1f5;color:var(--muted)}
+
+  /* ── Gruppen-Überschriften (Things-artig) ── */
+  .sect{display:flex;align-items:center;gap:8px;margin:18px 2px 8px;font-size:13px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.04em}
+  .sect .cnt{background:#ececf0;border-radius:10px;padding:0 8px;font-size:11px;line-height:18px;font-weight:700}
+  .sect.over{color:var(--danger)} .sect.today{color:var(--amber)}
+
+  /* ── Notizen: Karten-Grid ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+  .note{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:transform .12s, box-shadow .12s}
+  .note:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.08)}
+  .note.pin{background:#fffdf2;border-color:#f3e3a4}
+  .note h3{font-size:15.5px;letter-spacing:-.01em;display:flex;align-items:flex-start;gap:6px}
+  .note .body{font-size:13.5px;color:#48484a;white-space:pre-wrap;word-break:break-word;
+    display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .note.editing{cursor:auto;grid-column:1 / -1}
+  .note .foot{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:auto;padding-top:6px;flex-wrap:wrap}
+  .note .tags{display:flex;gap:5px;flex-wrap:wrap}
+  .note .date{font-size:11.5px;color:var(--muted)}
+  .note .acts{display:flex;gap:2px}
+  .iconbtn{border:none;background:none;font-size:15px;padding:6px;border-radius:8px;min-width:32px;min-height:32px;line-height:1}
+  .iconbtn:hover{background:#ececf0}
+
+  /* ── Aufgaben: Things-artige Zeilen mit runden Checkboxen ── */
+  .task{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:7px;
+    display:flex;gap:11px;align-items:flex-start;box-shadow:var(--shadow)}
+  .task input[type=checkbox]{appearance:none;-webkit-appearance:none;width:23px;height:23px;margin-top:1px;flex:0 0 auto;
+    border:1.8px solid #c7c7cc;border-radius:50%;cursor:pointer;position:relative;transition:all .15s;background:#fff}
+  .task input[type=checkbox]:checked{background:var(--green);border-color:var(--green)}
+  .task input[type=checkbox]:checked::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800}
+  .task .main{flex:1;min-width:0}
+  .task .ttl{font-weight:500;font-size:14.5px}
+  .task.done{opacity:.55} .task.done .ttl{text-decoration:line-through;color:var(--muted)}
+  .task .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:3px;border-radius:10px;padding:1px 8px;font-size:11.5px;font-weight:600;background:#f1f1f5;color:var(--muted)}
+  .chip.today{background:#fef3c7;color:#92400e} .chip.over{background:#fdecec;color:var(--danger)}
+  .donetoggle{width:100%;border:none;background:none;color:var(--muted);font-size:13px;font-weight:600;padding:10px;border-radius:10px;margin-top:6px}
+  .donetoggle:hover{background:#ececf0}
+
+  /* ── Composer: kommt per ＋-Button (Things-Quick-Entry-artig) ── */
+  .addcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:16px;box-shadow:0 6px 22px rgba(0,0,0,.10)}
+  .addcard input,.addcard textarea{width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 2px;font-size:15px;margin-bottom:6px;outline:none;background:transparent}
+  .addcard input:focus,.addcard textarea:focus{border-bottom-color:var(--accent)}
+  .addcard textarea{resize:vertical;min-height:64px;border:none;font-size:14px}
+  .addrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}
+  .addrow input{flex:1;min-width:120px;margin-bottom:0;font-size:13.5px}
+  .addrow input[type=date]{flex:0 0 auto;max-width:170px}
+  .btn{min-height:42px;padding:0 16px;border-radius:11px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:600}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.primary:hover{background:var(--accent2)}
-  .btn.sm{min-height:34px;padding:0 10px;font-size:13px;font-weight:500}
-  .btn.danger{color:var(--danger);border-color:#fecaca}
-  .note{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:10px}
-  .note.pin{border-color:#fcd34d;box-shadow:0 0 0 1px #fcd34d inset}
-  .note h3{font-size:15.5px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
-  .note .body{font-size:14px;color:#334155;white-space:pre-wrap;word-break:break-word}
-  .note .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
-  .note .tags{display:flex;gap:5px;flex-wrap:wrap}
-  .note .acts{display:flex;gap:6px}
-  .task{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
-  .task input[type=checkbox]{width:22px;height:22px;margin-top:2px;accent-color:var(--green);flex:0 0 auto}
-  .task .main{flex:1;min-width:0}
-  .task .ttl{font-weight:600}
-  .task.done .ttl{text-decoration:line-through;color:var(--muted)}
-  .task .meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .due{color:var(--amber);font-weight:600}.due.over{color:var(--danger)}
-  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:14px}
-  .notice{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13.5px}
-  .login{max-width:340px;margin:40px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .btn.sm{min-height:34px;padding:0 12px;font-size:13px;font-weight:500}
+  .btn.danger{color:var(--danger);border-color:#f6caca}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* ── ＋ FAB unten rechts ── */
+  .fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;
+    border:none;background:var(--accent);color:#fff;font-size:28px;line-height:1;box-shadow:0 6px 18px rgba(37,99,235,.4);z-index:40;
+    display:flex;align-items:center;justify-content:center;transition:transform .15s}
+  .fab:hover{transform:scale(1.06)} .fab.open{transform:rotate(45deg);background:#64748b;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
+  .empty{text-align:center;color:var(--muted);padding:44px 10px 30px;font-size:14px}
+  .empty .big{font-size:40px;margin-bottom:8px}
+  .login{max-width:340px;margin:40px auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
   .login h2{font-size:17px;margin-bottom:6px}.login p{font-size:13px;color:var(--muted);margin-bottom:14px}
   .login input{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font:14px var(--font);margin-bottom:8px}
-  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 18px;border-radius:22px;font-size:14px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:10px 18px;border-radius:22px;font-size:14px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
-  .demo-pill{position:fixed;right:10px;bottom:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:700;z-index:40}
+  .demo-pill{position:fixed;left:10px;bottom:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:14px;padding:3px 10px;font-size:11px;font-weight:700;z-index:40}
+  mark{background:#fff3b0;border-radius:3px;padding:0 1px}
 </style>
 </head>
 <body>
@@ -73,6 +128,7 @@ const CONFIG = {
 };
 const params = new URLSearchParams(location.search);
 const DEMO = params.get('forceMode') === 'demo';
+window.KRS_NOTIZEN_VERSION = '2.0.0';
 
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),1800); }
 
@@ -85,7 +141,18 @@ function extractTags(text, manual){
   return Array.from(out);
 }
 function fmtDate(d){ if(!d) return ''; try{ return new Date(d+'T00:00:00').toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}); }catch(e){ return d; } }
-function isOverdue(d){ if(!d) return false; return d < new Date().toISOString().slice(0,10); }
+function fmtStamp(iso){ if(!iso) return ''; try{ return new Date(iso).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'}); }catch(e){ return ''; } }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function isOverdue(d){ if(!d) return false; return d < todayISO(); }
+// Volltextsuche über Titel, Text und Tags (case-insensitiv)
+function matches(item, q){
+  if(!q) return true;
+  const s = q.trim().toLowerCase();
+  if(!s) return true;
+  return (item.title||'').toLowerCase().includes(s)
+    || (item.body||'').toLowerCase().includes(s)
+    || (item.tags||[]).some(t => ('#'+t).includes(s) || t.includes(s));
+}
 
 // ── DataService: Demo (in-memory) ODER Supabase ──
 function makeDemoService(){
@@ -94,7 +161,7 @@ function makeDemoService(){
     { id: 2, title: 'Idee Projektwoche', body: 'Bandprojekt mit Klasse 9. #musik #projekt', tags:['musik','projekt'], pinned:false, updated_at:new Date().toISOString() }
   ];
   let tasks = [
-    { id: 1, title: 'Arbeitsblätter kopieren', done:false, due:new Date().toISOString().slice(0,10), tags:['informatik'], updated_at:new Date().toISOString() },
+    { id: 1, title: 'Arbeitsblätter kopieren', done:false, due:todayISO(), tags:['informatik'], updated_at:new Date().toISOString() },
     { id: 2, title: 'Zeugnisnoten eintragen', done:false, due:null, tags:['orga'], updated_at:new Date().toISOString() },
     { id: 3, title: 'Instrumente zurückräumen', done:true, due:null, tags:['musik'], updated_at:new Date().toISOString() }
   ];
@@ -135,93 +202,128 @@ async function makeSupabaseService(){
 function TagBar({ all, sel, onToggle, onClear }){
   if(!all.length) return null;
   return html`<div class="filterbar" data-testid="tagbar">
-    <span class="lbl">Filter:</span>
+    ${sel && html`<button class="tag clear" onClick=${onClear}>✕</button>`}
     ${all.map(t => html`<button class=${'tag'+(sel===t?' sel':'')} onClick=${()=>onToggle(t)}>#${t}</button>`)}
-    ${sel && html`<button class="tag clear" onClick=${onClear}>✕ Filter</button>`}
   </div>`;
 }
 
-function Notizen({ svc }){
+function Sect({ label, cls, count }){
+  return html`<div class=${'sect'+(cls?' '+cls:'')}>${label}<span class="cnt">${count}</span></div>`;
+}
+
+function Notizen({ svc, search, showAdd, closeAdd }){
   const [notes,setNotes]=useState([]);
   const [title,setTitle]=useState(''); const [body,setBody]=useState(''); const [tagsIn,setTagsIn]=useState('');
   const [sel,setSel]=useState(''); const [editId,setEditId]=useState(0);
   const load=useCallback(()=>{ svc.listNotes().then(setNotes).catch(e=>toast(e.message)); },[svc]);
   useEffect(()=>{ load(); },[load]);
   const allTags=useMemo(()=>{ const s=new Set(); notes.forEach(n=>(n.tags||[]).forEach(t=>s.add(t))); return Array.from(s).sort(); },[notes]);
-  const shown=useMemo(()=> sel ? notes.filter(n=>(n.tags||[]).includes(sel)) : notes,[notes,sel]);
+  const shown=useMemo(()=> notes.filter(n => (!sel || (n.tags||[]).includes(sel)) && matches(n, search)),[notes,sel,search]);
+  const pinned = shown.filter(n=>n.pinned), rest = shown.filter(n=>!n.pinned);
   const save=()=>{ if(!title.trim()&&!body.trim()){ toast('Bitte Titel oder Text'); return; }
     const tags=extractTags(body,tagsIn);
-    svc.addNote({ title:title.trim(), body:body.trim(), tags, pinned:false }).then(()=>{ setTitle('');setBody('');setTagsIn(''); toast('Notiz gespeichert ✓'); load(); }).catch(e=>toast(e.message)); };
+    svc.addNote({ title:title.trim(), body:body.trim(), tags, pinned:false }).then(()=>{ setTitle('');setBody('');setTagsIn(''); closeAdd(); toast('Notiz gespeichert ✓'); load(); }).catch(e=>toast(e.message)); };
   const saveEdit=(n)=>{ const tags=extractTags(n.body,''); svc.updateNote(n.id,{ title:n.title, body:n.body, tags }).then(()=>{ setEditId(0); toast('Gespeichert'); load(); }).catch(e=>toast(e.message)); };
+
+  const card = (n) => html`<div class=${'note'+(n.pinned?' pin':'')+(editId===n.id?' editing':'')} key=${n.id} data-testid="note-item"
+      onClick=${()=>{ if(editId!==n.id) setEditId(n.id); }}>
+    ${editId===n.id ? html`
+      <input value=${n.title} placeholder="Titel" onClick=${e=>e.stopPropagation()} onInput=${e=>{n.title=e.target.value;setNotes([...notes]);}}
+        style="border:none;border-bottom:1px solid var(--line);padding:6px 2px;font-weight:700;font-size:15.5px;outline:none;background:transparent;width:100%"/>
+      <textarea style="width:100%;min-height:90px;margin-top:6px;border:1px solid var(--line);border-radius:9px;padding:8px;outline:none" onClick=${e=>e.stopPropagation()}
+        value=${n.body} onInput=${e=>{n.body=e.target.value;setNotes([...notes]);}}></textarea>
+      <div class="addrow" style="justify-content:flex-end" onClick=${e=>e.stopPropagation()}>
+        <button class="btn sm" onClick=${()=>{setEditId(0);load();}}>Abbrechen</button>
+        <button class="btn sm primary" onClick=${()=>saveEdit(n)}>Speichern</button>
+      </div>
+    ` : html`
+      <h3>${n.pinned?'📌 ':''}${n.title||'(ohne Titel)'}</h3>
+      ${n.body && html`<div class="body">${n.body}</div>`}
+      <div class="foot">
+        <div class="tags">${(n.tags||[]).map(t=>html`<button class="tag mini" onClick=${e=>{e.stopPropagation();setSel(sel===t?'':t);}}>#${t}</button>`)}</div>
+        <div class="acts" onClick=${e=>e.stopPropagation()}>
+          <span class="date">${fmtStamp(n.updated_at)}</span>
+          <button class="iconbtn" onClick=${()=>svc.updateNote(n.id,{pinned:!n.pinned}).then(load)} title=${n.pinned?'Lösen':'Anpinnen'} aria-label=${n.pinned?'Notiz lösen':'Notiz anpinnen'}>${n.pinned?'📌':'📍'}</button>
+          <button class="iconbtn" onClick=${()=>setEditId(n.id)} title="Bearbeiten" aria-label="Notiz bearbeiten">✏️</button>
+          <button class="iconbtn" style="color:var(--danger)" onClick=${()=>{ if(confirm('Notiz löschen?')) svc.deleteNote(n.id).then(load); }} title="Löschen" aria-label="Notiz löschen">🗑️</button>
+        </div>
+      </div>`}
+  </div>`;
+
   return html`<div>
-    <div class="addcard">
-      <input placeholder="Titel" value=${title} onInput=${e=>setTitle(e.target.value)} data-testid="note-title"/>
-      <textarea placeholder="Text … (nutze #tags direkt im Text, z. B. #musik #klasse7a)" value=${body} onInput=${e=>setBody(e.target.value)} data-testid="note-body"></textarea>
+    ${showAdd && html`<div class="addcard" data-testid="note-composer">
+      <input placeholder="Titel" value=${title} onInput=${e=>setTitle(e.target.value)} data-testid="note-title" autoFocus/>
+      <textarea placeholder="Text … (#tags direkt im Text, z. B. #musik #klasse7a)" value=${body} onInput=${e=>setBody(e.target.value)} data-testid="note-body"></textarea>
       <div class="addrow">
         <input placeholder="Tags (optional, kommagetrennt)" value=${tagsIn} onInput=${e=>setTagsIn(e.target.value)} data-testid="note-tags"/>
-        <button class="btn primary" onClick=${save} data-testid="note-add">＋ Notiz</button>
+        <button class="btn primary" onClick=${save} data-testid="note-add">Sichern</button>
       </div>
-    </div>
+    </div>`}
     <${TagBar} all=${allTags} sel=${sel} onToggle=${t=>setSel(sel===t?'':t)} onClear=${()=>setSel('')}/>
-    ${shown.length===0 && html`<div class="empty">Noch keine Notizen${sel?' mit #'+sel:''}. Leg oben eine an. 📝</div>`}
-    ${shown.map(n => html`<div class=${'note'+(n.pinned?' pin':'')} key=${n.id} data-testid="note-item">
-      ${editId===n.id ? html`
-        <input value=${n.title} onInput=${e=>{n.title=e.target.value;setNotes([...notes]);}}/>
-        <textarea style="width:100%;min-height:70px;margin-top:6px" value=${n.body} onInput=${e=>{n.body=e.target.value;setNotes([...notes]);}}></textarea>
-        <div class="acts" style="margin-top:8px"><button class="btn sm primary" onClick=${()=>saveEdit(n)}>💾 Speichern</button><button class="btn sm" onClick=${()=>{setEditId(0);load();}}>Abbrechen</button></div>
-      ` : html`
-        <h3>${n.pinned?'📌 ':''}${n.title||'(ohne Titel)'}</h3>
-        ${n.body && html`<div class="body">${n.body}</div>`}
-        <div class="foot">
-          <div class="tags">${(n.tags||[]).map(t=>html`<span class="tag" onClick=${()=>setSel(t)}>#${t}</span>`)}</div>
-          <div class="acts">
-            <button class="btn sm" onClick=${()=>svc.updateNote(n.id,{pinned:!n.pinned}).then(load)} title="Anpinnen">${n.pinned?'📌':'📍'}</button>
-            <button class="btn sm" onClick=${()=>setEditId(n.id)}>✏️</button>
-            <button class="btn sm danger" onClick=${()=>{ if(confirm('Notiz löschen?')) svc.deleteNote(n.id).then(load); }}>🗑️</button>
-          </div>
-        </div>`}
-    </div>`)}
+    ${shown.length===0 && html`<div class="empty"><div class="big">📝</div>
+      ${search||sel ? 'Nichts gefunden'+(sel?' mit #'+sel:'')+(search?' für „'+search+'"':'')+'.' : 'Noch keine Notizen. Tippe unten auf ＋.'}</div>`}
+    ${pinned.length>0 && html`<${Sect} label="Angepinnt" count=${pinned.length}/>`}
+    ${pinned.length>0 && html`<div class="grid">${pinned.map(card)}</div>`}
+    ${pinned.length>0 && rest.length>0 && html`<${Sect} label="Notizen" count=${rest.length}/>`}
+    ${rest.length>0 && html`<div class="grid">${rest.map(card)}</div>`}
   </div>`;
 }
 
-function Aufgaben({ svc }){
+function Aufgaben({ svc, search, showAdd, closeAdd }){
   const [tasks,setTasks]=useState([]);
   const [title,setTitle]=useState(''); const [due,setDue]=useState(''); const [tagsIn,setTagsIn]=useState('');
-  const [sel,setSel]=useState(''); const [showDone,setShowDone]=useState(true);
+  const [sel,setSel]=useState(''); const [showDone,setShowDone]=useState(false);
   const load=useCallback(()=>{ svc.listTasks().then(setTasks).catch(e=>toast(e.message)); },[svc]);
   useEffect(()=>{ load(); },[load]);
   const allTags=useMemo(()=>{ const s=new Set(); tasks.forEach(n=>(n.tags||[]).forEach(t=>s.add(t))); return Array.from(s).sort(); },[tasks]);
-  const shown=useMemo(()=> tasks.filter(t=>(!sel||(t.tags||[]).includes(sel)) && (showDone||!t.done)),[tasks,sel,showDone]);
+  const shown=useMemo(()=> tasks.filter(t=>(!sel||(t.tags||[]).includes(sel)) && matches(t, search)),[tasks,sel,search]);
+  const today = todayISO();
+  const groups = useMemo(()=>({
+    over:    shown.filter(t=>!t.done && t.due && t.due < today),
+    today:   shown.filter(t=>!t.done && t.due === today),
+    planned: shown.filter(t=>!t.done && t.due && t.due > today),
+    someday: shown.filter(t=>!t.done && !t.due),
+    done:    shown.filter(t=>t.done),
+  }),[shown,today]);
   const add=()=>{ if(!title.trim()){ toast('Bitte Aufgabe eingeben'); return; }
     const tags=extractTags(title,tagsIn);
-    svc.addTask({ title:title.trim(), due:due||null, tags }).then(()=>{ setTitle('');setDue('');setTagsIn(''); toast('Aufgabe hinzugefügt ✓'); load(); }).catch(e=>toast(e.message)); };
+    svc.addTask({ title:title.trim(), due:due||null, tags }).then(()=>{ setTitle('');setDue('');setTagsIn(''); closeAdd(); toast('Aufgabe hinzugefügt ✓'); load(); }).catch(e=>toast(e.message)); };
+
+  const row = (t) => html`<div class=${'task'+(t.done?' done':'')} key=${t.id} data-testid="task-item">
+    <input type="checkbox" checked=${t.done} onChange=${()=>svc.updateTask(t.id,{done:!t.done}).then(load)} data-testid="task-check" aria-label=${'Aufgabe '+(t.done?'reaktivieren':'abhaken')}/>
+    <div class="main">
+      <div class="ttl">${t.title}</div>
+      ${(t.due || (t.tags||[]).length>0) && html`<div class="meta">
+        ${t.due && html`<span class=${'chip'+(isOverdue(t.due)&&!t.done?' over':(t.due===today?' today':''))}>📅 ${t.due===today?'Heute':fmtDate(t.due)}</span>`}
+        ${(t.tags||[]).map(tg=>html`<button class="tag mini" onClick=${()=>setSel(sel===tg?'':tg)}>#${tg}</button>`)}
+      </div>`}
+    </div>
+    <button class="iconbtn" style="color:var(--danger)" onClick=${()=>{ if(confirm('Aufgabe löschen?')) svc.deleteTask(t.id).then(load); }} title="Löschen" aria-label="Aufgabe löschen">🗑️</button>
+  </div>`;
+
   return html`<div>
-    <div class="addcard">
-      <input placeholder="Neue Aufgabe … (#tags möglich)" value=${title} onInput=${e=>setTitle(e.target.value)} data-testid="task-title" onKeyDown=${e=>e.key==='Enter'&&add()}/>
+    ${showAdd && html`<div class="addcard" data-testid="task-composer">
+      <input placeholder="Neue Aufgabe … (#tags möglich)" value=${title} onInput=${e=>setTitle(e.target.value)} data-testid="task-title" onKeyDown=${e=>e.key==='Enter'&&add()} autoFocus/>
       <div class="addrow">
-        <input type="date" value=${due} onInput=${e=>setDue(e.target.value)} data-testid="task-due" style="max-width:170px"/>
+        <input type="date" value=${due} onInput=${e=>setDue(e.target.value)} data-testid="task-due"/>
         <input placeholder="Tags (optional)" value=${tagsIn} onInput=${e=>setTagsIn(e.target.value)} data-testid="task-tags"/>
-        <button class="btn primary" onClick=${add} data-testid="task-add">＋ Aufgabe</button>
+        <button class="btn primary" onClick=${add} data-testid="task-add">Sichern</button>
       </div>
-    </div>
-    <div class="filterbar">
-      <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px">
-        <input type="checkbox" checked=${showDone} onChange=${e=>setShowDone(e.target.checked)} style="width:18px;height:18px"/> Erledigte zeigen
-      </label>
-    </div>
+    </div>`}
     <${TagBar} all=${allTags} sel=${sel} onToggle=${t=>setSel(sel===t?'':t)} onClear=${()=>setSel('')}/>
-    ${shown.length===0 && html`<div class="empty">Keine Aufgaben${sel?' mit #'+sel:''}. 🎉</div>`}
-    ${shown.map(t => html`<div class=${'task'+(t.done?' done':'')} key=${t.id} data-testid="task-item">
-      <input type="checkbox" checked=${t.done} onChange=${()=>svc.updateTask(t.id,{done:!t.done}).then(load)} data-testid="task-check"/>
-      <div class="main">
-        <div class="ttl">${t.title}</div>
-        <div class="meta">
-          ${t.due && html`<span class=${'due'+(isOverdue(t.due)&&!t.done?' over':'')}>📅 ${fmtDate(t.due)}</span>`}
-          ${(t.tags||[]).map(tg=>html`<span class="tag" style="min-height:26px;padding:2px 8px" onClick=${()=>setSel(tg)}>#${tg}</span>`)}
-        </div>
-      </div>
-      <button class="btn sm danger" onClick=${()=>{ if(confirm('Aufgabe löschen?')) svc.deleteTask(t.id).then(load); }}>🗑️</button>
-    </div>`)}
+    ${shown.length===0 && html`<div class="empty"><div class="big">🎉</div>
+      ${search||sel ? 'Nichts gefunden'+(sel?' mit #'+sel:'')+(search?' für „'+search+'"':'')+'.' : 'Alles erledigt. Neue Aufgabe: unten ＋.'}</div>`}
+    ${groups.over.length>0 && html`<${Sect} label="Überfällig" cls="over" count=${groups.over.length}/>`}
+    ${groups.over.map(row)}
+    ${groups.today.length>0 && html`<${Sect} label="Heute" cls="today" count=${groups.today.length}/>`}
+    ${groups.today.map(row)}
+    ${groups.planned.length>0 && html`<${Sect} label="Geplant" count=${groups.planned.length}/>`}
+    ${groups.planned.map(row)}
+    ${groups.someday.length>0 && html`<${Sect} label="Ohne Termin" count=${groups.someday.length}/>`}
+    ${groups.someday.map(row)}
+    ${groups.done.length>0 && html`<button class="donetoggle" onClick=${()=>setShowDone(!showDone)} data-testid="done-toggle">
+      ${showDone?'▾':'▸'} Erledigt (${groups.done.length})</button>`}
+    ${showDone && groups.done.map(row)}
   </div>`;
 }
 
@@ -231,6 +333,8 @@ function App(){
   const [authState,setAuthState]=useState('loading'); // loading | ok | login
   const [who,setWho]=useState('');
   const [email,setEmail]=useState(''); const [pw,setPw]=useState('');
+  const [search,setSearch]=useState('');
+  const [showAdd,setShowAdd]=useState(false);
 
   useEffect(()=>{ (async()=>{
     if(DEMO){ const s=makeDemoService(); setSvc(s); const ses=await s.session(); setWho(ses.user.email); setAuthState('ok'); return; }
@@ -253,18 +357,32 @@ function App(){
     <button class="btn primary" style="width:100%" onClick=${doLogin} data-testid="login-btn">Anmelden</button>
   </div>`;
 
+  const switchTab = (t) => { setTab(t); setShowAdd(false); };
+
   return html`<div>
     <div class="top">
-      <h1>📝 Notizen & Aufgaben</h1>
-      <div class="who">Persönlich · nur du siehst das${who?' · '+who:''}</div>
-      <div class="tabs" role="tablist">
-        <button class=${tab==='notizen'?'on':''} onClick=${()=>setTab('notizen')} data-testid="tab-notizen">📝 Notizen</button>
-        <button class=${tab==='aufgaben'?'on':''} onClick=${()=>setTab('aufgaben')} data-testid="tab-aufgaben">✅ Aufgaben</button>
+      <div class="top-inner">
+        <h1>${tab==='notizen'?'Notizen':'Aufgaben'}</h1>
+        <div class="who">Persönlich · nur du siehst das${who?' · '+who:''}</div>
+        <div class="tabs" role="tablist">
+          <button class=${tab==='notizen'?'on':''} onClick=${()=>switchTab('notizen')} data-testid="tab-notizen" role="tab" aria-selected=${tab==='notizen'}>📝 Notizen</button>
+          <button class=${tab==='aufgaben'?'on':''} onClick=${()=>switchTab('aufgaben')} data-testid="tab-aufgaben" role="tab" aria-selected=${tab==='aufgaben'}>✅ Aufgaben</button>
+        </div>
+        <div class="searchrow">
+          <span class="ico">🔍</span>
+          <input class="search" type="search" placeholder=${'Suchen in '+(tab==='notizen'?'Notizen':'Aufgaben')+' … (auch #tags)'}
+            value=${search} onInput=${e=>setSearch(e.target.value)} data-testid="search-input" aria-label="Suchen"/>
+          ${search && html`<button class="search-clear" onClick=${()=>setSearch('')} aria-label="Suche leeren">✕</button>`}
+        </div>
       </div>
     </div>
     <div class="wrap">
-      ${tab==='notizen' ? html`<${Notizen} svc=${svc}/>` : html`<${Aufgaben} svc=${svc}/>`}
+      ${tab==='notizen'
+        ? html`<${Notizen} svc=${svc} search=${search} showAdd=${showAdd} closeAdd=${()=>setShowAdd(false)}/>`
+        : html`<${Aufgaben} svc=${svc} search=${search} showAdd=${showAdd} closeAdd=${()=>setShowAdd(false)}/>`}
     </div>
+    <button class=${'fab'+(showAdd?' open':'')} onClick=${()=>setShowAdd(v=>!v)} data-testid="fab-add"
+      title=${showAdd?'Schließen':(tab==='notizen'?'Neue Notiz':'Neue Aufgabe')} aria-label=${showAdd?'Eingabe schließen':(tab==='notizen'?'Neue Notiz anlegen':'Neue Aufgabe anlegen')}>＋</button>
     ${DEMO && html`<div class="demo-pill">DEMO</div>`}
   </div>`;
 }

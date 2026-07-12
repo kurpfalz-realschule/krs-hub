@@ -189,7 +189,35 @@
       padding: 0 16px;
       gap: 12px;
       flex-shrink: 0;
+      transition: height var(--transition), padding var(--transition);
     }
+
+    /* Q2 (11.07.2026): Topbar einklappbar, wenn ein Modul (iframe) aktiv ist —
+       gewinnt Platz auf dem iPad. Spec wollte einen 24px-Griff; 44px gewählt,
+       damit der Toggle ein echtes Touch-Target bleibt (--touch-min). */
+    .topbar.collapsed {
+      height: var(--touch-min);
+      padding: 0;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .topbar-collapse-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: var(--touch-min);
+      min-height: var(--touch-min);
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .topbar-collapse-btn:hover { background: var(--bg); color: var(--text); }
 
     .topbar-title {
       font-size: 16px;
@@ -901,7 +929,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.6.0-autolock-optin',
+      VERSION: '3.8.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -942,19 +970,10 @@
           color: '#16a34a'
         },
         {
-          id: 'buchung',
+          id: 'buchung2',
           name: 'iPad-Buchung',
           icon: '📱',
-          desc: 'Medien & Geräte buchen (Sheet/GAS)',
-          url: 'https://kurpfalz-realschule.github.io/ipad-buchung/',
-          color: '#7c3aed'
-        },
-        {
-          id: 'buchung2',
-          name: 'iPad-Buchung (neu)',
-          icon: '📱',
-          badge: 'NEU',
-          desc: 'Medien & Geräte buchen — Supabase-nativ',
+          desc: 'Medien & Geräte buchen',
           url: 'https://kurpfalz-realschule.github.io/ipad-buchung-neu/',
           color: '#9333ea'
         },
@@ -978,7 +997,7 @@
       ],
       EXTERNAL_LINKS: [
         { id: 'homepage', name: 'Homepage', icon: '🌐', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#' },
-        { id: 'untis', name: 'Untis', icon: '📊', url: 'https://mese.webuntis.com/WebUntis/?school=KRS+Schriesheim#/basic/login' },
+        { id: 'untis', name: 'Untis', icon: '📊', url: (window.KRS_TENANT && window.KRS_TENANT.UNTIS_URL) || '#' },
         { id: 'kalender', name: 'Kalender', icon: '🗓️', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' },
         { id: 'dateiablage', name: 'Dateiablage', icon: '📁', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' }
       ],
@@ -991,6 +1010,13 @@
         SUPERADMINS: ['Ktz', 'Ko'],          // dürfen Rollen ändern (Ktz = Norbert live, Ko = Legacy)
         // GAS-Bridge: geschützter Admin-Endpoint des Klassenarbeitsplan-GAS.
         // Leer lassen = Klassenarbeiten-Löschen deaktiviert (zeigt Hinweis).
+        //
+        // Bootstrap (nur Norbert, siehe SPRINTPLAN-2026-07-11-THEMENPAKET.md Abschnitt 4.1):
+        // 1. https://script.google.com/home öffnen → Klassenarbeitsplan-GAS-Projekt
+        // 2. Inhalt von gas-admin-sync.js als Datei einfügen (falls noch nicht drin)
+        // 3. Bereitstellen → Neue Bereitstellung → Typ: Web-App → Ausführen als: ich,
+        //    Zugriff: jeder → Bereitstellen
+        // 4. Die Web-App-URL hier eintragen (nur die URL, keine Secrets/PINs im Code)
         GAS_KLASSENARBEIT_URL: ''
       },
       // Phase 2: iServ OAuth (vorbereitet, noch nicht aktiv)
@@ -1316,6 +1342,14 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.8.0', date: '11.07.2026', items: [
+        'Titelleiste über einem geöffneten Modul lässt sich per Pfeil-Button einklappen — mehr Platz auf dem iPad. Merkt sich deine Wahl.',
+        'Auf dem Handy startet die Leiste automatisch eingeklappt (beim allerersten Öffnen)'
+      ] },
+      { v: '3.7.0', date: '11.07.2026', items: [
+        'iPad-Buchung: nur noch eine Kachel (alte GAS-Version entfernt)',
+        'Untis-Link öffnet jetzt direkt die Login-Seite der Schule'
+      ] },
       { v: '3.6.0', date: '08.07.2026', items: ['Auto-Sperre bei Inaktivität ist jetzt OPTIONAL — standardmäßig aus. Einschalten im Profil-Menü → „Auto-Sperre bei Inaktivität" (Minuten wählbar). Manuelles „Jetzt sperren" bleibt.', 'Neu: Modul „Notizen & Aufgaben" (persönlich, mit #Tags) — als Kachel auf der Startseite und in Connect', 'Neu: Admin kann Passwörter für Kolleg:innen zurücksetzen (Admin → Lehrkräfte → 🔑 Passwort)'] },
       { v: '3.5.0', date: '06.07.2026', items: ['Schulleitung/Admins können jetzt auch die Mitteilungen und die Dienste-Leiste (Küchen- & Hofdienst) direkt auf der Startseite pflegen — anlegen, ändern, löschen', 'Dienste sind flexibel: weitere Dienste lassen sich per „+ Dienst" ergänzen'] },
       { v: '3.4.0', date: '06.07.2026', items: ['Neu: Versions- & „Was ist neu"-Anzeige (unten im Benutzermenü)', 'Automatischer Update-Hinweis: bei einer neuen Version erscheint ein Reload-Banner — kein manuelles Cache-Leeren mehr nötig'] },
@@ -1652,14 +1686,39 @@
     }
 
     // ── Top Bar ────────────────────────────────────
-    function TopBar({ activeModule, profile, onMenuToggle, onUserMenuToggle, showUserMenu }) {
+    // Q2 (11.07.2026): einklappbar, solange ein Modul (iframe) aktiv ist.
+    // Auf dem Dashboard (kein activeModule) bleibt sie immer voll sichtbar —
+    // dort gibt es nichts, wofür sich das Einklappen lohnt.
+    function TopBar({ activeModule, profile, onMenuToggle, onUserMenuToggle, showUserMenu, collapsed, onToggleCollapse }) {
       const mod = CONFIG.MODULES.find(m => m.id === activeModule);
       const title = mod ? mod.icon + ' ' + mod.name : CONFIG.APP_NAME;
       const initials = profile?.kuerzel || profile?.display_name?.charAt(0) || '?';
+      const isCollapsed = !!activeModule && !!collapsed;
 
-      return e('header', { className: 'topbar' },
+      if (isCollapsed) {
+        return e('header', { className: 'topbar collapsed', 'data-testid': 'topbar' },
+          e('button', {
+            className: 'topbar-collapse-btn',
+            onClick: onToggleCollapse,
+            'aria-label': 'Leiste einblenden',
+            'aria-expanded': false,
+            title: 'Leiste einblenden',
+            'data-testid': 'topbar-collapse-toggle'
+          }, '▼')
+        );
+      }
+
+      return e('header', { className: 'topbar', 'data-testid': 'topbar' },
         e('button', { className: 'hamburger', onClick: onMenuToggle, 'aria-label': 'Menü' }, '☰'),
         e('div', { className: 'topbar-title' }, title),
+        activeModule && e('button', {
+          className: 'topbar-collapse-btn',
+          onClick: onToggleCollapse,
+          'aria-label': 'Leiste ausblenden',
+          'aria-expanded': true,
+          title: 'Leiste ausblenden',
+          'data-testid': 'topbar-collapse-toggle'
+        }, '▲'),
         e('div', {
           className: 'topbar-user',
           onClick: onUserMenuToggle,
@@ -2703,6 +2762,24 @@
       // Auto-Sperre bei Inaktivität — OPT-IN (Default aus), pro Gerät gespeichert
       const [autolock, setAutolock] = useState(() => { try { return localStorage.getItem('krs_hub_autolock') === '1'; } catch (e) { return false; } });
       const [autolockMin, setAutolockMin] = useState(() => { try { var v = parseInt(localStorage.getItem('krs_hub_autolock_min') || '10', 10); return [5, 10, 15, 30].indexOf(v) !== -1 ? v : 10; } catch (e) { return 10; } });
+      // Q2 (11.07.2026): Topbar einklappbar, wenn ein Modul aktiv ist. Explizit
+      // gespeicherte Präferenz gewinnt; ohne Vorwahl startet Mobile eingeklappt
+      // (Platzgewinn), Desktop ausgeklappt.
+      const [topbarCollapsed, setTopbarCollapsedState] = useState(() => {
+        try {
+          const stored = localStorage.getItem('krs_hub_topbar_collapsed');
+          if (stored === '1') return true;
+          if (stored === '0') return false;
+        } catch (e) {}
+        try { return window.matchMedia('(max-width: 768px)').matches; } catch (e) { return false; }
+      });
+      const toggleTopbarCollapsed = () => {
+        setTopbarCollapsedState(v => {
+          const nv = !v;
+          try { localStorage.setItem('krs_hub_topbar_collapsed', nv ? '1' : '0'); } catch (e) {}
+          return nv;
+        });
+      };
 
       // ── Hash Router ────────────────────────────
       useEffect(() => {
@@ -2926,7 +3003,9 @@
               profile,
               onMenuToggle: () => {},
               onUserMenuToggle: () => setShowUserMenu(v => !v),
-              showUserMenu
+              showUserMenu,
+              collapsed: topbarCollapsed,
+              onToggleCollapse: toggleTopbarCollapsed
             }),
             activeModule
               ? e(ModuleContent, { activeModule, profile })

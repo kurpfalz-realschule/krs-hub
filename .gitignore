@@ -3,3 +3,7 @@
 *.pre-coach.bak
 *.backup-*
 .DS_Store
+node_modules/
+playwright-report/
+test-results/
+_site/

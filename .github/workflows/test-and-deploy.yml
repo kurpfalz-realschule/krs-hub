@@ -1,0 +1,82 @@
+name: Test & Deploy Hub
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-hub-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    name: Playwright Hub-Smokes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Abhängigkeiten installieren
+        run: npm ci
+      - name: Chromium installieren
+        run: npx playwright install --with-deps chromium
+      - name: Testliste kompilieren
+        run: npm run test:list
+      - name: Hub- und Notizen-Smokes ausführen
+        run: npm test
+        env:
+          CI: true
+      - name: Playwright-Bericht bei Fehler hochladen
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-hub
+          path: playwright-report/
+          retention-days: 14
+
+  build:
+    name: GitHub-Pages-Artefakt bauen
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Abhängigkeiten installieren
+        run: npm ci
+      - name: _site erstellen
+        run: npm run build:site
+      - name: Laufzeitdateien inventarisieren und prüfen
+        run: npm run verify:site
+      - name: Pages-Artefakt hochladen
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: GitHub Pages deployen
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Hub deployen
+        id: deployment
+        uses: actions/deploy-pages@v4

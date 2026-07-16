@@ -1,0 +1,21 @@
+{
+  "name": "krs-hub",
+  "version": "3.8.0",
+  "private": true,
+  "description": "KRS Hub — eigenständige Playwright-Tests und GitHub-Pages-Build",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "serve": "http-server . -a 127.0.0.1 -p 4317 -c-1 --silent",
+    "test": "playwright test",
+    "test:list": "playwright test --list",
+    "test:headed": "playwright test --headed",
+    "build:site": "node scripts/build-site.mjs",
+    "verify:site": "node scripts/verify-site.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "http-server": "14.1.1"
+  }
+}

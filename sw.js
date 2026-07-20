@@ -1,10 +1,11 @@
 // ═══════════════════════════════════════════════
 // KRS Hub — Service Worker
-// Version: 1.0.0
+// Version: 3.9.0
 // Strategie: Network-First für HTML, Cache-First für CDN
+// Offline-Fallback: caches.match('./offline.html') bei Navigations-Requests
 // ═══════════════════════════════════════════════
 
-const VERSION = '1.6.0'; // Board: Mitteilungen & Dienste editierbar
+const VERSION = '3.9.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)
@@ -16,7 +17,12 @@ const LOCAL_ASSETS = [
   './logo-krs.png',
   './modules/connect.html',
   './modules/plan.html',
-  './modules/buchung.html'
+  './modules/buchung.html',
+  './offline.html',
+  './apple-touch-icon.png',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-512-maskable.png'
 ];
 
 // CDN-Assets (Cache-First — ändern sich selten)
@@ -96,7 +102,14 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() =>
+          caches.match(event.request).then(cached => {
+            if (cached) return cached;
+            // Letzter Fallback bei Navigations-Requests: Offline-Seite statt Browser-Fehlerseite
+            if (event.request.mode === 'navigate') return caches.match('./offline.html');
+            return undefined;
+          })
+        )
     );
     return;
   }

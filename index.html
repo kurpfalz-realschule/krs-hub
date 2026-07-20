@@ -9,6 +9,7 @@
   <title>KRS Hub — Kurpfalz-Realschule Schriesheim</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏫</text></svg>">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <!-- React 18 via CDN (mit Fallback-URLs) -->
   <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
@@ -81,6 +82,12 @@
     .shell {
       display: flex;
       height: 100dvh;
+      /* iOS Standalone/Web-Clip: Platz für Notch/Home-Indicator freihalten.
+         env() ist 0 ohne Safe-Area (Desktop/Android) — Layout ändert sich dort nicht. */
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
     }
 
     /* ── Sidebar ──────────────────────────────────── */
@@ -929,7 +936,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.8.0',
+      VERSION: '3.9.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1342,6 +1349,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.9.0', date: '19.07.2026', items: [
+        'Als App auf dem iPad installierbar: KRS Hub bekommt ein echtes App-Icon, funktioniert im Vollbild ohne Safari-Leiste und zeigt bei fehlender Internetverbindung eine freundliche Hinweisseite statt einer Fehlermeldung'
+      ] },
       { v: '3.8.0', date: '11.07.2026', items: [
         'Titelleiste über einem geöffneten Modul lässt sich per Pfeil-Button einklappen — mehr Platz auf dem iPad. Merkt sich deine Wahl.',
         'Auf dem Handy startet die Leiste automatisch eingeklappt (beim allerersten Öffnen)'
@@ -1381,8 +1391,18 @@
         check();
         const id = setInterval(check, 5 * 60 * 1000); // alle 5 Minuten
         const onFocus = () => check();
+        // iOS friert Timer im Standalone-Suspend ein — beim Zurückkehren in die
+        // App (visibilitychange → visible) sofort neu prüfen statt auf den
+        // nächsten 5-Minuten-Tick zu warten.
+        const onVisibility = () => { if (document.visibilityState === 'visible') check(); };
         window.addEventListener('focus', onFocus);
-        return () => { stopped = true; clearInterval(id); window.removeEventListener('focus', onFocus); };
+        document.addEventListener('visibilitychange', onVisibility);
+        return () => {
+          stopped = true;
+          clearInterval(id);
+          window.removeEventListener('focus', onFocus);
+          document.removeEventListener('visibilitychange', onVisibility);
+        };
       }, []);
       if (!newVersion || dismissed) return null;
       return e('div', { role: 'alert', style: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000, background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', padding: '10px 14px', fontSize: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' } },
@@ -2433,6 +2453,10 @@
       });
       return { valid: valid, errors: errors };
     }
+    // Für Module/Tests erreichbar (INT-1-Contract-Test: Payload gegen
+    // Backend-Feld-Allowlist prüfen, siehe tests/hub/smoke-csv-import-contract.spec.ts):
+    window.KRSHub = window.KRSHub || {};
+    window.KRSHub.parseUsersCSV = parseUsersCSV;
 
     // ── Admin-Panel UI ──
     const ADM = {

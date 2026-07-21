@@ -14,6 +14,10 @@ test.describe('KRS Notizen & Aufgaben — Demo', () => {
     await page.goto(URL);
     await expect(page.getByTestId('tab-notizen')).toBeVisible({ timeout: 15_000 });
     const before = await page.getByTestId('note-item').count();
+    // Seit v2.0 (Things/Apple-Notes-Layout, c637b39) liegt der Composer
+    // hinter dem "+"-FAB, statt dauerhaft sichtbar zu sein.
+    await page.getByTestId('fab-add').click();
+    await expect(page.getByTestId('note-composer')).toBeVisible();
     await page.getByTestId('note-title').fill('Testnotiz Playwright');
     await page.getByTestId('note-body').fill('Inhalt mit #probe');
     await page.getByTestId('note-add').click();
@@ -25,6 +29,9 @@ test.describe('KRS Notizen & Aufgaben — Demo', () => {
     await page.goto(URL);
     await expect(page.getByTestId('tab-aufgaben')).toBeVisible({ timeout: 15_000 });
     await page.getByTestId('tab-aufgaben').click();
+    // Composer liegt seit v2.0 hinter dem "+"-FAB (siehe oben).
+    await page.getByTestId('fab-add').click();
+    await expect(page.getByTestId('task-composer')).toBeVisible();
     await page.getByTestId('task-title').fill('Aufgabe Playwright #orga');
     await page.getByTestId('task-add').click();
     const item = page.locator('[data-testid="task-item"]', { hasText: 'Aufgabe Playwright' });

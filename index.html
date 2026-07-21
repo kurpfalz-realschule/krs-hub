@@ -2447,7 +2447,7 @@
       var valid = [], errors = [];
       rows.forEach(function (line, idx) {
         var c = line.split(delim).map(function (x) { return x.trim().replace(/^"(.*)"$/, '$1'); });
-        var u = { kuerzel: c[ci.k] || '', name: c[ci.n] || '', vorname: ci.v > -1 ? (c[ci.v] || '') : '', email: ci.e > -1 ? (c[ci.e] || '') : '', role: 'member' };
+        var u = { kuerzel: c[ci.k] || '', name: c[ci.n] || '', vorname: ci.v > -1 ? (c[ci.v] || '') : '', email: ci.e > -1 ? (c[ci.e] || '') : '' };
         if (!u.kuerzel || !u.name) { errors.push({ line: idx + 1, raw: line, reason: 'Kürzel oder Name fehlt' }); return; }
         valid.push(u);
       });

@@ -1,8 +1,11 @@
 import { test, expect } from '../fixtures/hub';
 import { HUB_PATH } from '../fixtures/hub';
 
+// :visible schließt das per CSS versteckte Desktop-.nav-item aus, das im
+// Mobile-Viewport zusätzlich zum sichtbaren .mobile-tab im DOM steht —
+// sonst greift .first() nach DOM-Reihenfolge statt nach Sichtbarkeit.
 const connectButton = (page) =>
-  page.locator('.nav-item, .mobile-tab').filter({ hasText: /connect/i }).first();
+  page.locator('.nav-item:visible, .mobile-tab:visible').filter({ hasText: /connect/i }).first();
 
 test.describe('KRS Hub — Topbar-Collapse (Q2)', () => {
   test('Dashboard hat keinen Collapse-Toggle', async ({ hubPage: page }) => {

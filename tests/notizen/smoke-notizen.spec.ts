@@ -36,7 +36,14 @@ test.describe('KRS Notizen & Aufgaben — Demo', () => {
     await page.getByTestId('task-add').click();
     const item = page.locator('[data-testid="task-item"]', { hasText: 'Aufgabe Playwright' });
     await expect(item).toBeVisible();
-    await item.getByTestId('task-check').check();
+    // .click() statt .check(): Sobald done=true ist, entfernt Preact die
+    // Zeile aus der aktiven Liste — erledigte Aufgaben wandern seit v2.0
+    // (Things-Style) hinter den eingeklappten "Erledigt"-Abschnitt
+    // (showDone startet false). .check() wartet danach ewig auf eine
+    // Checked-Bestätigung an einem bereits aus dem DOM entfernten Knoten
+    // (→ Timeout). Ohne diese Selbstverifikation reicht ein normaler Klick.
+    await item.getByTestId('task-check').click();
+    await page.getByTestId('done-toggle').click();
     await expect(item).toHaveClass(/done/);
   });
 

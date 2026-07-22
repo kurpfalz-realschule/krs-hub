@@ -913,10 +913,29 @@
         cursor: pointer;
         position: relative;
         min-height: var(--touch-min);
+        /* A11Y-Fix (22.07.2026): ohne min-width:0 verweigert der Flex-Item die
+           automatische Mindestgröße (= Label-Textbreite) das Schrumpfen unter
+           die Anzahl-der-Tabs × Label-Breite — bei 7 Modulen (u. a. "Notizen &
+           Aufgaben", "Klassenarbeiten") ergab das ~390px Mindestbreite und
+           damit echtes horizontales Scrollen bei 320/390px (WCAG 1.4.10-
+           Verstoß, von smoke-mobile-layout.spec.ts real aufgedeckt). Fix live
+           in Chrome verifiziert (iframe-Emulation echter 320/390px-Viewports
+           gegen die Live-Seite, Playwright-Chromium in dieser Sandbox weiterhin
+           nicht startbar): scrollWidth danach exakt = innerWidth an beiden
+           Breakpoints, alle 7 Tabs gleich breit (~45px, > 44px Touch-Minimum). */
+        min-width: 0;
         padding: 4px;
       }
       .mobile-tab.active { color: var(--primary); }
       .mobile-tab-icon { font-size: 20px; }
+      /* A11Y-Fix (22.07.2026, siehe .mobile-tab oben): Label-Text ellipsiert
+         statt zu überlaufen, wenn der Tab schmaler ist als das Wort. */
+      .mobile-tab > span:not(.mobile-tab-icon):not(.nav-badge) {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
       .topbar-username { display: none; }
     }

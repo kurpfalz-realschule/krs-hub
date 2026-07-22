@@ -24,6 +24,29 @@
   <script>if(!window.DOMPurify){document.write('<scr'+'ipt src="https://unpkg.com/dompurify@3.2.4/dist/purify.min.js"><\/scr'+'ipt>')}</script>
   <!-- Phase 3: iServ OAuth wird hier eingebunden -->
 
+  <!-- N4 (Sprint N-Sonnet, 22.07.2026): Native-Link-Bridge für die iOS-App (Capacitor). -->
+  <!-- Läuft NUR, wenn window.Capacitor existiert (nativer Container) — im Browser -->
+  <!-- und in der installierten PWA ist Capacitor nicht vorhanden, daher bleibt dieser -->
+  <!-- Block dort komplett inaktiv (kein Listener wird registriert). -->
+  <!-- Architektur/Begründung: ARCHITEKTUR-IOS-NATIVE-2026-07-22.md §4 -->
+  <script>
+    (function () {
+      if (!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())) {
+        return; // Browser/PWA: kein Capacitor vorhanden → Shim bleibt aus
+      }
+      import('https://cdn.jsdelivr.net/npm/@capacitor/browser/dist/index.js').catch(function () {});
+      document.addEventListener('click', function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a[href^="http"]') : null;
+        if (!a) return;
+        var sameOrigin = a.hostname === location.hostname;
+        if (!sameOrigin) {
+          e.preventDefault();
+          window.Capacitor.Plugins.Browser.open({ url: a.href });
+        }
+      }, true);
+    })();
+  </script>
+
   <style>
     /* ═══════════════════════════════════════════════════
        KRS Hub — Design System
@@ -966,7 +989,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.9.0',
+      VERSION: '3.10.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1379,6 +1402,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.10.0', date: '22.07.2026', items: [
+        'Vorbereitung für die native iOS-App: externe Links (Untis, Nextcloud, Kalender) öffnen dort künftig in einem eigenen Safari-Fenster statt im App-Fenster. Wirkt sich nur auf die künftige App aus — im Browser und in der bisherigen PWA ändert sich nichts.'
+      ] },
       { v: '3.9.0', date: '19.07.2026', items: [
         'Als App auf dem iPad installierbar: KRS Hub bekommt ein echtes App-Icon, funktioniert im Vollbild ohne Safari-Leiste und zeigt bei fehlender Internetverbindung eine freundliche Hinweisseite statt einer Fehlermeldung'
       ] },
@@ -3195,7 +3221,15 @@
     return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
   }
   function openDialogs() {
-    return Array.prototype.filter.call(document.querySelectorAll('[role="dialog"]'), isVisible);
+    return Array.prototype.filter.call(document.querySelectorAll('[role="dialog"]'), function (d) {
+      if (!isVisible(d)) return false;
+      // Der Lern-Coach (krsc-*) hält sein Panel dauerhaft im DOM (nur per transform
+      // ausgeblendet → offsetWidth > 0) und managt Fokus/Escape selbst. Nicht fangen,
+      // sonst würde der Trap das Coach-Panel beim Laden fokussieren.
+      if (d.className && String(d.className).indexOf('krsc') !== -1) return false;
+      if (d.closest && d.closest('[class*="krsc-"]')) return false;
+      return true;
+    });
   }
   function focusables(container) {
     return Array.prototype.filter.call(container.querySelectorAll(FOCUSABLE), function (el) {

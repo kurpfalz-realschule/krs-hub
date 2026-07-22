@@ -328,12 +328,23 @@
       font-weight: 700;
       letter-spacing: -0.5px;
       color: var(--text);
+      margin: 0;
     }
     .welcome-sub {
       font-size: 14px;
       color: var(--text-muted);
       font-weight: 400;
     }
+    /* A2b · <main>-Wrapper: transportiert die Flex-Höhe unverändert an .content/.welcome */
+    .module-main { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+    /* A2b · Skip-Link „Zum Inhalt springen" (WCAG 2.4.1) — sichtbar nur bei Fokus */
+    .skip-link {
+      position: absolute; left: 8px; top: -48px; z-index: 9999;
+      padding: 10px 16px; background: var(--primary, #2563eb); color: #fff;
+      border-radius: 8px; font-size: 14px; font-weight: 600;
+      text-decoration: none; transition: top 0.15s ease;
+    }
+    .skip-link:focus { top: 8px; outline: 2px solid #fff; outline-offset: 2px; }
 
     /* ── Quick-Access Module Cards ────────────────── */
     .module-cards {
@@ -1572,6 +1583,9 @@
             autoFocus: true,
             disabled: loading,
             'aria-label': 'E-Mail-Adresse',
+            'aria-required': 'true',
+            'aria-invalid': status?.type === 'error' ? 'true' : undefined,
+            'aria-describedby': status?.type === 'error' ? 'hub-login-status' : undefined,
             'data-testid': 'login-email'
           }),
           e('input', {
@@ -1583,6 +1597,9 @@
             autoComplete: 'current-password',
             disabled: loading,
             'aria-label': 'Passwort',
+            'aria-required': 'true',
+            'aria-invalid': status?.type === 'error' ? 'true' : undefined,
+            'aria-describedby': status?.type === 'error' ? 'hub-login-status' : undefined,
             'data-testid': 'login-password'
           }),
           e('button', {
@@ -1591,7 +1608,10 @@
             disabled: loading || !email.trim() || !password,
             'data-testid': 'login-submit'
           }, loading ? 'Anmelden…' : 'Anmelden'),
-          status && e('div', { className: 'login-status ' + status.type }, status.msg),
+          e('div', {
+            id: 'hub-login-status', role: 'alert', 'aria-live': 'assertive',
+            className: status ? ('login-status ' + status.type) : undefined
+          }, status ? status.msg : ''),
           e('div', { className: 'login-info' }, 'Deine Zugangsdaten stehen auf der persönlichen Anmeldeliste.')
         )
       );
@@ -1649,6 +1669,9 @@
             disabled: loading,
             autoComplete: 'current-password',
             'aria-label': 'Passwort',
+            'aria-required': 'true',
+            'aria-invalid': status?.type === 'error' ? 'true' : undefined,
+            'aria-describedby': status?.type === 'error' ? 'lock-status' : undefined,
             'data-testid': 'lock-password'
           }),
 
@@ -1659,7 +1682,10 @@
             'data-testid': 'lock-unlock'
           }, loading ? 'Prüfe…' : 'Entsperren'),
 
-          status && e('div', { className: 'login-status ' + status.type }, status.msg),
+          e('div', {
+            id: 'lock-status', role: 'alert', 'aria-live': 'assertive',
+            className: status ? ('login-status ' + status.type) : undefined
+          }, status ? status.msg : ''),
 
           e('button', {
             className: 'lock-other-btn',
@@ -2095,7 +2121,7 @@
         // ── Hero: Logo + Greeting ──
         e('div', { className: 'welcome-hero' },
           e('img', { className: 'welcome-logo', src: 'logo-krs.png', alt: 'KRS Logo' }),
-          e('div', { className: 'welcome-greeting' }, greeting + ', ' + firstName + '!'),
+          e('h1', { className: 'welcome-greeting' }, greeting + ', ' + firstName + '!'),
           e('div', { className: 'welcome-sub' }, 'Kurpfalz-Realschule Schriesheim')
         ),
 
@@ -2106,7 +2132,7 @@
         },
           e('div', { style: { fontSize: '22px', lineHeight: 1 } }, '👋'),
           e('div', { style: { flex: 1 } },
-            e('div', { style: { fontWeight: 700, marginBottom: '4px' } }, 'Willkommen im KRS Hub'),
+            e('h2', { style: { fontWeight: 700, marginBottom: '4px', marginTop: 0, fontSize: '15px' } }, 'Willkommen im KRS Hub'),
             e('div', { style: { fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5 } },
               'Über die Kacheln öffnest du die Module. Hilfe und Feedback findest du jederzeit im Profil-Menü oben rechts.'),
             e('button', {
@@ -2534,13 +2560,25 @@
       );
 
       const tabs = [['lehrer','👤 Lehrkräfte'],['koffer','📱 iPad-Koffer'],['mitglieder','👥 Mitgliedschaften'],['ka','📅 Klassenarbeiten']];
-      return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel', onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
+      return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Administration', onKeyDown: (ev) => { if (ev.key === 'Escape') { ev.preventDefault(); onClose(); } }, onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
         e('div', { style: ADM.panel },
           header,
-          e('div', { style: ADM.tabs, role: 'tablist' },
-            tabs.map(([id, label]) => e('button', { key: id, style: ADM.tab(tab === id), onClick: () => setTab(id), 'data-testid': 'admin-tab-' + id, role: 'tab', 'aria-selected': tab === id }, label))
+          e('div', {
+              style: ADM.tabs, role: 'tablist', 'aria-label': 'Verwaltungsbereiche',
+              onKeyDown: (ev) => {
+                const ids = tabs.map(function (t) { return t[0]; });
+                const cur = ids.indexOf(tab);
+                let ni = -1;
+                if (ev.key === 'ArrowRight') ni = (cur + 1) % ids.length;
+                else if (ev.key === 'ArrowLeft') ni = (cur - 1 + ids.length) % ids.length;
+                else if (ev.key === 'Home') ni = 0;
+                else if (ev.key === 'End') ni = ids.length - 1;
+                if (ni >= 0) { ev.preventDefault(); setTab(ids[ni]); const btn = ev.currentTarget.querySelector('#admtab-' + ids[ni]); if (btn) requestAnimationFrame(function () { try { btn.focus(); } catch (e) {} }); }
+              }
+            },
+            tabs.map(([id, label]) => e('button', { key: id, id: 'admtab-' + id, style: ADM.tab(tab === id), onClick: () => setTab(id), 'data-testid': 'admin-tab-' + id, role: 'tab', 'aria-selected': tab === id, 'aria-controls': 'admpanel', tabIndex: tab === id ? 0 : -1 }, label))
           ),
-          e('div', { style: ADM.body },
+          e('div', { style: ADM.body, role: 'tabpanel', id: 'admpanel', 'aria-labelledby': 'admtab-' + tab, tabIndex: 0 },
             tab === 'lehrer' && e(AdminLehrer, { svc: svc }),
             tab === 'koffer' && e(AdminKoffer, { svc: svc }),
             tab === 'mitglieder' && e(AdminMitglieder, { svc: svc }),
@@ -3052,6 +3090,8 @@
 
       // Authenticated
       return e(React.Fragment, null,
+        // Skip-Link „Zum Inhalt springen" (WCAG 2.4.1) — erstes fokussierbares Element
+        e('a', { href: '#main', className: 'skip-link' }, 'Zum Inhalt springen'),
         e(UpdateBanner),
         e('div', { className: 'shell' },
           e(Sidebar, {
@@ -3071,9 +3111,11 @@
               collapsed: topbarCollapsed,
               onToggleCollapse: toggleTopbarCollapsed
             }),
-            activeModule
-              ? e(ModuleContent, { activeModule, profile })
-              : e(WelcomeScreen, { onModuleSelect: handleModuleSelect, profile }),
+            e('main', { id: 'main', className: 'module-main', tabIndex: -1 },
+              activeModule
+                ? e(ModuleContent, { activeModule, profile })
+                : e(WelcomeScreen, { onModuleSelect: handleModuleSelect, profile })
+            ),
             e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts })
           )
         ),
@@ -3132,6 +3174,99 @@
       });
     }
   </script>
+<!-- A2b · Barrierefreiheit: globaler Focus-Trap + Fokus-Return (WCAG 2.1.2 / 2.4.3) -->
+<script>
+/* Fängt Tab/Shift+Tab zyklisch im obersten [role="dialog"], neutralisiert den
+   Hintergrund (inert + aria-hidden) und gibt den Fokus beim Schließen an das
+   auslösende Element zurück. Rein DOM-basiert (liest den Live-Zustand statt
+   React-State zu schließen) → stale-closure-frei. Escape schließt weiterhin über
+   die vorhandenen Handler der Dialoge; dieser Manager verändert keinen App-State. */
+(function () {
+  'use strict';
+  var FOCUSABLE = 'a[href],area[href],input:not([disabled]):not([type="hidden"]),' +
+    'select:not([disabled]),textarea:not([disabled]),button:not([disabled]),' +
+    'iframe,audio[controls],video[controls],[contenteditable="true"],[tabindex]:not([tabindex="-1"])';
+  var triggerEl = null;
+  var lastOutsideFocus = null;
+  var activeTrap = null;
+  var neutralized = [];
+
+  function isVisible(el) {
+    return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+  }
+  function openDialogs() {
+    return Array.prototype.filter.call(document.querySelectorAll('[role="dialog"]'), isVisible);
+  }
+  function focusables(container) {
+    return Array.prototype.filter.call(container.querySelectorAll(FOCUSABLE), function (el) {
+      return isVisible(el) && el.getAttribute('aria-hidden') !== 'true';
+    });
+  }
+  function neutralizeBackground(dialog) {
+    var parent = dialog.parentNode;
+    if (!parent || !parent.children) return;
+    Array.prototype.forEach.call(parent.children, function (sib) {
+      if (sib === dialog) return;
+      if (sib.getAttribute && sib.getAttribute('role') === 'dialog') return;
+      neutralized.push({ el: sib, ariaHidden: sib.getAttribute('aria-hidden'), hadInert: sib.hasAttribute('inert') });
+      sib.setAttribute('aria-hidden', 'true');
+      try { sib.inert = true; } catch (e) {}
+      sib.setAttribute('inert', '');
+    });
+  }
+  function restoreBackground() {
+    neutralized.forEach(function (n) {
+      if (n.ariaHidden === null) n.el.removeAttribute('aria-hidden');
+      else n.el.setAttribute('aria-hidden', n.ariaHidden);
+      if (!n.hadInert) { try { n.el.inert = false; } catch (e) {} n.el.removeAttribute('inert'); }
+    });
+    neutralized = [];
+  }
+  function focusInto(dialog) {
+    if (dialog.contains(document.activeElement)) return;
+    var f = focusables(dialog);
+    var target = f[0] || dialog;
+    if (target === dialog && !dialog.hasAttribute('tabindex')) dialog.setAttribute('tabindex', '-1');
+    try { target.focus(); } catch (e) {}
+  }
+  function reconcile() {
+    var open = openDialogs();
+    var top = open.length ? open[open.length - 1] : null;
+    if (top === activeTrap) return;
+    restoreBackground();
+    if (top === null) {
+      activeTrap = null;
+      var t = triggerEl; triggerEl = null;
+      if (t && document.contains(t)) { try { t.focus(); } catch (e) {} }
+      return;
+    }
+    if (activeTrap === null) {
+      triggerEl = (lastOutsideFocus && document.contains(lastOutsideFocus)) ? lastOutsideFocus : document.activeElement;
+    }
+    activeTrap = top;
+    neutralizeBackground(top);
+    focusInto(top);
+  }
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (!activeTrap && t && t.closest && !t.closest('[role="dialog"]')) lastOutsideFocus = t;
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' || !activeTrap || !document.contains(activeTrap)) return;
+    var f = focusables(activeTrap);
+    if (!f.length) { e.preventDefault(); try { activeTrap.focus(); } catch (er) {} return; }
+    var first = f[0], last = f[f.length - 1], a = document.activeElement, inside = activeTrap.contains(a);
+    if (e.shiftKey) { if (!inside || a === first) { e.preventDefault(); last.focus(); } }
+    else { if (!inside || a === last) { e.preventDefault(); first.focus(); } }
+  }, true);
+  function start() {
+    new MutationObserver(function () { reconcile(); }).observe(document.body, { childList: true, subtree: true });
+    reconcile();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  window.__krsFocusTrap = { reconcile: reconcile, get active() { return activeTrap; } };
+})();
+</script>
 <!-- KRSC-INJECT-START -->
 <!-- KRS LERN-COACH · Konfiguration Hub (vor der Engine einbinden) -->
 <script>

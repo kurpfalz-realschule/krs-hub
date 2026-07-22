@@ -63,6 +63,19 @@ test.describe('KRS Hub — WCAG 2.1 AA (axe-core)', () => {
     await runAxe(page, 'hub/shell');
   });
 
+  // A4 (22.07.2026, Empfehlung aus A11Y-SPEC.md 6.7): Der Standard-Demo-User
+  // deckt nur MOCK_USERS/den Default-Pfad ab. Der Hub führt zusätzlich eine
+  // eigene, unabhängige Demo-Datenquelle DEMO_KOLLEGIUM (index.html Z. ~1109),
+  // die z. B. das Topbar-Avatar (.avatar, Z. ~1844, profile.avatar_color) über
+  // forceUser=Ko füllt. Ein A3-Verifikationslauf hatte hier per Zufall einen
+  // eigenen C-B-17-Analogfund entdeckt (dynamische Avatar-Hintergrundfarbe zu
+  // hell gegen weiße Schrift) — inzwischen behoben, aber bis jetzt ohne
+  // dauerhaften Regressionstest. Dieser Test schließt genau diese Lücke.
+  test('Shell hat keine kritischen axe-Verstöße (forceUser=Ko, DEMO_KOLLEGIUM)', async ({ page }) => {
+    await openHub(page, { user: 'Ko' });
+    await runAxe(page, 'hub/shell (forceUser=Ko)');
+  });
+
   test('Jedes iframe hat ein aussagekräftiges title-Attribut', async ({ page }) => {
     await openHub(page);
 

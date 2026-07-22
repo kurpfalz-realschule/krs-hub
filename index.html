@@ -33,11 +33,11 @@
       --primary-hover: #1d4ed8;
       --primary-light: #dbeafe;
       --accent: #7c3aed;
-      --success: #16a34a;
+      --success: #166534;
       --success-light: #dcfce7;
       --warning: #d97706;
       --warning-light: #fef3c7;
-      --error: #dc2626;
+      --error: #B91C1C;
       --error-light: #fee2e2;
 
       --bg: #f1f5f9;
@@ -46,8 +46,8 @@
       --bg-sidebar-hover: #334155;
       --bg-sidebar-active: #0f172a;
       --text: #1e293b;
-      --text-muted: #64748b;
-      --text-sidebar: #94a3b8;
+      --text-muted: #4B5563;
+      --text-sidebar: #CBD5E1;
       --text-sidebar-active: #ffffff;
       --border: #e2e8f0;
 
@@ -139,13 +139,14 @@
       transition: all var(--transition);
       position: relative;
       border: none;
+      border-left: 3px solid transparent;
       background: none;
       font-family: inherit;
       min-height: var(--touch-min);
       width: 100%;
     }
     .nav-item:hover { background: var(--bg-sidebar-hover); color: var(--text-sidebar-active); }
-    .nav-item.active { background: var(--bg-sidebar-active); color: var(--text-sidebar-active); }
+    .nav-item.active { background: var(--bg-sidebar-active); color: var(--text-sidebar-active); font-weight: 600; border-left: 3px solid var(--primary); }
 
     .nav-icon { font-size: 20px; line-height: 1; }
     .nav-label { font-size: 9px; font-weight: 500; letter-spacing: 0.3px; }
@@ -560,7 +561,8 @@
       border-radius: var(--radius);
       font-size: 15px;
       font-family: var(--font);
-      outline: none;
+      outline: 2px solid #1D4ED8;
+      outline-offset: 2px;
       transition: border-color var(--transition);
     }
     .login-input:focus { border-color: var(--primary); }
@@ -604,7 +606,8 @@
       border-radius: var(--radius);
       font-size: 15px;
       font-family: var(--font);
-      outline: none;
+      outline: 2px solid #1D4ED8;
+      outline-offset: 2px;
       transition: border-color var(--transition);
       background: var(--bg-card);
       -webkit-appearance: none;
@@ -632,7 +635,8 @@
       font-family: var(--font);
       border: 2px solid var(--border);
       border-radius: var(--radius);
-      outline: none;
+      outline: 2px solid #1D4ED8;
+      outline-offset: 2px;
       transition: border-color var(--transition);
       -webkit-text-security: disc;
     }
@@ -898,6 +902,21 @@
     .module-frame {
       -webkit-overflow-scrolling: touch;
       overflow: auto;
+    }
+
+    /* ── A11y: sichtbarer Fokusindikator (WCAG 2.4.7) ── */
+    :focus-visible {
+      outline: 2px solid #1D4ED8;
+      outline-offset: 2px;
+    }
+
+    /* ── A11y: reduzierte Bewegung (WCAG 2.2.2) ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
@@ -1552,6 +1571,7 @@
             autoComplete: 'username',
             autoFocus: true,
             disabled: loading,
+            'aria-label': 'E-Mail-Adresse',
             'data-testid': 'login-email'
           }),
           e('input', {
@@ -1562,6 +1582,7 @@
             onChange: ev => setPassword(ev.target.value),
             autoComplete: 'current-password',
             disabled: loading,
+            'aria-label': 'Passwort',
             'data-testid': 'login-password'
           }),
           e('button', {
@@ -1627,6 +1648,7 @@
             autoFocus: true,
             disabled: loading,
             autoComplete: 'current-password',
+            'aria-label': 'Passwort',
             'data-testid': 'lock-password'
           }),
 
@@ -1651,7 +1673,14 @@
     // ── Sidebar ────────────────────────────────────
     function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile, onAdmin }) {
       return e('nav', { className: 'sidebar', role: 'navigation', 'aria-label': 'Hauptnavigation' },
-        e('div', { className: 'sidebar-logo', title: CONFIG.APP_NAME, onClick: () => onModuleSelect(null) }, '🏫'),
+        e('button', {
+          type: 'button',
+          className: 'sidebar-logo',
+          title: CONFIG.APP_NAME,
+          'aria-label': CONFIG.APP_NAME,
+          onClick: () => onModuleSelect(null),
+          style: { border: 'none', padding: 0, font: 'inherit', cursor: 'pointer', textAlign: 'inherit' }
+        }, '🏫'),
 
         e('div', { className: 'sidebar-nav' },
           CONFIG.MODULES.map(mod =>
@@ -1660,6 +1689,7 @@
               className: 'nav-item' + (activeModule === mod.id ? ' active' : ''),
               onClick: () => onModuleSelect(mod.id),
               title: mod.name,
+              'aria-current': activeModule === mod.id ? 'page' : undefined,
               'aria-label': mod.name + (unreadCounts.get(mod.id) ? ' (' + unreadCounts.get(mod.id) + ' ungelesen)' : '')
             },
               e('span', { className: 'nav-icon' }, mod.icon),
@@ -1739,10 +1769,13 @@
           title: 'Leiste ausblenden',
           'data-testid': 'topbar-collapse-toggle'
         }, '▲'),
-        e('div', {
+        e('button', {
+          type: 'button',
           className: 'topbar-user',
           onClick: onUserMenuToggle,
-          title: 'Benutzermenu'
+          title: 'Benutzermenu',
+          'aria-label': 'Benutzermenu',
+          style: { background: 'none', border: 'none', font: 'inherit', cursor: 'pointer', textAlign: 'inherit' }
         },
           e('div', { className: 'avatar', style: { background: profile?.avatar_color || '#64748b' } }, initials),
           e('span', { className: 'topbar-username' }, profile?.display_name || 'User')
@@ -1781,7 +1814,7 @@
           ),
           onToggleAutolock && autolock && onSetAutolockMin && e('div', { style: { padding: '2px 12px 8px 38px', display: 'flex', gap: '6px', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' } },
             'Sperren nach ',
-            e('select', { value: autolockMin || 10, 'data-testid': 'usermenu-autolock-min', onChange: (ev) => onSetAutolockMin(parseInt(ev.target.value, 10)), style: { fontSize: '12px', padding: '2px 4px', borderRadius: '6px', border: '1px solid var(--border)' } },
+            e('select', { value: autolockMin || 10, 'data-testid': 'usermenu-autolock-min', 'aria-label': 'Sperren nach (Minuten)', onChange: (ev) => onSetAutolockMin(parseInt(ev.target.value, 10)), style: { fontSize: '12px', padding: '2px 4px', borderRadius: '6px', border: '1px solid var(--border)' } },
               [5, 10, 15, 30].map((m) => e('option', { key: m, value: m }, m))
             ),
             ' Min'
@@ -1946,6 +1979,7 @@
           e('input', {
             className: 'login-input', type: 'text', value: titel, maxLength: 300,
             'data-testid': 'info-edit-titel', placeholder: meta.titelPh,
+            'aria-label': meta.titelLabel,
             onChange: (ev) => setTitel(ev.target.value),
             style: { width: '100%', marginBottom: '10px' }
           }),
@@ -1954,6 +1988,7 @@
             e('input', {
               className: 'login-input', type: 'date', value: datum,
               'data-testid': 'info-edit-datum',
+              'aria-label': 'Datum',
               onChange: (ev) => setDatum(ev.target.value),
               style: { width: '100%', marginBottom: '10px' }
             })
@@ -1963,6 +1998,7 @@
             ? e('input', {
                 className: 'login-input', type: 'text', value: plainVal, maxLength: 300,
                 'data-testid': 'info-edit-plain', placeholder: 'z. B. Klasse 9c (leer lassen = „—")',
+                'aria-label': meta.bodyLabel,
                 onChange: (ev) => setPlainVal(ev.target.value),
                 style: { width: '100%', marginBottom: '4px' }
               })
@@ -2084,10 +2120,13 @@
         // ── Quick-Access Module Cards ──
         e('div', { className: 'module-cards' },
           CONFIG.MODULES.map(mod =>
-            e('div', {
+            e('button', {
               key: mod.id,
+              type: 'button',
               className: 'module-card',
-              onClick: () => onModuleSelect(mod.id)
+              'aria-label': mod.name,
+              onClick: () => onModuleSelect(mod.id),
+              style: { font: 'inherit', cursor: 'pointer', textAlign: 'inherit' }
             },
               e('div', { className: 'module-card-icon' }, mod.icon),
               e('div', { className: 'module-card-title' }, mod.name),
@@ -2549,15 +2588,15 @@
       return e('div', { 'data-testid': 'admin-lehrer' },
         e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Neue Lehrkraft'),
         e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' } },
-          e('input', { style: ADM.input, placeholder: 'Kürzel', value: form.kuerzel, 'data-testid': 'lehrer-kuerzel', onChange: (ev) => setForm(Object.assign({}, form, { kuerzel: ev.target.value })) }),
-          e('input', { style: ADM.input, placeholder: 'Name', value: form.name, 'data-testid': 'lehrer-name', onChange: (ev) => setForm(Object.assign({}, form, { name: ev.target.value })) }),
-          e('input', { style: ADM.input, placeholder: 'Vorname', value: form.vorname, onChange: (ev) => setForm(Object.assign({}, form, { vorname: ev.target.value })) }),
-          e('input', { style: ADM.input, placeholder: 'E-Mail', value: form.email, onChange: (ev) => setForm(Object.assign({}, form, { email: ev.target.value })) })
+          e('input', { style: ADM.input, placeholder: 'Kürzel', 'aria-label': 'Kürzel', value: form.kuerzel, 'data-testid': 'lehrer-kuerzel', onChange: (ev) => setForm(Object.assign({}, form, { kuerzel: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'Name', 'aria-label': 'Name', value: form.name, 'data-testid': 'lehrer-name', onChange: (ev) => setForm(Object.assign({}, form, { name: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'Vorname', 'aria-label': 'Vorname', value: form.vorname, onChange: (ev) => setForm(Object.assign({}, form, { vorname: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'E-Mail', 'aria-label': 'E-Mail', value: form.email, onChange: (ev) => setForm(Object.assign({}, form, { email: ev.target.value })) })
         ),
         e('button', { style: ADM.btn('primary'), onClick: add, 'data-testid': 'lehrer-add' }, '＋ Hinzufügen'),
 
         e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'CSV-Import (Kürzel;Name;Vorname;E-Mail)'),
-        e('textarea', { style: Object.assign({}, ADM.input, { minHeight: '64px', padding: '8px 10px' }), value: csv, placeholder: 'Kürzel;Name;Vorname;E-Mail\nMu;Muster;Eva;mu@schule.example', 'data-testid': 'lehrer-csv', onChange: (ev) => setCsv(ev.target.value) }),
+        e('textarea', { style: Object.assign({}, ADM.input, { minHeight: '64px', padding: '8px 10px' }), value: csv, placeholder: 'Kürzel;Name;Vorname;E-Mail\nMu;Muster;Eva;mu@schule.example', 'aria-label': 'CSV-Import Kürzel;Name;Vorname;E-Mail', 'data-testid': 'lehrer-csv', onChange: (ev) => setCsv(ev.target.value) }),
         e('div', { style: { marginTop: '6px', display: 'flex', gap: '8px' } },
           e('button', { style: ADM.btn('ghost'), onClick: doImport, 'data-testid': 'lehrer-csv-preview' }, 'Vorschau'),
           preview && preview.valid.length > 0 && e('button', { style: ADM.btn('primary'), onClick: confirmImport, 'data-testid': 'lehrer-csv-confirm' }, 'Import (' + preview.valid.length + ')')
@@ -2604,12 +2643,12 @@
       return e('div', { 'data-testid': 'admin-koffer' },
         e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Neuer Koffer / Gerät'),
         e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' } },
-          e('input', { style: ADM.input, placeholder: 'Barcode', value: form.barcode, 'data-testid': 'koffer-barcode', onChange: (ev) => setForm(Object.assign({}, form, { barcode: ev.target.value })) }),
-          e('input', { style: ADM.input, placeholder: 'Bezeichnung', value: form.bezeichnung, 'data-testid': 'koffer-bez', onChange: (ev) => setForm(Object.assign({}, form, { bezeichnung: ev.target.value })) }),
-          e('select', { style: ADM.input, value: form.typ, onChange: (ev) => setForm(Object.assign({}, form, { typ: ev.target.value })) },
+          e('input', { style: ADM.input, placeholder: 'Barcode', 'aria-label': 'Barcode', value: form.barcode, 'data-testid': 'koffer-barcode', onChange: (ev) => setForm(Object.assign({}, form, { barcode: ev.target.value })) }),
+          e('input', { style: ADM.input, placeholder: 'Bezeichnung', 'aria-label': 'Bezeichnung', value: form.bezeichnung, 'data-testid': 'koffer-bez', onChange: (ev) => setForm(Object.assign({}, form, { bezeichnung: ev.target.value })) }),
+          e('select', { style: ADM.input, value: form.typ, 'aria-label': 'Typ', onChange: (ev) => setForm(Object.assign({}, form, { typ: ev.target.value })) },
             e('option', { value: 'ipad_koffer' }, 'iPad-Koffer'), e('option', { value: 'beamer' }, 'Beamer'), e('option', { value: 'sonstiges' }, 'Sonstiges')),
-          e('input', { style: ADM.input, type: 'number', min: 0, placeholder: 'Kapazität', value: form.kapazitaet, onChange: (ev) => setForm(Object.assign({}, form, { kapazitaet: ev.target.value })) }),
-          e('input', { style: Object.assign({}, ADM.input, { gridColumn: '1 / 3' }), placeholder: 'Standort', value: form.standort, onChange: (ev) => setForm(Object.assign({}, form, { standort: ev.target.value })) })
+          e('input', { style: ADM.input, type: 'number', min: 0, placeholder: 'Kapazität', 'aria-label': 'Kapazität', value: form.kapazitaet, onChange: (ev) => setForm(Object.assign({}, form, { kapazitaet: ev.target.value })) }),
+          e('input', { style: Object.assign({}, ADM.input, { gridColumn: '1 / 3' }), placeholder: 'Standort', 'aria-label': 'Standort', value: form.standort, onChange: (ev) => setForm(Object.assign({}, form, { standort: ev.target.value })) })
         ),
         e('button', { style: ADM.btn('primary'), onClick: add, 'data-testid': 'koffer-add' }, '＋ Anlegen'),
         e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Bestand (' + koffer.length + ')'),
@@ -2635,7 +2674,7 @@
       const toggle = (u) => { svc.setMembership(teamId, u.id, !memberIds.has(u.id)).then(() => { showToast('Mitgliedschaft aktualisiert', 'success'); reloadMembers(); }).catch((e2) => showToast(e2.message, 'error')); };
       return e('div', { 'data-testid': 'admin-mitglieder' },
         e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Forum / Team'),
-        e('select', { style: ADM.input, value: teamId || '', 'data-testid': 'mitglieder-team', onChange: (ev) => setTeamId(Number(ev.target.value)) },
+        e('select', { style: ADM.input, value: teamId || '', 'aria-label': 'Forum / Team', 'data-testid': 'mitglieder-team', onChange: (ev) => setTeamId(Number(ev.target.value)) },
           teams.map((t) => e('option', { key: t.id, value: t.id }, t.name))),
         e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Mitglieder (' + members.length + ')'),
         allUsers.map((u) => e('div', { key: u.id, style: ADM.row, 'data-testid': 'mitglieder-row' },
@@ -2761,6 +2800,7 @@
           e('textarea', {
             className: 'feedback-textarea',
             placeholder: 'Was ist dir aufgefallen? Was wünschst du dir?',
+            'aria-label': 'Deine Nachricht',
             value: message,
             onChange: e2 => setMessage(e2.target.value),
           }),

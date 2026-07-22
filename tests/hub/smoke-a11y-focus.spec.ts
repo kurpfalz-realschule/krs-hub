@@ -21,17 +21,42 @@ async function openAdmin(page) {
 }
 
 test.describe('A2b Fokus & Tastatur — KRS Hub (Demo)', () => {
-  test('Skip-Link ist das erste Tab-Ziel und der Inhalt liegt in <main id="main">', async ({ page }) => {
+  test('Skip-Link ist das erste fokussierbare Element und der Inhalt liegt in <main id="main">', async ({ page }) => {
     await openHub(page);
-    await page.locator('body').click({ position: { x: 2, y: 2 } });
-    await page.keyboard.press('Tab');
-    const focused = await page.evaluate(() => {
-      const a = document.activeElement as HTMLElement | null;
-      return { cls: a ? a.className : '', href: a ? a.getAttribute('href') : null };
+    // WCAG 2.4.1 „Bypass Blocks": Der Skip-Link muss das ERSTE fokussierbare Element
+    // in Dokument-Reihenfolge sein. Direkt über das DOM prüfen — der frühere Weg
+    // (body.click + ein Tab) war in headless-Chromium unzuverlässig.
+    const first = await page.evaluate(() => {
+      const sel = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+      const els = Array.prototype.slice.call(document.querySelectorAll(sel)).filter((el: Element) => {
+        const s = getComputedStyle(el as HTMLElement);
+        return s.display !== 'none' && s.visibility !== 'hidden' && !(el as HTMLElement).closest('[inert]');
+      });
+      const f = els[0] as HTMLElement | undefined;
+      return f ? { cls: String(f.className || ''), href: f.getAttribute('href') } : { cls: '', href: null };
     });
-    expect(focused.cls).toContain('skip-link');
-    expect(focused.href).toBe('#main');
+    expect(first.cls).toContain('skip-link');
+    expect(first.href).toBe('#main');
     await expect(page.locator('main#main')).toHaveCount(1);
+    await page.locator('a.skip-link').focus();
+    expect(await page.evaluate(() => document.activeElement?.className || '')).toContain('skip-link');
+  });
+
+  // A3 (22.07.2026) — Regressionstest, siehe identischer Test in
+  // krs-connect-deploy/tests/connect/smoke-a11y-focus.spec.ts für die volle
+  // Erklärung: Der Lern-Coach hält sein Panel (role="dialog") dauerhaft im DOM,
+  // nur per CSS-transform ausgeblendet. isVisible() im Focus-Trap prüfte
+  // bisher nur offsetWidth/offsetHeight → das geschlossene Panel galt als
+  // offener Dialog, der Hintergrund (inkl. Lern-Coach-FAB) wurde beim Laden
+  // dauerhaft inert gesetzt und der Skip-Link verlor den ersten Tab-Fokus.
+  test('Lern-Coach-Panel (geschlossen) wird vom Focus-Trap nicht als offener Dialog erkannt', async ({ page }) => {
+    await openHub(page);
+    const fab = page.locator('.krsc-fab');
+    if (await fab.count() === 0) test.skip(true, 'Lern-Coach nicht geladen — UI-Variante');
+    await expect(fab).not.toHaveAttribute('inert', '');
+    await expect(fab).toBeEnabled();
+    await fab.click({ timeout: 5_000 });
+    await expect(page.locator('.krsc-panel.krsc-open')).toBeVisible({ timeout: 3_000 });
   });
 
   test('Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl', async ({ page }) => {

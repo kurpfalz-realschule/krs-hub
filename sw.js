@@ -5,7 +5,7 @@
 // Offline-Fallback: caches.match('./offline.html') bei Navigations-Requests
 // ═══════════════════════════════════════════════
 
-const VERSION = '3.9.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
+const VERSION = '3.10.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)

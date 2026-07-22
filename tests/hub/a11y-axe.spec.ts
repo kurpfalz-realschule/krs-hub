@@ -93,4 +93,20 @@ test.describe('KRS Hub — WCAG 2.1 AA (axe-core)', () => {
     await toggle.click();
     await expect(toggle).not.toHaveAttribute('aria-expanded', vorher || '');
   });
+
+  // A3 (22.07.2026): Lockscreen war bisher nicht axe-geprüft. Deckt u. a. den
+  // Heading-Feinschliff ab (h2→h1, A11Y-SPEC Abschnitt 6.7) — axe würde eine übersprungene
+  // Ebene als "heading-order" (moderate) protokollieren, siehe runAxe()-Log.
+  test('Lockscreen hat keine kritischen axe-Verstöße', async ({ page }) => {
+    await openHub(page);
+    await page.locator('.topbar-user').click();
+    const item = page.getByRole('menuitem', { name: /Jetzt sperren/i });
+    if (!(await item.isVisible().catch(() => false))) {
+      test.skip(true, 'Sperren-Option nicht gefunden — UI-Variante');
+    }
+    await item.click();
+    await expect(page.locator('.lock-screen')).toBeVisible();
+    await expect(page.locator('.lock-screen h1')).toBeVisible();
+    await runAxe(page, 'hub/lockscreen');
+  });
 });

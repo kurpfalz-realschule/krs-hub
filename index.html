@@ -771,7 +771,7 @@
       margin: 0 auto 12px;
     }
 
-    .lock-card h2 {
+    .lock-card h1 {
       font-size: 18px;
       font-weight: 700;
       margin-bottom: 4px;
@@ -1097,15 +1097,24 @@
     // App-User; siehe SupabaseAuthService.getKollegium().
     // Diese Liste dient NUR dem Demo-/Test-Modus (forceMode=demo).
     // 'Ko' bleibt als Demo-Kürzel für forceUser=Ko (Superadmin-Pfad).
+    // A3 (22.07.2026, C-B-17-Analogfund): beim Verifizieren mit forceUser=Ko
+    // zeigte der echte axe-Lauf einen bisher nicht erfassten Kontrastfund —
+    // die vorherige A2a-Prüfung lief nur mit dem Default-Demo-User, nicht mit
+    // Ko/Superadmin. Gleiches Muster wie in Connect: jede Farbe auf ≥ 4.5:1
+    // gegen den weißen Avatar-Text abgedunkelt (Original→Fix, Kontrast
+    // vorher→nachher): #7c6ff7→#6c5df6 (3.84→4.63), #e74c8b→#df1e6d
+    // (3.62→4.62), #16a34a→#12873e (3.30→4.60), #d97706→#b06105 (3.19→4.61),
+    // #0ea5e9→#0b7cb0 (2.77→4.64), #8b5cf6→#8553f5 (4.23→4.61). #2563eb
+    // (5.17) und #dc2626 (4.83) waren bereits konform, unverändert gelassen.
     const DEMO_KOLLEGIUM = [
-      { kuerzel: 'Ko', name: 'Demo-Admin',  vorname: '', role: 'admin',   avatar_color: '#7c6ff7' },
-      { kuerzel: 'L2', name: 'Lehrkraft B', vorname: '', role: 'admin',   avatar_color: '#e74c8b' },
+      { kuerzel: 'Ko', name: 'Demo-Admin',  vorname: '', role: 'admin',   avatar_color: '#6c5df6' },
+      { kuerzel: 'L2', name: 'Lehrkraft B', vorname: '', role: 'admin',   avatar_color: '#df1e6d' },
       { kuerzel: 'L3', name: 'Lehrkraft C', vorname: '', role: 'teacher', avatar_color: '#2563eb' },
-      { kuerzel: 'L4', name: 'Lehrkraft D', vorname: '', role: 'teacher', avatar_color: '#16a34a' },
-      { kuerzel: 'L5', name: 'Lehrkraft E', vorname: '', role: 'teacher', avatar_color: '#d97706' },
-      { kuerzel: 'L6', name: 'Lehrkraft F', vorname: '', role: 'teacher', avatar_color: '#0ea5e9' },
+      { kuerzel: 'L4', name: 'Lehrkraft D', vorname: '', role: 'teacher', avatar_color: '#12873e' },
+      { kuerzel: 'L5', name: 'Lehrkraft E', vorname: '', role: 'teacher', avatar_color: '#b06105' },
+      { kuerzel: 'L6', name: 'Lehrkraft F', vorname: '', role: 'teacher', avatar_color: '#0b7cb0' },
       { kuerzel: 'L7', name: 'Lehrkraft G', vorname: '', role: 'teacher', avatar_color: '#dc2626' },
-      { kuerzel: 'L8', name: 'Lehrkraft H', vorname: '', role: 'teacher', avatar_color: '#8b5cf6' }
+      { kuerzel: 'L8', name: 'Lehrkraft H', vorname: '', role: 'teacher', avatar_color: '#8553f5' }
     ];
 
     console.log('%c🏫 KRS Hub v' + CONFIG.VERSION + ' — Unified Login Modell B (Supabase, Session geteilt mit Connect)', 'color:#2563eb;font-weight:bold;font-size:14px');
@@ -1221,7 +1230,7 @@
           display_name: data.display_name,
           lehrkraft_name: nachname,
           role: data.role || 'member',
-          avatar_color: data.avatar_color || '#5B7B94',
+          avatar_color: data.avatar_color || '#597891', // A3 C-B-17: #5B7B94 war 4.46:1, jetzt 4.65:1
           email,
         };
       },
@@ -1681,7 +1690,10 @@
           e('div', { className: 'lock-avatar', style: { background: profile?.avatar_color || '#64748b' } },
             profile?.kuerzel || '?'
           ),
-          e('h2', null, profile?.display_name || 'Gesperrt'),
+          // A3 (22.07.2026): h1 statt h2 — der Lockscreen ist ein eigener,
+          // vollflächiger Bildschirm ohne anderes h1 davor; h2 hätte Ebene 1
+          // übersprungen (Heading-Feinschliff aus A11Y-SPEC 6.7).
+          e('h1', null, profile?.display_name || 'Gesperrt'),
           e('p', null, 'Bildschirm gesperrt wegen Inaktivität.', e('br'),
             isDemo ? 'Demo-Modus: einfach entsperren.' : 'Passwort eingeben zum Entsperren.'),
 
@@ -2946,7 +2958,7 @@
             name: 'Demo',
             vorname: 'Test',
             role: 'admin',
-            avatar_color: '#7c6ff7'
+            avatar_color: '#6c5df6' // A3 C-B-17: #7c6ff7 war 3.84:1, jetzt 4.63:1
           };
           setProfile(demoProfile);
           setAuthState('authenticated');
@@ -3173,7 +3185,9 @@
         if (this.state.hasError) {
           return e('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '16px', padding: '32px', textAlign: 'center', fontFamily: 'var(--font)' } },
             e('div', { style: { fontSize: '48px' } }, '⚠️'),
-            e('h2', { style: { fontSize: '20px', fontWeight: 700 } }, 'Ein Fehler ist aufgetreten'),
+            // A3 (22.07.2026): h1 statt h2 — ErrorBoundary rendert am App-Root,
+            // dieser Fallback ist bei einem Absturz die einzige Überschrift der Seite.
+            e('h1', { style: { fontSize: '20px', fontWeight: 700 } }, 'Ein Fehler ist aufgetreten'),
             e('p', { style: { fontSize: '14px', color: '#64748b', maxWidth: '400px' } }, 'Die App hat einen unerwarteten Fehler. Bitte lade die Seite neu.'),
             e('button', { onClick: () => location.reload(), style: { padding: '10px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' } }, 'Seite neu laden')
           );

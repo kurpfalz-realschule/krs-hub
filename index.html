@@ -1008,7 +1008,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.10.0',
+      VERSION: '3.11.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1430,6 +1430,10 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.11.0', date: '22.07.2026', items: [
+        'Barrierefreiheit weiter verbessert: bessere Farbkontraste bei Profil-/Team-Farben, klarere Überschriften-Struktur für Screenreader',
+        'Untere Modul-Leiste (Handy) verursachte auf schmalen Bildschirmen horizontales Wackeln/Scrollen — behoben, Beschriftungen werden bei Platzmangel sauber abgeschnitten'
+      ] },
       { v: '3.10.0', date: '22.07.2026', items: [
         'Vorbereitung für die native iOS-App: externe Links (Untis, Nextcloud, Kalender) öffnen dort künftig in einem eigenen Safari-Fenster statt im App-Fenster. Wirkt sich nur auf die künftige App aus — im Browser und in der bisherigen PWA ändert sich nichts.'
       ] },

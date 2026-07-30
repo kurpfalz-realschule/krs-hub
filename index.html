@@ -1008,7 +1008,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.11.0',
+      VERSION: '3.13.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1078,7 +1078,12 @@
         { id: 'homepage', name: 'Homepage', icon: '🌐', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#' },
         { id: 'untis', name: 'Untis', icon: '📊', url: (window.KRS_TENANT && window.KRS_TENANT.UNTIS_URL) || '#' },
         { id: 'kalender', name: 'Kalender', icon: '🗓️', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' },
-        { id: 'dateiablage', name: 'Dateiablage', icon: '📁', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' }
+        { id: 'dateiablage', name: 'Dateiablage', icon: '📁', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' },
+        // Q3 (30.07.2026): statische Hilfe-Seite fürs Kollegium — relativer Pfad,
+        // funktioniert unabhängig vom Deploy-Präfix. Erscheint automatisch in der
+        // Sidebar UND als Dashboard-Kachel, da beide Stellen CONFIG.EXTERNAL_LINKS
+        // mappen (kein Sonderfall-Code nötig).
+        { id: 'hilfe', name: 'Hilfe', icon: '❓', url: './hilfe/' }
       ],
       // Sprint 3: Hub-Admin (Edge-Function dashboard-admin, LOGIN-gated via JWT, service_role)
       // v5 (2026-07-06): kein PIN mehr — Autorisierung über das Supabase-Login
@@ -1430,6 +1435,13 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.13.0', date: '30.07.2026', items: [
+        'Neue Hilfe-Seite mit Schritt-für-Schritt-Anleitung fürs Kollegium — Anmeldung, Teams & Kanäle, Beiträge, Direktnachrichten, Benachrichtigungen, iPad-Installation und häufige Fragen an einem Ort. Erreichbar über die Kachel bzw. den Menüpunkt „❓ Hilfe“.'
+      ] },
+      { v: '3.12.0', date: '30.07.2026', items: [
+        'Neu im Admin-Bereich: Login-Status — auf einen Blick sehen, wer sich noch nie angemeldet hat',
+        'Zugangsmail mit einem Klick: Die Kollegin oder der Kollege bekommt eine Mail mit Link zum Passwort-Setzen, der Anmelde-Anleitung und der iPad-Installation. Auf Wunsch auch an alle Nicht-Angemeldeten auf einmal. Ein Passwort muss niemand mehr weitergeben.'
+      ] },
       { v: '3.11.0', date: '22.07.2026', items: [
         'Barrierefreiheit weiter verbessert: bessere Farbkontraste bei Profil-/Team-Farben, klarere Überschriften-Struktur für Screenreader',
         'Untere Modul-Leiste (Handy) verursachte auf schmalen Bildschirmen horizontales Wackeln/Scrollen — behoben, Beschriftungen werden bei Platzmangel sauber abgeschnitten'
@@ -2452,7 +2464,20 @@
         { id: 'ka1', klasse: '8a', fach: 'Mathematik', datum: '2026-06-24', lehrer: 'Lehrkraft C' },
         { id: 'ka2', klasse: '9b', fach: 'Deutsch', datum: '2026-06-26', lehrer: 'Lehrkraft D' }
       ];
-      return { users, koffer, teams, members, klassenarbeiten, _seq: 100 };
+      // Login-Status (Sprint „Launch September"): gleiche Feldform wie die
+      // Edge-Function-Aktion list_login_status. Nur Platzhalter-Daten —
+      // keine echten Namen/E-Mails im Client.
+      const NIE_EINGELOGGT = ['L3', 'L4', 'L6', 'L7', 'L8'];
+      const loginStatus = users.map(function (u) {
+        var never = NIE_EINGELOGGT.indexOf(u.kuerzel) !== -1;
+        return {
+          id: u.id, kuerzel: u.kuerzel, display_name: (u.vorname ? u.vorname + ' ' : '') + u.name,
+          email: u.email, role: u.role, status: 'active', has_account: true,
+          last_sign_in_at: never ? null : '2026-07-2' + (u.id % 9) + 'T07:1' + (u.id % 9) + ':00Z',
+          created_at: '2026-06-15T09:00:00Z', never_signed_in: never
+        };
+      });
+      return { users, koffer, teams, members, klassenarbeiten, loginStatus, _seq: 100 };
     }
 
     function AdminService(profile) {
@@ -2503,6 +2528,47 @@
         return Promise.resolve({ ok: true, tempPassword: 'Krs-demo234', email: ex.email || 'demo@realschule-schriesheim.de', name: ex.name || 'Demo-Lehrkraft' });
       }
       return this._post({ action: 'reset_password', id: id });
+    };
+    // ── Login-Status + Zugangsmail (Sprint „Launch September", 30.07.2026) ──
+    // Backend: dashboard-admin v5.2, Aktionen list_login_status /
+    // send_access_mail. Verschickt wird ein Passwort-SETZ-LINK (Recovery),
+    // kein Klartext-Passwort — der Hub sieht weder Link noch Token.
+    AdminService.MAIL_CHUNK = 25; // = ACCESS_MAIL_MAX_RECIPIENTS im Backend
+    AdminService.prototype.listLoginStatus = function () {
+      if (this.isDemo) {
+        return Promise.resolve(this.store.loginStatus.map(function (r) { return Object.assign({}, r); })
+          .sort(function (a, b) {
+            if (a.never_signed_in !== b.never_signed_in) return a.never_signed_in ? -1 : 1;
+            return String(a.kuerzel).localeCompare(String(b.kuerzel), 'de');
+          }));
+      }
+      return this._post({ action: 'list_login_status' }).then(function (j) { return j.rows || []; });
+    };
+    AdminService.prototype.sendAccessMail = function (ids) {
+      var self = this;
+      var list = (ids || []).slice();
+      if (!list.length) return Promise.resolve({ results: [], sent: 0, failed: 0 });
+      if (this.isDemo) {
+        var demoResults = list.map(function (id) {
+          var row = self.store.loginStatus.find(function (r) { return r.id === id; }) || {};
+          return { id: id, kuerzel: row.kuerzel || '', status: row.email ? 'gesendet' : 'keine_mailadresse' };
+        });
+        return Promise.resolve(summarise(demoResults));
+      }
+      // Mengenbegrenzung des Backends respektieren: in Blöcken nacheinander.
+      var chunks = [];
+      for (var i = 0; i < list.length; i += AdminService.MAIL_CHUNK) chunks.push(list.slice(i, i + AdminService.MAIL_CHUNK));
+      return chunks.reduce(function (p, chunk) {
+        return p.then(function (acc) {
+          return self._post({ action: 'send_access_mail', payload: { ids: chunk } })
+            .then(function (j) { return acc.concat(j.results || []); });
+        });
+      }, Promise.resolve([])).then(summarise);
+
+      function summarise(results) {
+        var sent = results.filter(function (r) { return r.status === 'gesendet'; }).length;
+        return { results: results, sent: sent, failed: results.length - sent };
+      }
     };
     AdminService.prototype.importUsers = function (rows) {
       var self = this;
@@ -2620,7 +2686,7 @@
         e('button', { style: ADM.btn('ghost'), onClick: onClose, 'aria-label': 'Schließen', 'data-testid': 'admin-close' }, '✕')
       );
 
-      const tabs = [['lehrer','👤 Lehrkräfte'],['koffer','📱 iPad-Koffer'],['mitglieder','👥 Mitgliedschaften'],['ka','📅 Klassenarbeiten']];
+      const tabs = [['lehrer','👤 Lehrkräfte'],['login','🔑 Login-Status'],['koffer','📱 iPad-Koffer'],['mitglieder','👥 Mitgliedschaften'],['ka','📅 Klassenarbeiten']];
       return e('div', { style: ADM.overlay, 'data-testid': 'admin-panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Administration', onKeyDown: (ev) => { if (ev.key === 'Escape') { ev.preventDefault(); onClose(); } }, onClick: (ev) => { if (ev.target === ev.currentTarget) onClose(); } },
         e('div', { style: ADM.panel },
           header,
@@ -2641,6 +2707,7 @@
           ),
           e('div', { style: ADM.body, role: 'tabpanel', id: 'admpanel', 'aria-labelledby': 'admtab-' + tab, tabIndex: 0 },
             tab === 'lehrer' && e(AdminLehrer, { svc: svc }),
+            tab === 'login' && e(AdminLoginStatus, { svc: svc }),
             tab === 'koffer' && e(AdminKoffer, { svc: svc }),
             tab === 'mitglieder' && e(AdminMitglieder, { svc: svc }),
             tab === 'ka' && e(AdminKlassenarbeiten, { svc: svc })
@@ -2721,6 +2788,163 @@
             e('div', { style: { display: 'flex', gap: '8px' } },
               e('button', { style: ADM.btn('primary'), onClick: () => { try { navigator.clipboard.writeText(pwResult.tempPassword); showToast('Kopiert', 'success'); } catch (e2) {} } }, '📋 Kopieren'),
               e('button', { style: ADM.btn('ghost'), onClick: () => setPwResult(null) }, 'Schließen')
+            )
+          )
+        )
+      );
+    }
+
+    // ── Login-Status + Zugangsmail (Sprint Launch September, 30.07.2026) ──
+    // Beantwortet Norberts Launch-Frage: Wer hat sich noch nie eingeloggt —
+    // und wie kriegt der/die Betreffende mit einem Klick die Zugangs-Mail?
+    // Der Versand läuft ausschließlich über die admin-gated Edge Function
+    // (send_access_mail); der Hub bekommt weder Link noch Token zu sehen.
+    const LOGIN_STATUS_LABELS = {
+      gesendet: 'Mail verschickt',
+      kein_auth_account: 'kein Zugang vorhanden (Account muss erst angelegt werden)',
+      keine_mailadresse: 'keine E-Mail-Adresse hinterlegt',
+      nicht_gefunden: 'Lehrkraft nicht gefunden',
+      inaktiv: 'Konto ist nicht aktiv',
+      link_fehlgeschlagen: 'Passwort-Link konnte nicht erzeugt werden',
+      versand_fehlgeschlagen: 'Mailversand fehlgeschlagen',
+      resend_rate_limit: 'Mailversand gebremst — bitte in ein paar Minuten erneut'
+    };
+
+    function formatLastSignIn(iso) {
+      if (!iso) return 'noch nie eingeloggt';
+      try {
+        return 'zuletzt am ' + new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      } catch (err) { return 'zuletzt am ' + String(iso).slice(0, 10); }
+    }
+
+    function AdminLoginStatus({ svc }) {
+      const [rows, setRows] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [err, setErr] = useState(null);
+      const [onlyNever, setOnlyNever] = useState(true);
+      const [confirmIds, setConfirmIds] = useState(null); // nicht null => Dialog offen
+      const [sending, setSending] = useState(false);
+      const [result, setResult] = useState(null);
+      const confirmBtnRef = useRef(null);
+
+      const reload = useCallback(() => {
+        setLoading(true);
+        svc.listLoginStatus()
+          .then((r) => { setRows(r || []); setErr(null); })
+          .catch((e2) => setErr(e2.message))
+          .then(() => setLoading(false));
+      }, [svc]);
+      useEffect(reload, [reload]);
+
+      // A11Y: Fokus in den Bestätigungsdialog, ESC schließt NUR den Dialog
+      // (capture + stopPropagation, damit nicht gleich das ganze Admin-Panel
+      // zugeht — dort hängt ebenfalls ein ESC-Handler).
+      useEffect(() => {
+        if (!confirmIds) return undefined;
+        const h = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setConfirmIds(null); } };
+        document.addEventListener('keydown', h, true);
+        requestAnimationFrame(() => { try { if (confirmBtnRef.current) confirmBtnRef.current.focus(); } catch (e2) {} });
+        return () => document.removeEventListener('keydown', h, true);
+      }, [confirmIds]);
+
+      const neverRows = rows.filter((r) => r.never_signed_in);
+      const visible = onlyNever ? neverRows : rows;
+      const mailable = (list) => list.filter((r) => r.email).map((r) => r.id);
+
+      const doSend = () => {
+        const ids = confirmIds || [];
+        setSending(true);
+        svc.sendAccessMail(ids)
+          .then((res) => {
+            setResult(res);
+            setConfirmIds(null);
+            showToast(res.sent + ' Zugangsmail' + (res.sent === 1 ? '' : 's') + ' verschickt'
+              + (res.failed ? ', ' + res.failed + ' nicht' : ''), res.failed ? 'error' : 'success');
+            reload();
+          })
+          .catch((e2) => { showToast(e2.message, 'error'); setConfirmIds(null); })
+          .then(() => setSending(false));
+      };
+
+      if (err) {
+        return e('div', { 'data-testid': 'admin-login' },
+          e('p', { style: { fontSize: '13px', color: '#b91c1c' } }, '⚠ ' + err),
+          e('button', { style: ADM.btn('ghost'), onClick: reload }, 'Erneut versuchen'));
+      }
+
+      return e('div', { 'data-testid': 'admin-login' },
+        e('p', { style: { fontSize: '12px', color: '#475569', margin: '0 0 10px' } },
+          'Wer hat den Zugang noch nie benutzt? Die Zugangsmail enthält einen Link, mit dem die Kollegin oder der Kollege ein eigenes Passwort setzt — du bekommst kein Passwort zu sehen und musst keines weitergeben.'),
+
+        e('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' } },
+          e('button', {
+            style: Object.assign({}, ADM.tab(onlyNever), { fontWeight: 700 }),
+            onClick: () => setOnlyNever(true), role: 'switch', 'aria-checked': onlyNever,
+            'aria-label': 'Nur Lehrkräfte anzeigen, die sich noch nie eingeloggt haben',
+            'data-testid': 'login-filter-never'
+          }, '🚨 Nur noch nie eingeloggt (' + neverRows.length + ')'),
+          e('button', {
+            style: ADM.tab(!onlyNever), onClick: () => setOnlyNever(false),
+            role: 'switch', 'aria-checked': !onlyNever, 'aria-label': 'Alle Lehrkräfte anzeigen',
+            'data-testid': 'login-filter-all'
+          }, 'Alle (' + rows.length + ')'),
+          e('button', { style: ADM.btn('ghost'), onClick: reload, 'aria-label': 'Liste neu laden', 'data-testid': 'login-reload' }, '↻')
+        ),
+
+        e('div', { style: { fontSize: '13px', fontWeight: 700, margin: '0 0 8px' }, 'data-testid': 'login-summary' },
+          loading ? 'Lade Login-Status …'
+            : (rows.length + ' Lehrkräfte · ' + neverRows.length + ' noch nie eingeloggt')),
+
+        neverRows.length > 0 && e('button', {
+          style: Object.assign({}, ADM.btn('primary'), { marginBottom: '10px' }),
+          onClick: () => setConfirmIds(mailable(neverRows)),
+          disabled: sending || mailable(neverRows).length === 0,
+          'data-testid': 'login-send-all'
+        }, '✉️ Alle Nicht-Eingeloggten anschreiben (' + mailable(neverRows).length + ')'),
+
+        visible.map((r) => e('div', { key: r.id, style: ADM.row, 'data-testid': 'login-row' },
+          e('div', { style: { flex: 1, minWidth: 0 } },
+            e('div', { style: { fontSize: '13px', fontWeight: 600 } }, (r.display_name || r.kuerzel) + ' (' + r.kuerzel + ')'),
+            e('div', { style: { fontSize: '11px', color: '#64748b' } }, (r.email || 'keine E-Mail-Adresse') + ' · ' + formatLastSignIn(r.last_sign_in_at))
+          ),
+          r.never_signed_in
+            ? e('span', { style: { fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: '#fef2f2', color: '#b91c1c' }, 'data-testid': 'login-badge-never' }, 'nie')
+            : e('span', { style: { fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: '#f0fdf4', color: '#15803d' } }, 'aktiv'),
+          !r.has_account && e('span', { style: { fontSize: '11px', color: '#b06105' }, title: 'Für diese Lehrkraft existiert noch kein Zugang' }, 'kein Zugang'),
+          e('button', {
+            style: ADM.btn('ghost'), disabled: sending || !r.email,
+            onClick: () => setConfirmIds([r.id]),
+            'aria-label': 'Zugangsmail an ' + (r.display_name || r.kuerzel) + ' senden',
+            'data-testid': 'login-send-one'
+          }, '✉️ Zugangsmail')
+        )),
+
+        !loading && visible.length === 0 && e('p', { style: { fontSize: '13px', color: '#15803d' }, 'data-testid': 'login-empty' },
+          onlyNever ? '✓ Alle haben sich schon mindestens einmal eingeloggt.' : 'Keine Lehrkräfte gefunden.'),
+
+        result && e('div', { style: { marginTop: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px' }, 'data-testid': 'login-result' },
+          e('div', { style: { fontSize: '13px', fontWeight: 700, marginBottom: '6px' } },
+            'Ergebnis: ' + result.sent + ' verschickt, ' + result.failed + ' nicht'),
+          (result.results || []).filter((x) => x.status !== 'gesendet').map((x, i) =>
+            e('div', { key: i, style: { fontSize: '12px', color: '#b91c1c' } },
+              (x.kuerzel || x.id) + ': ' + (LOGIN_STATUS_LABELS[x.status] || x.status))),
+          e('button', { style: Object.assign({}, ADM.btn('ghost'), { marginTop: '8px' }), onClick: () => setResult(null) }, 'Ausblenden')
+        ),
+
+        confirmIds && e('div', {
+            style: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '16px' },
+            'data-testid': 'login-confirm', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Zugangsmail senden',
+            onClick: (ev) => { if (ev.target === ev.currentTarget && !sending) setConfirmIds(null); }
+          },
+          e('div', { style: { background: '#fff', borderRadius: '12px', padding: '20px', maxWidth: '420px', width: '100%' } },
+            e('div', { style: { fontWeight: 700, fontSize: '16px', marginBottom: '8px' } }, '✉️ Zugangsmail senden?'),
+            e('div', { style: { fontSize: '13px', color: '#475569', marginBottom: '12px' } },
+              'Es ' + (confirmIds.length === 1 ? 'geht 1 Mail' : 'gehen ' + confirmIds.length + ' Mails') + ' an die hinterlegten Schul-Adressen. '
+              + 'Jede Mail enthält einen persönlichen Link zum Passwort-Setzen sowie die Anmelde- und iPad-Hinweise. '
+              + 'Bereits gesetzte Passwörter bleiben gültig.'),
+            e('div', { style: { display: 'flex', gap: '8px', justifyContent: 'flex-end' } },
+              e('button', { style: ADM.btn('ghost'), onClick: () => setConfirmIds(null), disabled: sending, 'data-testid': 'login-confirm-cancel' }, 'Abbrechen'),
+              e('button', { ref: confirmBtnRef, style: ADM.btn('primary'), onClick: doSend, disabled: sending, 'data-testid': 'login-confirm-ok' }, sending ? 'Senden …' : 'Jetzt senden')
             )
           )
         )
@@ -3036,6 +3260,18 @@
       );
 
       // (Legacy Activity-Tracking entfernt — Session verwaltet Supabase selbst.)
+
+      // ── Persistent Storage (Q3, 30.07.2026) ────
+      // Best-Effort: fragt den Browser, den lokalen Speicher (Cache/IndexedDB/
+      // localStorage) nicht automatisch zu räumen, wenn der Speicher knapp wird.
+      // Reiner Wunsch an den Browser — läuft nur einmal pro erfolgreichem Login,
+      // wird bei Ablehnung/fehlender API stillschweigend ignoriert (kein Blocker,
+      // keine UI, kein Retry nötig).
+      useEffect(() => {
+        if (authState !== 'authenticated') return;
+        if (!(navigator.storage && navigator.storage.persist)) return;
+        navigator.storage.persist().catch(() => {});
+      }, [authState]);
 
       // ── postMessage listener for unread ────────
       useEffect(() => {

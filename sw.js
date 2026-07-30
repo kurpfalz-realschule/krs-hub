@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════
 // KRS Hub — Service Worker
-// Version: 3.11.0
+// Version: 3.13.0
 // Strategie: Network-First für HTML, Cache-First für CDN
 // Offline-Fallback: caches.match('./offline.html') bei Navigations-Requests
 // ═══════════════════════════════════════════════
 
-const VERSION = '3.11.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
+const VERSION = '3.13.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)
@@ -18,6 +18,7 @@ const LOCAL_ASSETS = [
   './modules/connect.html',
   './modules/plan.html',
   './modules/buchung.html',
+  './hilfe/index.html',
   './offline.html',
   './apple-touch-icon.png',
   './icon-192.png',

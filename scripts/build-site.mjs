@@ -17,7 +17,7 @@ const files = [
   'icon-512.png',
   'icon-512-maskable.png',
 ];
-const directories = ['modules', 'notizen'];
+const directories = ['modules', 'notizen', 'hilfe'];
 
 await rm(site, { recursive: true, force: true });
 await mkdir(site, { recursive: true });

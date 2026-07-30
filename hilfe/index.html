@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hilfe & Anleitung — KRS Hub</title>
+<meta name="description" content="Schritt-für-Schritt-Anleitung für KRS Hub und KRS Connect — für das Kollegium der Kurpfalz-Realschule Schriesheim.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❓</text></svg>">
+
+<style>
+  /* ═══════════════════════════════════════════════
+     KRS Hub — Hilfe-Seite
+     Gleiche Design-Sprache wie krs-hub/index.html (Farben, Radien, Font)
+     ═══════════════════════════════════════════════ */
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-light: #dbeafe;
+    --accent: #7c3aed;
+    --success: #166534;
+    --success-light: #dcfce7;
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+    --error: #B91C1C;
+    --error-light: #fee2e2;
+
+    --bg: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-sidebar: #1e293b;
+    --text: #1e293b;
+    --text-muted: #4B5563;
+    --border: #e2e8f0;
+
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; scroll-padding-top: 78px; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--primary); }
+
+  /* ── Skip-Link (A11Y, gleiche Idee wie im Hub) ── */
+  .skip-link {
+    position: absolute; left: 8px; top: -48px; z-index: 999;
+    padding: 10px 16px; background: var(--primary); color: #fff;
+    border-radius: 8px; font-size: 14px; font-weight: 600;
+    text-decoration: none; transition: top 0.15s ease;
+  }
+  .skip-link:focus { top: 8px; outline: 2px solid #fff; outline-offset: 2px; }
+
+  /* ── Kopfbereich ── */
+  header.top {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg-sidebar);
+    color: #fff;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+  }
+  header.top .logo { font-size: 22px; }
+  header.top h1 { font-size: 16px; font-weight: 700; flex: 1; min-width: 0; }
+  header.top .back {
+    color: #cbd5e1; text-decoration: none; font-size: 13px;
+    padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.18);
+    white-space: nowrap;
+  }
+  header.top .back:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+  /* ── Hero ── */
+  .hero {
+    max-width: 880px; margin: 0 auto; padding: 28px 20px 8px;
+  }
+  .hero h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 6px; }
+  .hero p { color: var(--text-muted); font-size: 15px; max-width: 60ch; }
+
+  /* ── Suche ── */
+  .search-wrap { max-width: 880px; margin: 16px auto 0; padding: 0 20px; }
+  .search-wrap input {
+    width: 100%; padding: 12px 14px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--bg-card);
+    font-size: 15px; font-family: inherit; color: var(--text);
+  }
+  .search-wrap input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .search-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+  /* ── Layout ── */
+  .layout {
+    max-width: 880px; margin: 20px auto 60px; padding: 0 20px;
+    display: grid; grid-template-columns: 220px 1fr; gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ── Inhaltsverzeichnis ── */
+  nav.toc {
+    position: sticky; top: 78px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 760px) { nav.toc { position: static; } }
+  nav.toc h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 8px; }
+  nav.toc ol { list-style: none; display: flex; flex-direction: column; gap: 2px; counter-reset: toc; }
+  nav.toc li { counter-increment: toc; }
+  nav.toc a {
+    display: flex; gap: 8px; align-items: baseline;
+    text-decoration: none; color: var(--text); font-size: 13.5px;
+    padding: 7px 8px; border-radius: var(--radius-sm);
+  }
+  nav.toc a::before { content: counter(toc) '.'; color: var(--text-muted); font-weight: 700; font-size: 12px; }
+  nav.toc a:hover { background: var(--primary-light); color: var(--primary-hover); }
+
+  /* ── Inhalt ── */
+  main { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+
+  section.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: var(--shadow);
+    scroll-margin-top: 78px;
+  }
+  section.card h2 {
+    font-size: 18px; font-weight: 700; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  section.card h3 { font-size: 14.5px; font-weight: 700; margin: 14px 0 6px; }
+  section.card p { margin-bottom: 10px; font-size: 14.5px; }
+  section.card ol, section.card ul { padding-left: 20px; margin-bottom: 10px; }
+  section.card li { margin-bottom: 6px; font-size: 14.5px; }
+  section.card code {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 6px; font-size: 13px; font-family: ui-monospace, Menlo, monospace;
+  }
+
+  .tip {
+    background: var(--primary-light); border-radius: var(--radius-sm);
+    padding: 10px 12px; font-size: 13.5px; color: #1e3a8a; margin: 10px 0;
+  }
+  .tip.warn { background: var(--warning-light); color: #7c4a03; }
+  .tip.ok { background: var(--success-light); color: #14532d; }
+
+  .top-anchor { text-align: right; }
+  .top-anchor a { font-size: 12px; color: var(--text-muted); text-decoration: none; }
+  .top-anchor a:hover { color: var(--primary); }
+
+  /* ── FAQ ── */
+  details.faq {
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    margin-bottom: 8px; overflow: hidden;
+  }
+  details.faq summary {
+    cursor: pointer; padding: 12px 14px; font-weight: 600; font-size: 14px;
+    list-style: none; display: flex; align-items: center; gap: 8px;
+  }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::before { content: '▸'; color: var(--text-muted); transition: transform 0.15s ease; }
+  details.faq[open] summary::before { transform: rotate(90deg); }
+  details.faq .faq-body { padding: 0 14px 14px; font-size: 14px; color: var(--text-muted); }
+
+  /* ── Nummerierte Schritte als Kacheln ── */
+  .steps { display: flex; flex-direction: column; gap: 8px; }
+  .step {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--bg); border-radius: var(--radius-sm); padding: 10px 12px;
+  }
+  .step .n {
+    flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--primary); color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step .t { font-size: 14px; padding-top: 2px; }
+
+  footer.page-footer {
+    max-width: 880px; margin: 0 auto 40px; padding: 0 20px;
+    color: var(--text-muted); font-size: 12.5px; text-align: center;
+  }
+
+  .hidden-by-search { display: none !important; }
+
+  [data-hl] mark { background: #fde68a; color: inherit; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Zum Inhalt springen</a>
+
+<header class="top">
+  <span class="logo" aria-hidden="true">🏫</span>
+  <h1>KRS Hub — Hilfe &amp; Anleitung</h1>
+  <a class="back" href="../">← Zurück zum Hub</a>
+</header>
+
+<div class="hero">
+  <h2>So funktioniert KRS Hub &amp; Connect</h2>
+  <p>Eine kurze Anleitung fürs Kollegium — vom ersten Einloggen bis zur Installation auf dem
+  iPad. Kein Fachchinesisch, nur die Schritte, die du wirklich brauchst.</p>
+</div>
+
+<div class="search-wrap">
+  <label for="hilfe-search" style="position:absolute;left:-9999px;">Anleitung durchsuchen</label>
+  <input id="hilfe-search" type="search" placeholder="🔍 Suchen, z. B. „Passwort“, „Team“, „Benachrichtigung“ …" autocomplete="off">
+  <div class="search-hint" id="search-hint"></div>
+</div>
+
+<div class="layout">
+  <nav class="toc" aria-label="Inhaltsverzeichnis">
+    <h3>Inhalt</h3>
+    <ol>
+      <li><a href="#erste-anmeldung">Erste Anmeldung</a></li>
+      <li><a href="#team-anlegen">Neues Team anlegen</a></li>
+      <li><a href="#kanaele">Kanäle</a></li>
+      <li><a href="#beitraege">Beiträge, Antworten, Reaktionen</a></li>
+      <li><a href="#direktnachrichten">Direktnachrichten</a></li>
+      <li><a href="#dringend">„Dringend“ &amp; @alle</a></li>
+      <li><a href="#benachrichtigungen">Benachrichtigungen</a></li>
+      <li><a href="#installation">Installation auf iPad/iPhone</a></li>
+      <li><a href="#was-ist-neu">Was ist neu</a></li>
+      <li><a href="#faq">Häufige Fragen</a></li>
+      <li><a href="#kontakt">Hilfe &amp; Kontakt</a></li>
+    </ol>
+  </nav>
+
+  <main id="main">
+
+    <section class="card" id="erste-anmeldung" data-hl>
+      <h2>1. 🔑 Erste Anmeldung</h2>
+      <p>Für den Hub und für Connect gilt <strong>eine gemeinsame Anmeldung</strong>: Du loggst
+      dich einmal mit deiner Schul-E-Mail-Adresse und einem Passwort ein — das gilt dann für
+      beide Apps.</p>
+
+      <h3>So bekommst du Zugang</h3>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">Du erhältst eine <strong>Zugangsmail</strong> von der Schulleitung/IT-Betreuung mit deiner Anmelde-E-Mail und einem <strong>Link zum Passwort-Setzen</strong>.</span></div>
+        <div class="step"><span class="n">2</span><span class="t">Tippe auf den Link in der Mail. Er öffnet Connect und zeigt dort den Bildschirm <strong>„🔑 Neues Passwort setzen“</strong>.</span></div>
+        <div class="step"><span class="n">3</span><span class="t">Vergib ein eigenes Passwort (mindestens 8 Zeichen) und bestätige es im zweiten Feld. Tippe auf <strong>„💾 Passwort speichern“</strong>.</span></div>
+        <div class="step"><span class="n">4</span><span class="t">Danach kannst du dich mit deiner E-Mail-Adresse und deinem neuen Passwort ganz normal anmelden — im Hub und in Connect.</span></div>
+      </div>
+
+      <div class="tip">
+        In der Zugangsmail steht <strong>kein Passwort im Klartext</strong> — aus gutem Grund:
+        Niemand außer dir kennt dein Passwort, auch die Schulleitung/IT nicht. Der Link ist
+        eine Stunde lang gültig; ist er abgelaufen, einfach die IT-Betreuung um eine neue
+        Zugangsmail bitten (siehe <a href="#kontakt">Hilfe &amp; Kontakt</a>).
+      </div>
+
+      <h3>Passwort vergessen?</h3>
+      <p>Öffne dazu <strong>Connect</strong> (Kachel im Hub) und tippe auf dem Anmeldebildschirm
+      auf <strong>„Passwort vergessen?“</strong> unterhalb des Anmelde-Buttons. Trage vorher
+      deine Schul-E-Mail-Adresse oben ein. Du bekommst dann eine E-Mail mit einem Link zum
+      Zurücksetzen (ebenfalls eine Stunde gültig). Der Hub selbst hat diesen Link nicht — die
+      Passwortverwaltung läuft komplett über Connect, wirkt sich aber auf die gemeinsame
+      Anmeldung mit dem Hub aus.</p>
+
+      <p>Eingeloggt und willst dein Passwort einfach nur ändern? Das geht in Connect unter
+      <strong>⚙️ Einstellungen → 🔑 Passwort ändern</strong>, jederzeit und ohne Mail-Umweg.</p>
+
+      <div class="tip warn">
+        Achtung: Nur E-Mail-Adressen mit der Schul-Domain werden akzeptiert. Bei einer Meldung
+        wie „Bitte die Schul-E-Mail-Adresse verwenden“ prüfe zuerst die Schreibweise deiner
+        E-Mail-Adresse.
+      </div>
+    </section>
+
+    <section class="card" id="team-anlegen" data-hl>
+      <h2>2. 👥 Neues Team anlegen</h2>
+      <p>Ein „Team“ in Connect ist z. B. eine Fachschaft, eine Klassenstufe oder eine
+      Arbeitsgruppe — mit eigenen Kanälen für Beiträge.</p>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">Klicke in der Teams-Leiste links auf das <strong>„+“</strong> (Titel „Neues Team erstellen“). Das kann jede eingeloggte Person, kein Admin-Recht nötig.</span></div>
+        <div class="step"><span class="n">2</span><span class="t">Es öffnet sich der Dialog <strong>„Team erstellen“</strong>. Trage einen <strong>Team-Namen</strong> ein (z. B. „Musik Fachschaft“) — Pflichtfeld.</span></div>
+        <div class="step"><span class="n">3</span><span class="t">Optional: eine kurze <strong>Beschreibung</strong>, ein <strong>Icon</strong> (2 Zeichen, wird aus dem Namen vorgeschlagen) und eine <strong>Icon-Farbe</strong>.</span></div>
+        <div class="step"><span class="n">4</span><span class="t">Tippe auf <strong>„Erstellen“</strong>.</span></div>
+      </div>
+      <div class="tip ok">
+        Fertig! Du wirst automatisch <strong>Admin dieses Teams</strong>, und Connect legt
+        automatisch einen ersten Kanal namens <strong>„Allgemein“</strong> für dich an — du
+        kannst sofort loslegen.
+      </div>
+    </section>
+
+    <section class="card" id="kanaele" data-hl>
+      <h2>3. #️⃣ Kanäle</h2>
+      <p>Kanäle sortieren die Beiträge innerhalb eines Teams nach Thema (z. B. „Allgemein“,
+      „Vertretung“, „Ausflüge“).</p>
+      <h3>Kanal anlegen</h3>
+      <p>Über das <strong>„+“</strong> in der Kanal-Leiste (Titel „Neuen Kanal erstellen“) — dieser
+      Button ist Admin-Kolleg:innen vorbehalten. Im Dialog <strong>„# Neuen Kanal erstellen“</strong>
+      trägst du einen Kanalnamen ein (z. B. „Vertretung“) und bestätigst mit <strong>„Erstellen“</strong>.
+      Der neue Kanal gehört automatisch zum gerade ausgewählten Team.</p>
+      <h3>Kanal wechseln</h3>
+      <p>In der linken Seitenleiste unter der Überschrift <strong>„# Kanäle“</strong> siehst du alle
+      Kanäle des ausgewählten Teams. Ein Klick auf einen Kanal wechselt direkt dorthin.
+      Kanäle mit ungelesenen Beiträgen zeigen ein kleines Zähl-Symbol (Badge).</p>
+    </section>
+
+    <section class="card" id="beitraege" data-hl>
+      <h2>4. 💬 Beiträge, Antworten &amp; Reaktionen</h2>
+      <h3>Beitrag schreiben</h3>
+      <p>Im gewählten Kanal auf <strong>„✏️ Beitrag schreiben…“</strong> tippen. Du kannst einen
+      optionalen Titel, deinen Text (auch mit @-Erwähnungen), eine Datei, eine Umfrage oder ein
+      Emoji hinzufügen. Absenden mit <strong>„Posten“</strong>.</p>
+      <h3>In einem Thread antworten</h3>
+      <p>Unter jedem Beitrag findest du <strong>„💬 Antworten“</strong> mit der Anzahl bisheriger
+      Antworten. Ein Klick öffnet den Antworten-Bereich — dort kannst du direkt im Thread
+      schreiben, ohne den Hauptkanal „zuzuspammen“.</p>
+      <h3>Reagieren</h3>
+      <p>Über den <strong>„+“</strong>-Button unter einem Beitrag (Titel „Reaktion hinzufügen“) öffnest
+      du eine Emoji-Auswahl — von Daumen hoch 👍 über Herz ❤️ bis zu vielen weiteren Kategorien.
+      Bereits vergebene Reaktionen erscheinen als kleine Chips mit Zähler; tippst du auf einen
+      Chip, den du selbst gesetzt hast, wird deine Reaktion wieder entfernt.</p>
+    </section>
+
+    <section class="card" id="direktnachrichten" data-hl>
+      <h2>5. ✉️ Direktnachrichten</h2>
+      <h3>1:1-Chat</h3>
+      <p>Über den <strong>„+“</strong>-Button „Neuer Chat“ öffnest du ein Suchfeld
+      „Kolleg:in suchen…“. Tippe auf eine Person aus der Trefferliste — die Unterhaltung startet
+      sofort.</p>
+      <h3>Gruppenchat</h3>
+      <p>Im gleichen Auswahl-Bereich findest du oben <strong>„+ Neuer Gruppenchat“</strong>. Vergib
+      einen Gruppennamen, hake die gewünschten Kolleg:innen in der Liste an und tippe auf
+      <strong>„Erstellen“</strong> (erst aktiv, sobald Name und mindestens eine Person gewählt sind).</p>
+    </section>
+
+    <section class="card" id="dringend" data-hl>
+      <h2>6. 🚨 „Dringend“ &amp; @alle</h2>
+      <p>Diese beiden Funktionen sind für wirklich eilige Ansagen gedacht — bitte sparsam
+      einsetzen.</p>
+      <h3>Beitrag als „Dringend“ markieren</h3>
+      <p>Im Beitrags-Formular gibt es einen 🚨-Button „Als dringend markieren“ — er steht nur
+      Team-Admins zur Verfügung. Ein dringender Beitrag wird oben in der Liste angezeigt, rot
+      umrandet und mit dem Hinweis <strong>„🚨 DRINGEND“</strong> versehen. Wichtig:
+      Er löst bei allen Teammitgliedern <strong>sofort eine Push-Benachrichtigung aus</strong> —
+      sogar dann, wenn die App bei ihnen gerade geöffnet ist (normalerweise wird eine
+      Benachrichtigung unterdrückt, solange man die App aktiv nutzt).</p>
+      <h3>@alle</h3>
+      <p>Tippst du im Beitragstext <code>@</code> gefolgt von „alle“, kannst du <strong>„alle“
+      </strong> aus dem Vorschlag auswählen. Damit erreichst du wirklich das <strong>gesamte
+      Kollegium</strong> per Benachrichtigung — auch das bitte nur, wenn es wirklich alle
+      betrifft.</p>
+      <div class="tip warn">
+        „Dringend“ und „@alle“ erzeugen bei allen Empfänger:innen eine Benachrichtigung, egal ob
+        die App gerade offen ist oder nicht. Für normale Ankündigungen reicht ein ganz normaler
+        Beitrag im passenden Kanal.
+      </div>
+    </section>
+
+    <section class="card" id="benachrichtigungen" data-hl>
+      <h2>7. 🔔 Benachrichtigungen aktivieren</h2>
+      <p>Damit du auch mitbekommst, wenn im Hintergrund etwas Neues passiert, kannst du
+      Browser-Benachrichtigungen einschalten.</p>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">Öffne in Connect <strong>⚙️ Einstellungen</strong> und suche den Abschnitt <strong>„🔔 Benachrichtigungen“</strong>.</span></div>
+        <div class="step"><span class="n">2</span><span class="t">Tippe auf den Schalter. Beim ersten Mal fragt dein Browser, ob er Benachrichtigungen anzeigen darf.</span></div>
+        <div class="step"><span class="n">3</span><span class="t">Wähle <strong>„Erlauben“</strong>. Du siehst danach die Bestätigung „Benachrichtigungen aktiviert!“.</span></div>
+      </div>
+      <div class="tip warn">
+        Hast du die Anfrage versehentlich abgelehnt, hilft der Schalter allein nicht mehr weiter
+        — dann muss die Erlaubnis in den Browser-/Systemeinstellungen für diese Seite manuell
+        nachgeholt werden (siehe <a href="#faq">FAQ</a>).
+      </div>
+    </section>
+
+    <section class="card" id="installation" data-hl>
+      <h2>8. 📲 Installation auf iPad/iPhone</h2>
+      <p>KRS Hub lässt sich wie eine echte App auf dem Home-Bildschirm installieren — mit
+      eigenem Icon, Vollbild ohne Browserleiste und einer freundlichen Hinweisseite, falls mal
+      kein Internet da ist.</p>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><span class="t">Öffne den Hub in <strong>Safari</strong> (auf dem iPad/iPhone — nicht in Chrome oder einer anderen App).</span></div>
+        <div class="step"><span class="n">2</span><span class="t">Tippe unten (iPhone) bzw. oben (iPad) auf das <strong>Teilen-Symbol</strong> ⬆️ (Quadrat mit Pfeil nach oben).</span></div>
+        <div class="step"><span class="n">3</span><span class="t">Scrolle im Menü nach unten und wähle <strong>„Zum Home-Bildschirm“</strong>.</span></div>
+        <div class="step"><span class="n">4</span><span class="t">Tippe oben rechts auf <strong>„Hinzufügen“</strong>.</span></div>
+        <div class="step"><span class="n">5</span><span class="t">Fertig — auf dem Home-Bildschirm liegt jetzt das KRS-Hub-Icon. Ein Tipp darauf startet die App im Vollbild, ganz ohne Safari-Leiste.</span></div>
+      </div>
+      <div class="tip">
+        Nutzt du ein geteiltes iPad (z. B. im Klassensatz)? Denk daran, den Bildschirm über das
+        Profil-Menü zu sperren, wenn du fertig bist — Details dazu direkt im Hub.
+      </div>
+    </section>
+
+    <section class="card" id="was-ist-neu" data-hl>
+      <h2>9. 🆕 Was ist neu</h2>
+      <p>Sowohl der Hub als auch Connect zeigen dir laufend, was sich geändert hat:</p>
+      <ul>
+        <li>Im Hub: Profil-Menü oben rechts (dein Avatar/Name) → <strong>„🆕 Was ist neu“</strong>.</li>
+        <li>In Connect: <strong>⚙️ Einstellungen → „🆕 Was ist neu“</strong>.</li>
+      </ul>
+      <p>Dort steht in Alltagssprache, was sich in der jeweils letzten Version geändert hat —
+      keine technischen Begriffe, sondern was du im Alltag davon merkst.</p>
+    </section>
+
+    <section class="card" id="faq" data-hl>
+      <h2>10. ❓ Häufige Fragen</h2>
+
+      <details class="faq">
+        <summary>Ich sehe kein Team / keinen Kanal</summary>
+        <div class="faq-body">Du siehst nur Teams, denen du bereits angehörst. Bitte ein
+        bestehendes Team-Mitglied (Admin) oder die IT-Betreuung bitten, dich zum passenden Team
+        hinzuzufügen — oder leg selbst ein neues Team an (siehe <a href="#team-anlegen">Abschnitt 2</a>).</div>
+      </details>
+
+      <details class="faq">
+        <summary>Die Zugangsmail kommt nicht an</summary>
+        <div class="faq-body">Erst im Spam-/Werbeordner nachsehen. Kommt danach immer noch
+        nichts an, kann die IT-Betreuung die Mail erneut anstoßen (siehe
+        <a href="#kontakt">Hilfe &amp; Kontakt</a>). Der Link in der Mail ist außerdem nur eine
+        Stunde gültig — nach Ablauf einfach eine neue Zugangsmail anfordern lassen.</div>
+      </details>
+
+      <details class="faq">
+        <summary>Ich habe mein Passwort vergessen</summary>
+        <div class="faq-body">Auf dem Connect-Anmeldebildschirm „Passwort vergessen?“ antippen,
+        E-Mail-Adresse eintragen — du bekommst einen Link zum Zurücksetzen (siehe
+        <a href="#erste-anmeldung">Abschnitt 1</a>).</div>
+      </details>
+
+      <details class="faq">
+        <summary>Die App zeigt eine alte Version / sieht komisch aus</summary>
+        <div class="faq-body">Der Hub erkennt neue Versionen automatisch und zeigt oben einen
+        Hinweis „Neue Version verfügbar“ mit einem Button „Jetzt aktualisieren“. Erscheint
+        nichts, hilft meist ein normaler Seiten-Reload (Browser: nach unten ziehen bzw.
+        Aktualisieren-Symbol; installierte App: einmal schließen und neu öffnen).</div>
+      </details>
+
+      <details class="faq">
+        <summary>Ich bekomme keine Benachrichtigungen</summary>
+        <div class="faq-body">Prüfe in Connect unter ⚙️ Einstellungen, ob der
+        Benachrichtigungen-Schalter aktiv ist. Wurde die Berechtigung im Browser einmal
+        abgelehnt, muss sie manuell nachgeholt werden: in den Browser-/Website-Einstellungen für
+        diese Seite auf „Erlauben“ stellen und danach den Schalter in Connect erneut betätigen.</div>
+      </details>
+
+      <details class="faq">
+        <summary>Mein iPad ist gesperrt und zeigt nur einen Sperrbildschirm</summary>
+        <div class="faq-body">Das ist die eingebaute Bildschirmsperre für geteilte Geräte (z. B.
+        Klassensatz-iPads). Zum Entsperren das eigene Passwort eingeben oder die Person fragen,
+        die den Bildschirm zuletzt gesperrt hat.</div>
+      </details>
+
+      <details class="faq">
+        <summary>Ich sehe „Bitte die Schul-E-Mail-Adresse verwenden“</summary>
+        <div class="faq-body">Der Login akzeptiert ausschließlich E-Mail-Adressen mit der
+        Schul-Domain. Prüfe die Schreibweise deiner E-Mail-Adresse — private Adressen
+        (z. B. gmail.com, web.de) funktionieren hier nicht.</div>
+      </details>
+
+      <details class="faq">
+        <summary>„Dringend“ oder „@alle“ ist nicht auswählbar</summary>
+        <div class="faq-body">Das Markieren als „Dringend“ ist Team-Admins vorbehalten. Bitte
+        einen Admin des jeweiligen Teams, den Beitrag entsprechend zu markieren, oder wende dich
+        an die IT-Betreuung, falls du Admin-Rechte benötigst.</div>
+      </details>
+
+      <details class="faq">
+        <summary>Die App auf dem iPad startet ohne Internet nicht richtig</summary>
+        <div class="faq-body">Ohne jede vorherige Verbindung braucht die App einmal WLAN/Netz,
+        um sich vollständig zu laden. Danach zeigt sie bei fehlender Verbindung eine
+        Hinweisseite statt einer Fehlermeldung, und alles, was du vorher schon geöffnet hattest,
+        bleibt erreichbar.</div>
+      </details>
+    </section>
+
+    <section class="card" id="kontakt" data-hl>
+      <h2>11. 📮 Hilfe &amp; Kontakt</h2>
+      <p>Kommst du nicht weiter, oder etwas verhält sich anders als hier beschrieben? Melde
+      dich einfach direkt:</p>
+      <p style="font-size:16px; font-weight:700; margin-top:6px;">
+        Norbert Kotzan<br>
+        <a href="mailto:kotzan@realschule-schriesheim.de">kotzan@realschule-schriesheim.de</a>
+      </p>
+      <p style="margin-top:10px;">Am besten mit ein paar Stichworten: was du gemacht hast, was
+      du erwartet hättest, und (falls möglich) ein Screenshot. Das hilft, Fehlern schneller auf
+      die Spur zu kommen.</p>
+    </section>
+
+    <div class="top-anchor"><a href="#main">↑ Nach oben</a></div>
+
+  </main>
+</div>
+
+<footer class="page-footer">
+  KRS Hub — Kurpfalz-Realschule Schriesheim · Diese Hilfe-Seite beschreibt den aktuellen Stand
+  von Hub &amp; Connect und wird bei größeren Änderungen mit aktualisiert.
+</footer>
+
+<script>
+  (function () {
+    'use strict';
+    try {
+      var input = document.getElementById('hilfe-search');
+      var hint = document.getElementById('search-hint');
+      var sections = Array.prototype.slice.call(document.querySelectorAll('main section[data-hl]'));
+      if (!input || !sections.length) return;
+
+      input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase();
+        var shown = 0;
+        sections.forEach(function (sec) {
+          var text = sec.textContent.toLowerCase();
+          var match = q === '' || text.indexOf(q) !== -1;
+          sec.classList.toggle('hidden-by-search', !match);
+          if (match) shown++;
+        });
+        if (q === '') {
+          hint.textContent = '';
+        } else {
+          hint.textContent = shown + ' von ' + sections.length + ' Abschnitten passen zu „' + input.value.trim() + '“.';
+        }
+      });
+    } catch (err) {
+      // Suche ist ein Komfort-Extra — bei einem Fehler bleibt die Seite trotzdem
+      // vollständig lesbar, nur die Live-Filterung fällt aus.
+      console.warn('Hilfe-Suche konnte nicht initialisiert werden:', err);
+    }
+  })();
+</script>
+
+</body>
+</html>

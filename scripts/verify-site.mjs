@@ -22,6 +22,7 @@ const requiredFiles = [
   'modules/piano.html',
   'modules/plan.html',
   'notizen/index.html',
+  'hilfe/index.html',
 ];
 
 async function listFiles(directory) {

@@ -74,12 +74,17 @@ test.describe('A2b Fokus & Tastatur — KRS Hub (Demo)', () => {
     await expect(page.locator('[data-testid="admin-tab-koffer"]')).toHaveAttribute('tabindex', '-1');
 
     // Pfeiltaste rechts wechselt die Auswahl auf den nächsten Tab.
+    // Seit Hub 3.12.0 ist „Login-Status" laut Sprint-Spec bewusst ZWISCHEN
+    // „Lehrkräfte" und „iPad-Koffer" einsortiert (siehe tabs-Array in index.html,
+    // AdminPanel) — die zweite Tab-Position ist seitdem 'login', nicht mehr 'koffer'.
+    // Fachlich gewollte Reihenfolge, daher hier die Testerwartung angepasst
+    // (kein App-Bug: die Roving-Tabindex-/ARIA-Logik selbst arbeitet korrekt).
     await firstTab.focus();
     await page.keyboard.press('ArrowRight');
-    await expect(page.locator('[data-testid="admin-tab-koffer"]')).toHaveAttribute('aria-selected', 'true');
-    await expect(page.locator('#admpanel')).toHaveAttribute('aria-labelledby', 'admtab-koffer');
+    await expect(page.locator('[data-testid="admin-tab-login"]')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#admpanel')).toHaveAttribute('aria-labelledby', 'admtab-login');
     // Fokus ist mit der Auswahl gewandert.
-    expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('admin-tab-koffer');
+    expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('admin-tab-login');
     // Home springt zum ersten Tab zurück.
     await page.keyboard.press('Home');
     await expect(firstTab).toHaveAttribute('aria-selected', 'true');

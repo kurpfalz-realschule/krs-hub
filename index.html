@@ -1008,7 +1008,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.13.0',
+      VERSION: '3.14.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1435,6 +1435,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.14.0', date: '01.08.2026', items: [
+        'Neu in der Hilfe: Anleitung zur Dateiablage (Nextcloud) — mit Link auf die komplette Schritt-für-Schritt-Anleitung.'
+      ] },
       { v: '3.13.0', date: '30.07.2026', items: [
         'Neue Hilfe-Seite mit Schritt-für-Schritt-Anleitung fürs Kollegium — Anmeldung, Teams & Kanäle, Beiträge, Direktnachrichten, Benachrichtigungen, iPad-Installation und häufige Fragen an einem Ort. Erreichbar über die Kachel bzw. den Menüpunkt „❓ Hilfe“.'
       ] },

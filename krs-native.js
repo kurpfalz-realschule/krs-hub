@@ -8,21 +8,21 @@
  * Funktionen an und beendet sich. Der Hub verhält sich dann exakt wie heute.
  * ------------------------------------------------------------------------
  *
- * Sie erledigt fünf Dinge, die im WKWebView sonst kaputt sind oder fehlen:
+ * Sie erledigt vier Dinge, die im WKWebView sonst kaputt sind oder fehlen:
  *
  *   1. Sichere Bereiche (Notch, Home-Indikator) als CSS-Variablen bereitstellen.
  *   2. Externe Links abfangen — `window.open`/`target="_blank"` tun im
  *      WKWebView sonst schlicht gar nichts, der Link wirkt "kaputt".
- *   3. Anmeldung über den Kaltstart retten: der Hub legt Session und PIN-Daten
- *      in sessionStorage ab. Im Browser ist das Absicht ("weg bei Tab-Close"),
- *      in der App wird sessionStorage aber bei JEDEM Start geleert — die
- *      7-Tage-Session käme nie zustande und jede:r müsste täglich neu die PIN
- *      tippen. Wir spiegeln die betroffenen Schlüssel in den iOS-Schlüsselbund.
- *   4. Push-Benachrichtigungen (APNs) statt der Web-Notification-API, die im
+ *      Im Hub 3.14.0 hängen vier Links so (Untis, Homepage, Kalender, …).
+ *   3. Push-Benachrichtigungen (APNs) statt der Web-Notification-API, die im
  *      WKWebView nicht existiert.
- *   5. Eine eng begrenzte RPC-Brücke, damit KRS Connect im iframe native
+ *   4. Eine eng begrenzte RPC-Brücke, damit KRS Connect im iframe native
  *      Funktionen nutzen kann — Capacitor spritzt seine Brücke nur in den
  *      obersten Rahmen ein, das iframe erreicht sie nicht selbst.
+ *
+ * Dazu: Face ID als Angebot (`unlock()`, siehe 3b) und Sitzungs-Spiegelung als
+ * Rückfallebene für einen PIN-Login (siehe PERSIST_KEYS — auf dem aktuellen Hub
+ * wirkungslos).
  *
  * Version: 1.0.0
  */
@@ -39,8 +39,8 @@
   // Diese sessionStorage-Schlüssel überleben in der App den Kaltstart.
   // Alles andere bleibt flüchtig.
   //
-  // STAND 12.09.2026 — bitte lesen, bevor jemand hier etwas erwartet:
-  //   Der LIVE-Hub (3.3.0-admin-login) meldet sich über Supabase Auth an
+  // STAND 13.09.2026 — bitte lesen, bevor jemand hier etwas erwartet:
+  //   Der LIVE-Hub (3.14.0) meldet sich über Supabase Auth an
   //   (`signInWithPassword`) und legt die Sitzung dort in localStorage ab.
   //   localStorage überlebt den Kaltstart im WKWebView von sich aus — das
   //   Abmelde-Problem besteht auf diesem Hub also gar nicht, und die
@@ -183,9 +183,9 @@
   //   Anwendungscode ausführt.
   //
   //   Zur Sicherheit: dieser localStorage liegt in der Sandbox der App, nicht
-  //   im Safari-Profil. Keine andere App und keine Website kommt heran. Wer
-  //   zusätzlich absichern will, schaltet die Face-ID-Sperre ein (Abschnitt 3b) —
-  //   dann ist der Inhalt erst nach erfolgreicher Gesichtserkennung nutzbar.
+  //   im Safari-Profil. Keine andere App und keine Website kommt heran. Den
+  //   Zugriffsschutz auf dem entsperrten Gerät übernimmt die Auto-Sperre des
+  //   Hubs (`krs_hub_autolock`), optional mit Face ID über unlock() (3b).
   // ─────────────────────────────────────────────────────────────
   var MIRROR_PREFIX = 'krs_native_persist_';
 

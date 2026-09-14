@@ -58,6 +58,16 @@
   var isNative = !!(cap && cap.isNativePlatform && cap.isNativePlatform());
   var P = (cap && cap.Plugins) || {};
 
+  // APNs hat zwei getrennte Umgebungen, und ein Token aus der einen wird in der
+  // anderen abgelehnt (Apple antwortet „BadDeviceToken"). Die Zuordnung ist:
+  //
+  //   Xcode direkt aufs Gerät (Debug)  → sandbox
+  //   TestFlight und App Store         → production
+  //
+  // Capacitor setzt `DEBUG` aus der Build-Konfiguration. Fehlt der Wert, nehmen
+  // wir production an — das ist der Fall, der die Kolleg:innen betrifft.
+  var PRODUKTIV_BUILD = !(cap && cap.DEBUG === true);
+
   // ─────────────────────────────────────────────────────────────
   // Browser-Fall: sofort aussteigen
   // ─────────────────────────────────────────────────────────────
@@ -316,6 +326,61 @@
       .then(null, function (e) { return { ok: false, reason: e && e.message }; });
   }
 
+  /**
+   * Schreibt den APNs-Gerätetoken nach public.push_tokens.
+   *
+   * Warum über den Client des Hubs (`window.KRSHub.getClient`) und nicht über
+   * einen eigenen: Die Tabelle ist per RLS auf `user_id = get_app_user_id()`
+   * abgeriegelt. Nur mit der bestehenden, angemeldeten Sitzung geht der Schreib-
+   * vorgang durch — ein frischer Client ohne Sitzung würde abgewiesen.
+   *
+   * Der Aufruf ist ein upsert auf `token`: Meldet sich auf demselben iPad eine
+   * andere Lehrkraft an, wandert die Zeile mit. Sonst bekäme die vorherige
+   * weiter deren Benachrichtigungen.
+   *
+   * Scheitert irgendetwas davon, passiert nichts weiter — ohne Eintrag gibt es
+   * eben keine Benachrichtigungen, die App bleibt voll benutzbar.
+   */
+  function tokenHinterlegen(token) {
+    if (!token) return;
+    var hub = window.KRSHub;
+    if (!hub || typeof hub.getClient !== 'function') {
+      warn('window.KRSHub.getClient fehlt — Token nicht hinterlegt. '
+         + 'Fehlt die Zeile in der index.html des Hubs?');
+      return;
+    }
+    Promise.resolve()
+      .then(function () { return hub.getClient(); })
+      .then(function (sb) {
+        if (!sb || !sb.auth) throw new Error('kein Supabase-Client');
+        return sb.auth.getSession().then(function (r) {
+          var session = r && r.data && r.data.session;
+          if (!session) throw new Error('nicht angemeldet');
+          // users.id über die bestehende RPC — dieselbe, die auch die RLS nutzt.
+          return sb.rpc('get_app_user_id').then(function (res) {
+            var uid = res && res.data;
+            if (!uid) throw new Error('keine app_user_id');
+            return sb.from('push_tokens').upsert({
+              user_id: uid,
+              token: token,
+              platform: 'ios',
+              // Sandbox-Token (Xcode-Build vom Gerät) funktionieren NICHT am
+              // Produktiv-Gateway. Capacitor sagt uns das nicht, aber Debug-
+              // Builds sind an der aktivierten Entwicklerkonsole erkennbar.
+              environment: PRODUKTIV_BUILD ? 'production' : 'sandbox',
+              disabled_at: null,
+              disabled_reason: null,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'token' });
+          });
+        });
+      })
+      .then(function (r) {
+        if (r && r.error) warn('Token nicht hinterlegt:', r.error.message);
+        else log('Gerätetoken hinterlegt');
+      }, function (e) { warn('Token nicht hinterlegt:', e && e.message); });
+  }
+
   function wirePush() {
     var pn = P.PushNotifications;
     if (!pn || !pn.addListener) return;
@@ -323,8 +388,8 @@
     pn.addListener('registration', function (t) {
       pushToken = t && t.value;
       log('APNs-Token erhalten');
-      // Der Hub soll ihn an Supabase schicken — er kennt die angemeldete Person.
       window.dispatchEvent(new CustomEvent('krs-native-pushtoken', { detail: { token: pushToken } }));
+      tokenHinterlegen(pushToken);
     });
 
     pn.addListener('registrationError', function (e) {

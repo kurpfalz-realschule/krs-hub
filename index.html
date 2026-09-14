@@ -1286,6 +1286,11 @@
     // Für Module/Tests erreichbar (z. B. Lehrerlisten in iframe-Modulen):
     window.KRSHub = window.KRSHub || {};
     window.KRSHub.getKollegium = () => SupabaseAuthService.getKollegium();
+    // Für die native iOS-Hülle (krs-native.js): sie muss den APNs-Gerätetoken
+    // in public.push_tokens schreiben und braucht dafür den angemeldeten
+    // Client. Gibt denselben Client zurück, den der Hub ohnehin benutzt —
+    // keine zweite Verbindung, keine zusätzlichen Rechte.
+    window.KRSHub.getClient = () => SupabaseAuthService.ensureClient();
 
     // ═══════════════════════════════════════════════
     // Schulleitungs-Board (FAQs + wichtige Termine)

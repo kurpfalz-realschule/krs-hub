@@ -7,6 +7,7 @@ const site = resolve(root, '_site');
 
 const files = [
   'index.html',
+  'krs-native.js',
   'tenant.js',
   'manifest.json',
   'sw.js',

@@ -1019,7 +1019,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.16.0',
+      VERSION: '3.16.1',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1451,6 +1451,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.16.1', date: '16.09.2026', items: [
+        'Die native iPhone-App lädt ihre Brücke jetzt zuverlässig mit: Die Datei war im Repository vorhanden, fehlte aber bisher im GitHub-Pages-Artefakt.'
+      ] },
       { v: '3.16.0', date: '16.09.2026', items: [
         'Die Versionsnummer steht jetzt dauerhaft unten in der Seitenleiste — so wie in Connect. Damit kannst du auf einen Blick sehen, ob du den aktuellen Stand hast.',
         'Bestätigungsabfragen funktionieren wieder: In allen Modulen (Connect, Klassenarbeitsplan) wurde „Wirklich löschen?" vom Browser stillschweigend verschluckt — der Klick tat einfach nichts.'

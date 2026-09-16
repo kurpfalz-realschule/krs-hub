@@ -1010,7 +1010,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.14.0',
+      VERSION: '3.15.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -2435,7 +2435,7 @@
             className: 'module-frame' + (activeModule === mod.id ? ' active' : ''),
             src: activeModule === mod.id || framesRef.current[mod.id] ? mod.url : undefined,
             title: mod.name,
-            sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups',
+            sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-modals',
             onLoad: () => handleIframeLoad(mod.id),
             loading: 'lazy'
           })

@@ -202,6 +202,15 @@
       margin-top: 8px;
     }
 
+    .sidebar-version {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 6px 0 2px;
+      letter-spacing: 0.3px;
+      opacity: 0.75;
+    }
+
     /* ── Main Area ────────────────────────────────── */
     .main {
       flex: 1;
@@ -1010,7 +1019,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.15.0',
+      VERSION: '3.16.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1442,6 +1451,10 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.16.0', date: '16.09.2026', items: [
+        'Die Versionsnummer steht jetzt dauerhaft unten in der Seitenleiste — so wie in Connect. Damit kannst du auf einen Blick sehen, ob du den aktuellen Stand hast.',
+        'Bestätigungsabfragen funktionieren wieder: In allen Modulen (Connect, Klassenarbeitsplan) wurde „Wirklich löschen?" vom Browser stillschweigend verschluckt — der Klick tat einfach nichts.'
+      ] },
       { v: '3.14.0', date: '01.08.2026', items: [
         'Neu in der Hilfe: Anleitung zur Dateiablage (Nextcloud) — mit Link auf die komplette Schritt-für-Schritt-Anleitung.'
       ] },
@@ -1839,6 +1852,14 @@
           },
             e('span', { className: 'nav-icon' }, '⚙️'),
             e('span', { className: 'nav-label' }, 'Admin')
+          ),
+          // v3.16.0 — Versionsnummer dauerhaft sichtbar, wie in Connect
+          // (dort `.app-version` in der Seitenleiste). Vorher stand sie nur im
+          // aufgeklappten Benutzermenü; wer pruefen sollte, ob er den aktuellen
+          // Stand hat, musste erst ein Menue oeffnen. Auf dem Handy ist die
+          // Seitenleiste ausgeblendet — dort bleibt das Benutzermenue der Weg.
+          e('div', { className: 'sidebar-version', 'data-testid': 'sidebar-version' },
+            'v' + (window.KRS_HUB_VERSION || '?')
           )
         )
       );

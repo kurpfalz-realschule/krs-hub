@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════
 // KRS Hub — Service Worker
-// Version: 3.14.0
+// Version: 3.16.0
 // Strategie: Network-First für HTML, Cache-First für CDN
 // Offline-Fallback: caches.match('./offline.html') bei Navigations-Requests
 // ═══════════════════════════════════════════════
 
-const VERSION = '3.14.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
+const VERSION = '3.16.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)

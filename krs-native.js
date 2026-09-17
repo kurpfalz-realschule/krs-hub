@@ -122,13 +122,10 @@
       '--krs-safe-left:env(safe-area-inset-left,0px);',
       '--krs-safe-right:env(safe-area-inset-right,0px);',
       '}',
-      // Der Rumpf bekommt die Ränder; Vollflächen-Elemente können die
-      // Variablen einzeln wieder abziehen.
+      // Der Hub selbst legt die Safe-Area bereits einmal auf .shell. Zusätzliche
+      // Abstände auf body würden den oberen Rand verdoppeln und #root über die
+      // sichtbare WebView-Höhe hinausschieben (abgeschnittene untere Tab-Leiste).
       'html[data-krs-native] body{',
-      'padding-top:var(--krs-safe-top);',
-      'padding-bottom:var(--krs-safe-bottom);',
-      'padding-left:var(--krs-safe-left);',
-      'padding-right:var(--krs-safe-right);',
       'box-sizing:border-box;',
       '}',
       // Gummiband-Scrollen des Dokuments aus: sonst zieht man in Listen den
@@ -511,7 +508,8 @@
   // Bis dahin bleibt Face ID ungenutzt — bewusst, nicht vergessen.
   var ready = Promise.resolve()
     .then(function () {
-      safe(call('StatusBar', 'setStyle', { style: 'DARK' }), null);   // helle Schrift auf dunklem Grund
+      // Capacitor LIGHT bedeutet dunkle Statusleisten-Symbole auf hellem Grund.
+      safe(call('StatusBar', 'setStyle', { style: 'LIGHT' }), null);
       return true;
     })
     .then(null, function (e) { warn(e); return true; });

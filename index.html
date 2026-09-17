@@ -1019,7 +1019,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.16.1',
+      VERSION: '3.16.2',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1451,6 +1451,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.16.2', date: '17.09.2026', items: [
+        'Darstellung in der nativen iPhone-App korrigiert: kein doppelter Leerraum mehr oberhalb des Hubs, die untere Modul-Leiste bleibt vollständig sichtbar und die Statusleisten-Symbole haben auf dem hellen Hintergrund den richtigen Kontrast.'
+      ] },
       { v: '3.16.1', date: '16.09.2026', items: [
         'Die native iPhone-App lädt ihre Brücke jetzt zuverlässig mit: Die Datei war im Repository vorhanden, fehlte aber bisher im GitHub-Pages-Artefakt.'
       ] },

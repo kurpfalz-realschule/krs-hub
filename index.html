@@ -910,32 +910,37 @@
       .mobile-tab {
         flex: 1;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
         justify-content: center;
-        gap: 2px;
+        gap: 8px;
         border: none;
         background: none;
         color: var(--text-muted);
         font-family: var(--font);
-        font-size: 10px;
+        font-size: 14px;
+        font-weight: 600;
         cursor: pointer;
         position: relative;
         min-height: var(--touch-min);
-        /* A11Y-Fix (22.07.2026): ohne min-width:0 verweigert der Flex-Item die
-           automatische Mindestgröße (= Label-Textbreite) das Schrumpfen unter
-           die Anzahl-der-Tabs × Label-Breite — bei 7 Modulen (u. a. "Notizen &
-           Aufgaben", "Klassenarbeiten") ergab das ~390px Mindestbreite und
-           damit echtes horizontales Scrollen bei 320/390px (WCAG 1.4.10-
-           Verstoß, von smoke-mobile-layout.spec.ts real aufgedeckt). Fix live
-           in Chrome verifiziert (iframe-Emulation echter 320/390px-Viewports
-           gegen die Live-Seite, Playwright-Chromium in dieser Sandbox weiterhin
-           nicht startbar): scrollWidth danach exakt = innerWidth an beiden
-           Breakpoints, alle 7 Tabs gleich breit (~45px, > 44px Touch-Minimum). */
+        /* v3.17.0: nur noch zwei Ziele (Connect / Apps) — jedes ~50% breit,
+           also ~160-195px statt der frueheren ~45px. Der A11Y-Fix von
+           22.07.2026 (min-width:0 + Ellipse) bleibt als Sicherung drin: bei
+           320px und langen Modulnamen darf der Text kuerzen statt die Leiste
+           breiter zu machen (WCAG 1.4.10, geprueft von
+           smoke-mobile-layout.spec.ts bei 320 und 390px). */
         min-width: 0;
-        padding: 4px;
+        padding: 4px 8px;
       }
       .mobile-tab.active { color: var(--primary); }
+      .mobile-tab.active::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 12%; right: 12%;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: var(--primary);
+      }
       .mobile-tab-icon { font-size: 20px; }
       /* A11Y-Fix (22.07.2026, siehe .mobile-tab oben): Label-Text ellipsiert
          statt zu überlaufen, wenn der Tab schmaler ist als das Wort. */
@@ -1019,7 +1024,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.16.2',
+      VERSION: '3.17.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1451,6 +1456,12 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.17.0', date: '17.09.2026', items: [
+        'Aufger\u00e4umte Leiste auf dem Handy: unten stehen nur noch zwei gro\u00dfe Knöpfe — \u201eConnect\u201c und \u201eApps\u201c. Vorher dr\u00e4ngten sich sieben Symbole mit abgeschnittenen Namen (\u201eKlassen\u2026\u201c, \u201eiPad-Bu\u2026\u201c) auf einer Zeile',
+        '\u201eApps\u201c f\u00fchrt zur Startseite mit allen Kacheln: Klassenarbeiten, iPad-Buchung, Projektwoche, Sch\u00fcler-Hub, Notizen, Homepage, Untis, Kalender, Dateiablage und Hilfe. Es geht also nichts verloren, es liegt nur an EINER Stelle',
+        'Ist ein Modul ge\u00f6ffnet, zeigt der rechte Knopf dessen Namen — ein Tippen bringt dich zur\u00fcck zur \u00dcbersicht',
+        'Der blaue \u201eLernen\u201c-Knopf schwebt nicht mehr \u00fcber der Seite. Die kurze Einf\u00fchrung startest du im Profilmen\u00fc oben rechts \u2192 \u201eKurze Einf\u00fchrung\u201c'
+      ] },
       { v: '3.16.2', date: '17.09.2026', items: [
         'Darstellung in der nativen iPhone-App korrigiert: kein doppelter Leerraum mehr oberhalb des Hubs, die untere Modul-Leiste bleibt vollständig sichtbar und die Statusleisten-Symbole haben auf dem hellen Hintergrund den richtigen Kontrast.'
       ] },
@@ -1938,6 +1949,10 @@
           onHelp && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-help', onClick: onHelp },
             '❓', ' Hilfe & Anleitung'
           ),
+          // v3.17.0: Ersatz für den entfernten schwebenden „Lernen“-Knopf.
+          e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-coach', onClick: () => { onClose(); try { window.KRSCoach && window.KRSCoach.open(); } catch (err) {} } },
+            '🎓', ' Kurze Einführung'
+          ),
           onFeedback && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-feedback', onClick: onFeedback },
             '📣', ' Feedback geben'
           ),
@@ -1969,31 +1984,48 @@
     }
 
     // ── Mobile Tab Bar ─────────────────────────────
+    // v3.17.0 (17.09.2026) — vorher standen hier alle 6 Module + "Web"
+    // nebeneinander: 7 Ziele à ~45px auf einem 390px-iPhone, jedes Label
+    // ellipsiert ("Klassen…", "iPad-Bu…", "Projekt…", "Schüler…"). Rueckmeldung
+    // Norbert: "nicht alle Symbole machen Sinn — wichtig ist eigentlich der
+    // Switch zwischen Connect und Hub. Im Hub sind alle Apps."
+    // Jetzt genau zwei Ziele: Connect (die App, in der man taeglich liest und
+    // schreibt) und Apps (die Kachel-Startseite mit ALLEN Modulen und externen
+    // Links — Klassenarbeiten, iPad, Projektwoche, Schueler-Hub, Notizen,
+    // Homepage, Untis, Kalender, Dateiablage, Hilfe). Die einzelnen Module
+    // bleiben ueber die Kacheln erreichbar, nicht mehr ueber eine Dauerleiste.
     function MobileTabBar({ activeModule, onModuleSelect, unreadCounts }) {
-      return e('div', { className: 'mobile-tabs' },
-        CONFIG.MODULES.map(mod =>
-          e('button', {
-            key: mod.id,
-            className: 'mobile-tab' + (activeModule === mod.id ? ' active' : ''),
-            onClick: () => onModuleSelect(mod.id)
-          },
-            e('span', { className: 'mobile-tab-icon' }, mod.icon),
-            e('span', null, mod.name),
-            unreadCounts.get(mod.id) > 0 && e('span', {
-              className: 'nav-badge',
-              style: { position: 'absolute', top: '4px', right: 'calc(50% - 18px)' }
-            }, unreadCounts.get(mod.id))
-          )
-        ),
-        e('a', {
-          className: 'mobile-tab',
-          href: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#',
-          target: '_blank',
-          rel: 'noopener noreferrer',
-          style: { textDecoration: 'none', color: 'inherit' }
+      const connectUnread = unreadCounts.get('connect') || 0;
+      const onConnect = activeModule === 'connect';
+      const openMod = (!onConnect && activeModule)
+        ? CONFIG.MODULES.find(m => m.id === activeModule)
+        : null;
+      return e('nav', { className: 'mobile-tabs', role: 'navigation', 'aria-label': 'Hauptnavigation' },
+        e('button', {
+          type: 'button',
+          className: 'mobile-tab' + (onConnect ? ' active' : ''),
+          'data-testid': 'mobile-tab-connect',
+          'aria-current': onConnect ? 'page' : undefined,
+          'aria-label': 'Connect' + (connectUnread ? ' (' + connectUnread + ' ungelesen)' : ''),
+          onClick: () => onModuleSelect('connect')
         },
-          e('span', { className: 'mobile-tab-icon' }, '🌐'),
-          e('span', null, 'Web')
+          e('span', { className: 'mobile-tab-icon' }, '\uD83D\uDCAC'),
+          e('span', null, 'Connect'),
+          connectUnread > 0 && e('span', {
+            className: 'nav-badge',
+            style: { position: 'absolute', top: '6px', left: 'calc(50% + 22px)' }
+          }, connectUnread)
+        ),
+        e('button', {
+          type: 'button',
+          className: 'mobile-tab' + (!onConnect ? ' active' : ''),
+          'data-testid': 'mobile-tab-apps',
+          'aria-current': !onConnect ? 'page' : undefined,
+          'aria-label': openMod ? ('Apps — zurück zur Übersicht (offen: ' + openMod.name + ')') : 'Apps',
+          onClick: () => onModuleSelect(null)
+        },
+          e('span', { className: 'mobile-tab-icon' }, openMod ? openMod.icon : '\u25A6'),
+          e('span', null, openMod ? openMod.name : 'Apps')
         )
       );
     }
@@ -3774,16 +3806,21 @@ window.KRS_COACH_CONFIG = {
   function allDone(){ return doneCount()===STEPS.length && STEPS.length>0; }
 
   // ── FAB ──
+  // v3.17.0 (17.09.2026): der schwebende „Lernen 0/4“-Knopf ist aus der
+  // Ansicht entfernt — er lag dauerhaft über dem Inhalt und über der unteren
+  // Leiste (Screenshot Norbert, 17.09.). Gleiche Entscheidung wie in Connect
+  // v4.23.3. Der Coach selbst bleibt: Profilmenü → „Kurze Einführung“ bzw.
+  // window.KRSCoach.open(). Das Element wird weiter erzeugt (die Funktionen
+  // unten fassen es an), aber nie angezeigt.
   var fab = document.createElement('button');
   fab.className='krsc-fab'; fab.type='button';
   fab.setAttribute('aria-label','Lern-Coach öffnen');
-  root.appendChild(fab);
+  fab.hidden = true; fab.style.display = 'none';
   function renderFab(){
     var n=doneCount();
     // Einmal durch → FAB dauerhaft ausblenden (Fortschritt bleibt in localStorage).
     // Wieder einblendbar per window.KRSCoach.reset() oder .open().
     if(allDone()){ fab.style.display='none'; return; }
-    fab.style.display='';
     fab.classList.remove('krsc-done');
     fab.innerHTML = '<span>🎓</span><span>Lernen</span><span class="krsc-badge">'+n+'/'+STEPS.length+'</span>';
   }

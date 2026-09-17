@@ -22,6 +22,16 @@ test.describe('KRS Hub — UX-Smokes', () => {
     await expect(modal.locator('.faq-row').first()).toBeVisible();
   });
 
+  test('Was ist neu nennt den entfernten blauen Lernen-Knopf', async ({ hubPage: page }) => {
+    await page.locator('.topbar-user').click();
+    await page.getByTestId('usermenu-whatsnew').click();
+    const modal = page.getByTestId('changelog-modal');
+    await expect(modal).toBeVisible();
+    await expect(page.getByTestId('changelog-version')).toHaveText('v3.17.0');
+    await expect(modal).toContainText('Der blaue „Lernen“-Knopf schwebt nicht mehr über der Seite');
+    await expect(modal).toContainText('Kurze Einführung');
+  });
+
   test('Feedback verlangt Kategorie und Nachricht', async ({ hubPage: page }) => {
     await page.locator('.topbar-user').click();
     await page.getByTestId('usermenu-feedback').click();

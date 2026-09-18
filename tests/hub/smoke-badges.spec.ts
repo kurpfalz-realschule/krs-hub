@@ -9,8 +9,10 @@ import { test, expect } from '../fixtures/hub';
  * akzeptiert sie, weil window.location.origin in CONFIG.ALLOWED_ORIGINS steht.
  */
 test.describe('KRS Hub — Kacheln & Badges', () => {
-  test('statisches "NEU"-Badge erscheint auf der Notizen-Kachel', async ({ hubPage: page }) => {
-    const tile = page.locator('.module-card').filter({ hasText: 'Notizen' });
+  // v3.18.0 (18.09.2026): geprüft wird jetzt die Schüler-Hub-Kachel — die
+  // Notizen-Kachel gibt es nicht mehr (siehe smoke-notizen-kachel.spec.ts).
+  test('statisches "NEU"-Badge erscheint auf einer Kachel', async ({ hubPage: page }) => {
+    const tile = page.locator('.module-card').filter({ hasText: 'Sch\u00fcler-Hub' });
     await expect(tile).toBeVisible();
     await expect(tile).toContainText('NEU');
   });

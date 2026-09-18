@@ -204,11 +204,18 @@
 
     .sidebar-version {
       font-size: 11px;
-      color: var(--text-muted);
+      /* v3.18.0 (18.09.2026): war var(--text-muted) #4B5563 mit opacity .75 auf
+         dunkler Seitenleiste (#1E293B) — gemessen 2,5:1, WCAG AA verlangt 4,5:1
+         für Text dieser Größe. Der Verstoß bestand seit v3.16.0, axe konnte ihn
+         nur nicht melden: bei 12 Modul-Einträgen überlappte die Navigation die
+         Fußzeile, und bei überlappten Elementen liefert die color-contrast-Regel
+         „incomplete“ statt „violation“. Mit einem Modul weniger lag die Zeile
+         frei — und der Test schlug zu Recht an. Jetzt #94A3B8 ohne Opacity:
+         5,4:1. */
+      color: #94A3B8;
       text-align: center;
       padding: 6px 0 2px;
       letter-spacing: 0.3px;
-      opacity: 0.75;
     }
 
     /* ── Main Area ────────────────────────────────── */
@@ -1024,7 +1031,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.17.0',
+      VERSION: '3.18.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1047,15 +1054,16 @@
           url: 'https://kurpfalz-realschule.github.io/krs-connect/',
           color: '#2563eb'
         },
-        {
-          id: 'notizen',
-          name: 'Notizen & Aufgaben',
-          icon: '📝',
-          badge: 'NEU',
-          desc: 'Persönliche Notizen & To-dos (nur du)',
-          url: './notizen/',
-          color: '#0891b2'
-        },
+        // v3.18.0 (18.09.2026): „Notizen & Aufgaben“ ist keine eigene Kachel mehr.
+        // Gezählt am 17.09.2026: 1 Notiz und 3 Aufgaben in zwei Monaten — das
+        // Modul wurde praktisch nicht benutzt. Nicht weil Merkposten unwichtig
+        // wären, sondern weil sie am falschen Ort lagen: ein leeres
+        // Extra-Programm, das man erst aufsuchen und dann von Hand füllen muss.
+        // Seit Connect v4.25.0 entstehen sie dort, wo sie im Kopf entstehen —
+        // am Beitrag (⋯-Menü → „Als Aufgabe merken“) — und sammeln sich in
+        // Connects Merkliste. Die alte Seite bleibt unter ./notizen/ erreichbar
+        // (Connect verlinkt sie, solange dort noch Notizen liegen); Daten und
+        // Tabellen sind unverändert.
         {
           id: 'plan',
           name: 'Klassenarbeiten',
@@ -1456,6 +1464,10 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.18.0', date: '18.09.2026', items: [
+        'Die Kachel \u201eNotizen & Aufgaben\u201c ist verschwunden. Was du dir merken willst, tr\u00e4gst du jetzt direkt in Connect ein: \u22ef-Men\u00fc an einem Beitrag \u2192 \u201eAls Aufgabe merken\u201c, gesammelt in der neuen Merkliste',
+        'Die alte Notizen-Seite bleibt erreichbar \u2014 Connect verlinkt sie, solange dort noch etwas liegt. Es geht nichts verloren'
+      ] },
       { v: '3.17.0', date: '17.09.2026', items: [
         'Aufger\u00e4umte Leiste auf dem Handy: unten stehen nur noch zwei gro\u00dfe Knöpfe — \u201eConnect\u201c und \u201eApps\u201c. Vorher dr\u00e4ngten sich sieben Symbole mit abgeschnittenen Namen (\u201eKlassen\u2026\u201c, \u201eiPad-Bu\u2026\u201c) auf einer Zeile',
         '\u201eApps\u201c f\u00fchrt zur Startseite mit allen Kacheln: Klassenarbeiten, iPad-Buchung, Projektwoche, Sch\u00fcler-Hub, Notizen, Homepage, Untis, Kalender, Dateiablage und Hilfe. Es geht also nichts verloren, es liegt nur an EINER Stelle',

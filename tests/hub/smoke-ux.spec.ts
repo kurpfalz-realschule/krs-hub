@@ -27,7 +27,8 @@ test.describe('KRS Hub — UX-Smokes', () => {
     await page.getByTestId('usermenu-whatsnew').click();
     const modal = page.getByTestId('changelog-modal');
     await expect(modal).toBeVisible();
-    await expect(page.getByTestId('changelog-version')).toHaveText('v3.17.0');
+    const currentVersion = await page.evaluate(() => window.KRS_HUB_VERSION);
+    await expect(page.getByTestId('changelog-version')).toHaveText('v' + currentVersion);
     await expect(modal).toContainText('Der blaue „Lernen“-Knopf schwebt nicht mehr über der Seite');
     await expect(modal).toContainText('Kurze Einführung');
   });

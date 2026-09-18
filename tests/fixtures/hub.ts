@@ -23,3 +23,17 @@ export const test = base.extend<{ hubPage: Page }>({
     await use(page);
   },
 });
+
+/**
+ * v3.19.0 (18.09.2026): Die Startseite zeigt nur noch fünf Kacheln (Connect,
+ * Klassenarbeiten, iPad-Buchung, Kalender, Dateiablage). Alles andere —
+ * Schüler-Hub, Homepage, Untis, Hilfe und die archivierte Projektwoche — steht
+ * hinter „Weitere Apps“ und ist zugeklappt. Tests, die eine dieser Kacheln
+ * brauchen, klappen sie hiermit auf.
+ */
+export async function oeffneWeitereApps(page: Page) {
+  const toggle = page.getByTestId('weitere-apps-toggle');
+  await expect(toggle).toBeVisible({ timeout: 8_000 });
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click();
+  await expect(page.getByTestId('weitere-apps')).toBeVisible({ timeout: 5_000 });
+}

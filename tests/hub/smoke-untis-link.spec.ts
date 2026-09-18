@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/hub';
+import { test, expect, oeffneWeitereApps } from '../fixtures/hub';
 
 const EXPECTED_URL = 'https://kurpfalz-realschule-schriesheim69198.webuntis.com/WebUntis/?school=kurpfalz-realschule-schriesheim69198#/basic/login';
 
@@ -8,6 +8,7 @@ test.describe('KRS Hub — Untis-Link (Q1)', () => {
   });
 
   test('Dashboard verlinkt die direkte Login-Seite', async ({ hubPage: page }) => {
+    await oeffneWeitereApps(page); // v3.19.0: Untis steht unter „Weitere Apps“
     const link = page.locator('a.module-card').filter({ hasText: 'Untis' }).first();
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute('href', EXPECTED_URL);

@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/hub';
+import { test, expect, oeffneWeitereApps } from '../fixtures/hub';
 
 /**
  * Kacheln/Badges (Test-Abdeckungs-Review, 30.07.2026) — vorher ungetestete
@@ -12,6 +12,7 @@ test.describe('KRS Hub — Kacheln & Badges', () => {
   // v3.18.0 (18.09.2026): geprüft wird jetzt die Schüler-Hub-Kachel — die
   // Notizen-Kachel gibt es nicht mehr (siehe smoke-notizen-kachel.spec.ts).
   test('statisches "NEU"-Badge erscheint auf einer Kachel', async ({ hubPage: page }) => {
+    await oeffneWeitereApps(page); // v3.19.0: Sch\u00fcler-Hub steht unter \u201eWeitere Apps\u201c
     const tile = page.locator('.module-card').filter({ hasText: 'Sch\u00fcler-Hub' });
     await expect(tile).toBeVisible();
     await expect(tile).toContainText('NEU');

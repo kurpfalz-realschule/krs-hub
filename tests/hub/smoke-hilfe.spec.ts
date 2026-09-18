@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/hub';
+import { test, expect, oeffneWeitereApps } from '../fixtures/hub';
 
 /**
  * Statische Hilfe-Seite (Q3, 30.07.2026) — `krs-hub/hilfe/index.html`.
@@ -51,9 +51,13 @@ test.describe('KRS Hub — Hilfe-Seite (statisch)', () => {
   });
 
   test('Hub-Startseite verlinkt „❓ Hilfe" relativ auf ./hilfe/', async ({ hubPage: page }) => {
-    const sidebarLink = page.locator('.sidebar a.nav-item[href="./hilfe/"]');
-    await expect(sidebarLink).toHaveCount(1);
+    // v3.19.0 (18.09.2026): Die linke Leiste zeigt nur noch die fünf täglich
+    // gebrauchten Ziele (Connect, Klassenarbeiten, iPad-Buchung, Kalender,
+    // Dateiablage). Hilfe steht seitdem unter „Weitere Apps“ — und weiterhin
+    // im Profilmenü („Hilfe & Anleitung“, siehe smoke-ux.spec.ts).
+    await expect(page.locator('.sidebar a.nav-item[href="./hilfe/"]')).toHaveCount(0);
 
+    await oeffneWeitereApps(page);
     const tileLink = page.locator('a.module-card[href="./hilfe/"]');
     await expect(tileLink).toHaveCount(1);
     await expect(tileLink).toContainText('Hilfe');

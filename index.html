@@ -1031,7 +1031,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.18.0',
+      VERSION: '3.19.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1083,31 +1083,42 @@
         {
           id: 'projektwoche',
           name: 'Projektwoche',
-          icon: '🎒',
+          icon: '\uD83C\uDF92',
           desc: 'Projektwoche-Anmeldung',
           url: 'https://kurpfalz-realschule.github.io/krs-projektwahl-2026/',
-          color: '#d97706'
+          color: '#d97706',
+          // v3.19.0: Die Projektwoche ist erst im Mai wieder Thema. Sie bleibt
+          // vollständig nutzbar, steht aber unter „Weitere Apps → Archiv“ statt
+          // das ganze Jahr in der Leiste (Norbert, 18.09.2026).
+          group: 'archiv'
         },
         {
           id: 'schueler-hub',
           name: 'Schüler-Hub',
-          icon: '🎓',
+          icon: '\uD83C\uDF93',
           badge: 'NEU',
           desc: 'Schüler-Nachrichten, Ankündigungen, Vorschau',
           url: 'https://kurpfalz-realschule.github.io/krs-schueler-hub/lehrer-panel.html',
-          color: '#0891b2'
+          color: '#0891b2',
+          group: 'more'
         }
       ],
       EXTERNAL_LINKS: [
-        { id: 'homepage', name: 'Homepage', icon: '🌐', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#' },
-        { id: 'untis', name: 'Untis', icon: '📊', url: (window.KRS_TENANT && window.KRS_TENANT.UNTIS_URL) || '#' },
-        { id: 'kalender', name: 'Kalender', icon: '🗓️', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' },
-        { id: 'dateiablage', name: 'Dateiablage', icon: '📁', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' },
+        // v3.19.0 — Aufgeräumte Leiste (Rückmeldung Norbert, 18.09.2026):
+        // „An Symbolen braucht es eigentlich nur Connect, Klassenarbeiten,
+        // iPad-Buchung, Kalender und Dateiablage. Die anderen Apps könnten
+        // unter ‚Weitere Apps‘ verschwinden.“ Deshalb trägt jeder Eintrag eine
+        // Gruppe: 'primary' (Standard, Leiste + Startseite), 'more' (nur unter
+        // „Weitere Apps“) und 'archiv' (dort im Abschnitt Archiv).
+        { id: 'homepage', name: 'Homepage', icon: '\uD83C\uDF10', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#', group: 'more' },
+        { id: 'untis', name: 'Untis', icon: '\uD83D\uDCCA', url: (window.KRS_TENANT && window.KRS_TENANT.UNTIS_URL) || '#', group: 'more' },
+        { id: 'kalender', name: 'Kalender', icon: '\uD83D\uDDD3\uFE0F', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' },
+        { id: 'dateiablage', name: 'Dateiablage', icon: '\uD83D\uDCC1', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' },
         // Q3 (30.07.2026): statische Hilfe-Seite fürs Kollegium — relativer Pfad,
         // funktioniert unabhängig vom Deploy-Präfix. Erscheint automatisch in der
         // Sidebar UND als Dashboard-Kachel, da beide Stellen CONFIG.EXTERNAL_LINKS
         // mappen (kein Sonderfall-Code nötig).
-        { id: 'hilfe', name: 'Hilfe', icon: '❓', url: './hilfe/' }
+        { id: 'hilfe', name: 'Hilfe', icon: '\u2753', url: './hilfe/', group: 'more' }
       ],
       // Sprint 3: Hub-Admin (Edge-Function dashboard-admin, LOGIN-gated via JWT, service_role)
       // v5 (2026-07-06): kein PIN mehr — Autorisierung über das Supabase-Login
@@ -1137,6 +1148,16 @@
         SCOPES: 'openid profile email groups iserv:uuid iserv:roles'
       }
     };
+
+    // v3.19.0 — Gruppen-Helfer. 'primary' ist der Standard, damit ein neuer
+    // Eintrag ohne `group` automatisch sichtbar bleibt (fail-open in Richtung
+    // Sichtbarkeit — ein vergessenes Feld darf keine App verstecken).
+    const istGruppe = (eintrag, gruppe) => ((eintrag && eintrag.group) || 'primary') === gruppe;
+    const PRIMAER_MODULE = () => CONFIG.MODULES.filter(m => istGruppe(m, 'primary'));
+    const PRIMAER_LINKS = () => CONFIG.EXTERNAL_LINKS.filter(l => istGruppe(l, 'primary'));
+    const WEITERE_MODULE = () => CONFIG.MODULES.filter(m => istGruppe(m, 'more'));
+    const WEITERE_LINKS = () => CONFIG.EXTERNAL_LINKS.filter(l => istGruppe(l, 'more'));
+    const ARCHIV_MODULE = () => CONFIG.MODULES.filter(m => istGruppe(m, 'archiv'));
 
     // ── Demo-Kollegium (anonymisiert) ────────────────
     // S2 (2026-07-03): Klarnamen echter Lehrkräfte sind aus dem Client
@@ -1464,6 +1485,12 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.19.0', date: '18.09.2026', items: [
+        'Aufger\u00e4umte Startseite und Leiste: sichtbar sind nur noch Connect, Klassenarbeiten, iPad-Buchung, Kalender und Dateiablage. Sch\u00fcler-Hub, Homepage, Untis und Hilfe stehen unter \u201eWeitere Apps\u201c',
+        'Die Projektwoche ist ins Archiv gewandert (unter \u201eWeitere Apps\u201c) \u2014 sie wird erst im Mai wieder gebraucht, bleibt aber jederzeit nutzbar',
+        'Solange Connect ge\u00f6ffnet ist, verschwindet die untere Hub-Leiste. Zur\u00fcck geht es in Connects \u2630-Men\u00fc \u00fcber \u201eApps\u201c oder \u00fcber das \u2630 oben',
+        'Der \u2630-Knopf oben links tat bisher nichts \u2014 jetzt \u00f6ffnet er die Liste aller Apps'
+      ] },
       { v: '3.18.0', date: '18.09.2026', items: [
         'Die Kachel \u201eNotizen & Aufgaben\u201c ist verschwunden. Was du dir merken willst, tr\u00e4gst du jetzt direkt in Connect ein: \u22ef-Men\u00fc an einem Beitrag \u2192 \u201eAls Aufgabe merken\u201c, gesammelt in der neuen Merkliste',
         'Die alte Notizen-Seite bleibt erreichbar \u2014 Connect verlinkt sie, solange dort noch etwas liegt. Es geht nichts verloren'
@@ -1834,7 +1861,7 @@
         }, '🏫'),
 
         e('div', { className: 'sidebar-nav' },
-          CONFIG.MODULES.map(mod =>
+          PRIMAER_MODULE().map(mod =>
             e('button', {
               key: mod.id,
               className: 'nav-item' + (activeModule === mod.id ? ' active' : ''),
@@ -1856,7 +1883,7 @@
 
         // Externe Links
         e('div', { className: 'sidebar-nav', style: { flex: 'none' } },
-          CONFIG.EXTERNAL_LINKS.map(link =>
+          PRIMAER_LINKS().map(link =>
             e('a', {
               key: link.id,
               className: 'nav-item',
@@ -2009,6 +2036,13 @@
     function MobileTabBar({ activeModule, onModuleSelect, unreadCounts }) {
       const connectUnread = unreadCounts.get('connect') || 0;
       const onConnect = activeModule === 'connect';
+      // v3.19.0 — Solange Connect offen ist, verschwindet die Hub-Leiste ganz:
+      // Connect bringt unten eine eigene Zeile mit und zwei Leisten übereinander
+      // fressen auf dem Handy 112 px (Rückmeldung Norbert, 18.09.2026: „die
+      // beiden Leisten verschmelzen … um Platz zu sparen“). Der Weg zurück steht
+      // in Connects ☰-Menü („▦ Apps“, schickt KRS_HUB_NAVIGATE) und
+      // zusätzlich im ☰ der Kopfzeile des Hubs.
+      if (onConnect) return null;
       const openMod = (!onConnect && activeModule)
         ? CONFIG.MODULES.find(m => m.id === activeModule)
         : null;
@@ -2038,6 +2072,50 @@
         },
           e('span', { className: 'mobile-tab-icon' }, openMod ? openMod.icon : '\u25A6'),
           e('span', null, openMod ? openMod.name : 'Apps')
+        )
+      );
+    }
+
+    // ── App-Menü (☰ in der Kopfzeile) ──────────────────
+    // v3.19.0 — Der ☰-Knopf hatte bis hierher `onMenuToggle: () => {}`, war also
+    // eine tote Schaltfläche. Jetzt ist er der verlässliche Weg zu allen Apps —
+    // wichtig, seit die untere Leiste in Connect ausgeblendet wird.
+    function AppMenu({ activeModule, onSelect, onClose }) {
+      const zeile = (eintrag, istArchiv) => e('button', {
+        key: eintrag.id,
+        type: 'button',
+        className: 'user-menu-item',
+        role: 'menuitem',
+        'data-testid': 'appmenu-' + eintrag.id,
+        'aria-current': activeModule === eintrag.id ? 'page' : undefined,
+        onClick: () => onSelect(eintrag.id),
+        style: { minHeight: '44px', fontWeight: activeModule === eintrag.id ? 700 : 400, opacity: istArchiv ? 0.7 : 1 }
+      }, eintrag.icon, ' ' + eintrag.name + (istArchiv ? ' (Archiv)' : ''));
+
+      const linkZeile = (link) => e('a', {
+        key: link.id,
+        className: 'user-menu-item',
+        role: 'menuitem',
+        href: link.url,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'data-testid': 'appmenu-' + link.id,
+        onClick: onClose,
+        style: { minHeight: '44px', textDecoration: 'none', color: 'inherit' }
+      }, link.icon, ' ' + link.name, e('span', { style: { marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' } }, '\u2197'));
+
+      return e(React.Fragment, null,
+        e('div', { className: 'overlay', onClick: onClose }),
+        e('div', { className: 'user-menu', role: 'menu', 'aria-label': 'Apps', 'data-testid': 'app-menu', style: { left: '8px', right: 'auto', maxHeight: '80vh', overflowY: 'auto' } },
+          e('div', { style: { padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' } }, 'Apps'),
+          PRIMAER_MODULE().map(m => zeile(m, false)),
+          PRIMAER_LINKS().map(linkZeile),
+          (WEITERE_MODULE().length + WEITERE_LINKS().length + ARCHIV_MODULE().length) > 0 && e('div', { className: 'user-menu-divider' }),
+          WEITERE_MODULE().map(m => zeile(m, false)),
+          WEITERE_LINKS().map(linkZeile),
+          ARCHIV_MODULE().map(m => zeile(m, true)),
+          e('div', { className: 'user-menu-divider' }),
+          e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'appmenu-start', onClick: () => onSelect(null), style: { minHeight: '44px' } }, '\uD83C\uDFE0', ' Startseite')
         )
       );
     }
@@ -2207,6 +2285,16 @@
 
     function WelcomeScreen({ onModuleSelect, profile }) {
       const [openFaq, setOpenFaq] = useState(null);
+      // v3.19.0: „Weitere Apps“ startet zugeklappt — die Startseite soll das
+      // Wichtige zeigen, nicht alles. Die Wahl merkt sich der Browser.
+      const [zeigeWeitere, setZeigeWeitere] = useState(() => {
+        try { return localStorage.getItem('krs_hub_weitere') === '1'; } catch (e) { return false; }
+      });
+      const toggleWeitere = () => setZeigeWeitere(v => {
+        const next = !v;
+        try { localStorage.setItem('krs_hub_weitere', next ? '1' : '0'); } catch (e) {}
+        return next;
+      });
 
       // ── Schulleitungs-Board: Live-Daten + Editor-Status ──
       const [infos, setInfos] = useState(null);          // null = lädt
@@ -2299,7 +2387,7 @@
 
         // ── Quick-Access Module Cards ──
         e('div', { className: 'module-cards' },
-          CONFIG.MODULES.map(mod =>
+          PRIMAER_MODULE().map(mod =>
             e('button', {
               key: mod.id,
               type: 'button',
@@ -2314,7 +2402,7 @@
             )
           ),
           // Externe Links
-          CONFIG.EXTERNAL_LINKS.map(link =>
+          PRIMAER_LINKS().map(link =>
             e('a', {
               key: link.id,
               className: 'module-card',
@@ -2326,6 +2414,54 @@
               e('div', { className: 'module-card-icon' }, link.icon),
               e('div', { className: 'module-card-title' }, link.name),
               e('div', { style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, '↗')
+            )
+          )
+        ),
+
+        // ── Weitere Apps (zugeklappt) + Archiv ──
+        (WEITERE_MODULE().length + WEITERE_LINKS().length + ARCHIV_MODULE().length) > 0 && e('div', { style: { margin: '0 0 20px' } },
+          e('button', {
+            type: 'button',
+            'data-testid': 'weitere-apps-toggle',
+            'aria-expanded': zeigeWeitere,
+            onClick: toggleWeitere,
+            style: { display: 'flex', alignItems: 'center', gap: '8px', width: '100%', minHeight: '44px', padding: '10px 12px', background: 'none', border: 'none', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-muted)', font: 'inherit', fontSize: '13px', fontWeight: 600 }
+          }, (zeigeWeitere ? '\u25BE' : '\u25B8') + ' Weitere Apps'),
+          zeigeWeitere && e('div', { className: 'module-cards', 'data-testid': 'weitere-apps', style: { marginTop: '4px' } },
+            WEITERE_MODULE().map(mod =>
+              e('button', {
+                key: mod.id, type: 'button', className: 'module-card', 'aria-label': mod.name,
+                onClick: () => onModuleSelect(mod.id),
+                style: { font: 'inherit', cursor: 'pointer', textAlign: 'inherit' }
+              },
+                e('div', { className: 'module-card-icon' }, mod.icon),
+                e('div', { className: 'module-card-title' }, mod.name),
+                // Das NEU-Kennzeichen geh\u00f6rt zur Kachel, egal in welcher Gruppe
+                // sie steht \u2014 sonst verschwindet der Hinweis beim Umsortieren.
+                mod.badge && e('div', { style: { position: 'absolute', top: '8px', right: '8px', background: 'var(--danger, #dc2626)', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '8px', letterSpacing: '0.5px' } }, mod.badge)
+              )
+            ),
+            WEITERE_LINKS().map(link =>
+              e('a', {
+                key: link.id, className: 'module-card', href: link.url, target: '_blank', rel: 'noopener noreferrer',
+                style: { textDecoration: 'none', color: 'inherit', opacity: 0.85 }
+              },
+                e('div', { className: 'module-card-icon' }, link.icon),
+                e('div', { className: 'module-card-title' }, link.name),
+                e('div', { style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, '\u2197')
+              )
+            ),
+            ARCHIV_MODULE().map(mod =>
+              e('button', {
+                key: mod.id, type: 'button', className: 'module-card', 'data-testid': 'archiv-' + mod.id,
+                'aria-label': mod.name + ' (Archiv)',
+                onClick: () => onModuleSelect(mod.id),
+                style: { font: 'inherit', cursor: 'pointer', textAlign: 'inherit', opacity: 0.7 }
+              },
+                e('div', { className: 'module-card-icon' }, mod.icon),
+                e('div', { className: 'module-card-title' }, mod.name),
+                e('div', { style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, 'Archiv')
+              )
             )
           )
         ),
@@ -3222,6 +3358,8 @@
       const [profile, setProfile] = useState(null);
       const [activeModule, setActiveModule] = useState(null);
       const [showUserMenu, setShowUserMenu] = useState(false);
+      // v3.19.0: App-Menü hinter dem ☰ der Kopfzeile.
+      const [showAppMenu, setShowAppMenu] = useState(false);
       const [showAdmin, setShowAdmin] = useState(false);
       const [showChangelog, setShowChangelog] = useState(false);
       const [showHelp, setShowHelp] = useState(false);       // H-2
@@ -3365,6 +3503,15 @@
               return next;
             });
           }
+          // v3.19.0 — Ein Modul darf den Hub um einen Wechsel bitten. Genutzt von
+          // Connect: dort ist die Hub-Leiste ausgeblendet, der Eintrag „▦ Apps“
+          // im ☰-Menü schickt diese Nachricht und der Hub zeigt die Startseite.
+          // Nur erlaubte Origins (Prüfung oben) und nur bekannte Modul-Ids.
+          if (event.data?.type === 'KRS_HUB_NAVIGATE') {
+            const ziel = event.data.moduleId;
+            if (ziel === null || ziel === undefined) { handleModuleSelect(null); return; }
+            if (CONFIG.MODULES.some(m => m.id === ziel)) handleModuleSelect(ziel);
+          }
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
@@ -3483,7 +3630,7 @@
             e(TopBar, {
               activeModule,
               profile,
-              onMenuToggle: () => {},
+              onMenuToggle: () => setShowAppMenu(v => !v),
               onUserMenuToggle: () => setShowUserMenu(v => !v),
               showUserMenu,
               collapsed: topbarCollapsed,
@@ -3494,7 +3641,12 @@
                 ? e(ModuleContent, { activeModule, profile })
                 : e(WelcomeScreen, { onModuleSelect: handleModuleSelect, profile })
             ),
-            e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts })
+            e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts }),
+            showAppMenu && e(AppMenu, {
+              activeModule,
+              onSelect: (id) => { setShowAppMenu(false); handleModuleSelect(id); },
+              onClose: () => setShowAppMenu(false)
+            })
           )
         ),
         showUserMenu && e(UserMenu, {

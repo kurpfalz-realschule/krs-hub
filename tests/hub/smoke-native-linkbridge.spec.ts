@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/hub';
+import { test, expect, oeffneWeitereApps } from '../fixtures/hub';
 
 // N4 (Sprint N-Sonnet, iOS-App): Der Native-Link-Bridge-Shim in index.html darf
 // im Browser/PWA (kein window.Capacitor) NICHT eingreifen — externe Links
@@ -16,6 +16,7 @@ test.describe('KRS Hub — Native-Link-Bridge (Sprint N4, Guard-Verhalten)', () 
       route.fulfill({ status: 200, contentType: 'text/plain', body: 'ok' }),
     );
 
+    await oeffneWeitereApps(page); // v3.19.0: Homepage steht unter „Weitere Apps“
     const link = page.locator('a.module-card[target="_blank"]').filter({ hasText: 'Homepage' }).first();
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute('href', 'https://realschule-schriesheim.de/');

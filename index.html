@@ -304,6 +304,15 @@
       font-weight: 500;
     }
 
+    /* v3.20.0 (18.09.2026) — Solange Connect läuft, verschwindet die Hub-Leiste
+       vollständig: Connect bringt eine eigene senkrechte Leiste mit, und zwei
+       davon nebeneinander kosteten am Desktop ~260 px, ohne etwas hinzuzufügen
+       (Screenshot Norbert, 18.09.2026). Der Rückweg steht dann im ☰ der
+       Kopfzeile — das hier blendet ihn dafür auch am Desktop ein — und in
+       Connect selbst (🏠 ganz oben in dessen Leiste). */
+    .shell.connect-aktiv .sidebar { display: none; }
+    .shell.connect-aktiv .hamburger { display: flex; }
+
     .hamburger {
       display: none;
       background: none;
@@ -1031,7 +1040,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.19.0',
+      VERSION: '3.20.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1485,6 +1494,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.20.0', date: '18.09.2026', items: [
+        'Auch am Rechner verschwindet die Hub-Leiste, solange Connect ge\u00f6ffnet ist \u2014 vorher standen zwei senkrechte Leisten nebeneinander. Zur\u00fcck geht es \u00fcber das \u2630 oben links oder das Haus-Symbol in Connect'
+      ] },
       { v: '3.19.0', date: '18.09.2026', items: [
         'Aufger\u00e4umte Startseite und Leiste: sichtbar sind nur noch Connect, Klassenarbeiten, iPad-Buchung, Kalender und Dateiablage. Sch\u00fcler-Hub, Homepage, Untis und Hilfe stehen unter \u201eWeitere Apps\u201c',
         'Die Projektwoche ist ins Archiv gewandert (unter \u201eWeitere Apps\u201c) \u2014 sie wird erst im Mai wieder gebraucht, bleibt aber jederzeit nutzbar',
@@ -3618,7 +3630,7 @@
         // Skip-Link „Zum Inhalt springen" (WCAG 2.4.1) — erstes fokussierbares Element
         e('a', { href: '#main', className: 'skip-link' }, 'Zum Inhalt springen'),
         e(UpdateBanner),
-        e('div', { className: 'shell' },
+        e('div', { className: 'shell' + (activeModule === 'connect' ? ' connect-aktiv' : '') },
           e(Sidebar, {
             activeModule,
             onModuleSelect: handleModuleSelect,

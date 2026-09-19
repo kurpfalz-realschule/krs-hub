@@ -1040,7 +1040,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.20.0',
+      VERSION: '3.21.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1087,7 +1087,8 @@
           icon: '📱',
           desc: 'Medien & Geräte buchen',
           url: 'https://kurpfalz-realschule.github.io/ipad-buchung-neu/',
-          color: '#9333ea'
+          color: '#9333ea',
+          kamera: true
         },
         {
           id: 'projektwoche',
@@ -2655,6 +2656,7 @@
             src: activeModule === mod.id || framesRef.current[mod.id] ? mod.url : undefined,
             title: mod.name,
             sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-modals',
+            allow: mod.kamera ? 'camera' : undefined,
             onLoad: () => handleIframeLoad(mod.id),
             loading: 'lazy'
           })
@@ -3182,13 +3184,18 @@
 
     function AdminKoffer({ svc }) {
       const [koffer, setKoffer] = useState([]);
-      const [form, setForm] = useState({ barcode: '', bezeichnung: '', typ: 'ipad_koffer', kapazitaet: 1, standort: '' });
+      const leerFormular = () => ({ barcode: '', bezeichnung: '', typ: 'ipad_koffer', kapazitaet: 10, standort: 'LZ', freierStandort: '' });
+      const [form, setForm] = useState(leerFormular);
       const reload = useCallback(() => { svc.listKoffer().then(setKoffer).catch((e2) => showToast(e2.message, 'error')); }, [svc]);
       useEffect(reload, [reload]);
       const add = () => {
         if (!form.barcode || !form.bezeichnung) { showToast('Barcode und Bezeichnung nötig', 'error'); return; }
-        svc.saveKoffer(Object.assign({}, form, { kapazitaet: Number(form.kapazitaet) || 1 }))
-          .then(() => { showToast('Koffer gespeichert', 'success'); setForm({ barcode: '', bezeichnung: '', typ: 'ipad_koffer', kapazitaet: 1, standort: '' }); reload(); })
+        const kapazitaet = Number(form.kapazitaet);
+        const standort = form.standort === '__frei__' ? form.freierStandort.trim() : form.standort;
+        if (!Number.isInteger(kapazitaet) || kapazitaet < 1) { showToast('Kapazität muss mindestens 1 sein', 'error'); return; }
+        if (!standort) { showToast('Standort nötig', 'error'); return; }
+        svc.saveKoffer({ barcode: form.barcode, bezeichnung: form.bezeichnung, typ: form.typ, kapazitaet, standort })
+          .then(() => { showToast('Koffer gespeichert', 'success'); setForm(leerFormular()); reload(); })
           .catch((e2) => showToast(e2.message, 'error'));
       };
       const toggleAktiv = (k) => { svc.saveKoffer({ id: k.id, aktiv: !k.aktiv }).then(() => reload()).catch((e2) => showToast(e2.message, 'error')); };
@@ -3197,10 +3204,21 @@
         e('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' } },
           e('input', { style: ADM.input, placeholder: 'Barcode', 'aria-label': 'Barcode', value: form.barcode, 'data-testid': 'koffer-barcode', onChange: (ev) => setForm(Object.assign({}, form, { barcode: ev.target.value })) }),
           e('input', { style: ADM.input, placeholder: 'Bezeichnung', 'aria-label': 'Bezeichnung', value: form.bezeichnung, 'data-testid': 'koffer-bez', onChange: (ev) => setForm(Object.assign({}, form, { bezeichnung: ev.target.value })) }),
-          e('select', { style: ADM.input, value: form.typ, 'aria-label': 'Typ', onChange: (ev) => setForm(Object.assign({}, form, { typ: ev.target.value })) },
-            e('option', { value: 'ipad_koffer' }, 'iPad-Koffer'), e('option', { value: 'beamer' }, 'Beamer'), e('option', { value: 'sonstiges' }, 'Sonstiges')),
-          e('input', { style: ADM.input, type: 'number', min: 0, placeholder: 'Kapazität', 'aria-label': 'Kapazität', value: form.kapazitaet, onChange: (ev) => setForm(Object.assign({}, form, { kapazitaet: ev.target.value })) }),
-          e('input', { style: Object.assign({}, ADM.input, { gridColumn: '1 / 3' }), placeholder: 'Standort', 'aria-label': 'Standort', value: form.standort, onChange: (ev) => setForm(Object.assign({}, form, { standort: ev.target.value })) })
+          e('select', { style: ADM.input, value: form.typ, 'aria-label': 'Typ', 'data-testid': 'koffer-typ', onChange: (ev) => {
+              const typ = ev.target.value;
+              const vorgabe = typ === 'ipad_koffer' ? 10 : typ === 'laptop_koffer' ? 15 : 1;
+              setForm(Object.assign({}, form, { typ, kapazitaet: vorgabe }));
+            } },
+            e('option', { value: 'ipad_koffer' }, 'iPad-Koffer'),
+            e('option', { value: 'laptop_koffer' }, 'Laptop-Koffer'),
+            e('option', { value: 'beamer' }, 'Beamer'),
+            e('option', { value: 'sonstiges' }, 'Sonstiges')),
+          e('input', { style: ADM.input, type: 'number', min: 1, required: true, placeholder: 'Kapazität', 'aria-label': 'Kapazität', 'data-testid': 'koffer-kapazitaet', value: form.kapazitaet, onChange: (ev) => setForm(Object.assign({}, form, { kapazitaet: ev.target.value })) }),
+          e('select', { style: Object.assign({}, ADM.input, { gridColumn: '1 / 3' }), value: form.standort, 'aria-label': 'Standort', 'data-testid': 'koffer-standort', onChange: (ev) => setForm(Object.assign({}, form, { standort: ev.target.value })) },
+            e('option', { value: 'LZ' }, 'LZ'),
+            e('option', { value: '1OG' }, '1OG'),
+            e('option', { value: '__frei__' }, 'Anderer Standort …')),
+          form.standort === '__frei__' && e('input', { style: Object.assign({}, ADM.input, { gridColumn: '1 / 3' }), placeholder: 'Anderen Standort eingeben', 'aria-label': 'Anderer Standort', 'data-testid': 'koffer-standort-frei', value: form.freierStandort, onChange: (ev) => setForm(Object.assign({}, form, { freierStandort: ev.target.value })) })
         ),
         e('button', { style: ADM.btn('primary'), onClick: add, 'data-testid': 'koffer-add' }, '＋ Anlegen'),
         e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Bestand (' + koffer.length + ')'),

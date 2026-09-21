@@ -915,6 +915,15 @@
       .sidebar { display: none; }
       .hamburger { display: flex; }
 
+      /* S7 Stufe 1, Punkt 5: solange ein Modul offen ist, gehoert das obere
+         ☰ dem Modul (bzw. entfaellt, weil die untere Leiste jetzt reicht) —
+         sonst stehen zwei ☰ uebereinander. Auf der Hub-Startseite (kein
+         Modul offen) bleibt es und zeigt weiter die App-Liste. Gilt nur
+         mobil: am Rechner aendert sich nichts (S7 Punkt 6). Spezifitaet
+         schlaegt „.shell.connect-aktiv .hamburger" bewusst durch spaetere
+         Reihenfolge im Stylesheet. */
+      .topbar.module-open .hamburger { display: none; }
+
       .mobile-tabs {
         display: flex !important;
         height: 56px;
@@ -926,27 +935,27 @@
       .mobile-tab {
         flex: 1;
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 2px;
         border: none;
         background: none;
         color: var(--text-muted);
         font-family: var(--font);
-        font-size: 14px;
+        font-size: 11px;
         font-weight: 600;
         cursor: pointer;
         position: relative;
         min-height: var(--touch-min);
-        /* v3.17.0: nur noch zwei Ziele (Connect / Apps) — jedes ~50% breit,
-           also ~160-195px statt der frueheren ~45px. Der A11Y-Fix von
-           22.07.2026 (min-width:0 + Ellipse) bleibt als Sicherung drin: bei
-           320px und langen Modulnamen darf der Text kuerzen statt die Leiste
-           breiter zu machen (WCAG 1.4.10, geprueft von
-           smoke-mobile-layout.spec.ts bei 320 und 390px). */
+        /* S7 Stufe 1 (21.09.2026, Spezifikation O5/9.4): vier feste Plaetze
+           (Connect / Arbeiten / iPads / Apps), Symbol ueber Text bei 11px.
+           Bei 375px Breite passt „Klassenarbeiten"/„iPad-Buchung" nicht mehr
+           in eine Zeile — deshalb die kurzen Beschriftungen „Arbeiten“/„iPads“
+           in MobileTabBar. Der A11Y-Fix (min-width:0 + Ellipse) bleibt als
+           Sicherung drin (WCAG 1.4.10, smoke-mobile-layout.spec.ts). */
         min-width: 0;
-        padding: 4px 8px;
+        padding: 4px 2px;
       }
       .mobile-tab.active { color: var(--primary); }
       .mobile-tab.active::after {
@@ -957,7 +966,7 @@
         border-radius: 0 0 3px 3px;
         background: var(--primary);
       }
-      .mobile-tab-icon { font-size: 20px; }
+      .mobile-tab-icon { font-size: 18px; }
       /* A11Y-Fix (22.07.2026, siehe .mobile-tab oben): Label-Text ellipsiert
          statt zu überlaufen, wenn der Tab schmaler ist als das Wort. */
       .mobile-tab > span:not(.mobile-tab-icon):not(.nav-badge) {
@@ -1040,7 +1049,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.23.0',
+      VERSION: '3.24.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -2010,7 +2019,7 @@
         );
       }
 
-      return e('header', { className: 'topbar', 'data-testid': 'topbar' },
+      return e('header', { className: 'topbar' + (activeModule ? ' module-open' : ''), 'data-testid': 'topbar' },
         e('button', { className: 'hamburger', onClick: onMenuToggle, 'aria-label': 'Menü' }, '☰'),
         e('div', { className: 'topbar-title' }, title),
         activeModule && e('button', {
@@ -2099,46 +2108,46 @@
     // Links — Klassenarbeiten, iPad, Projektwoche, Schueler-Hub, Notizen,
     // Homepage, Untis, Kalender, Dateiablage, Hilfe). Die einzelnen Module
     // bleiben ueber die Kacheln erreichbar, nicht mehr ueber eine Dauerleiste.
+    // S7 Stufe 1 (21.09.2026, Spezifikation O5/9.4): oben gehoert dem offenen
+    // Modul, unten stehen die Apps — Norberts Einwand war genau umgekehrt.
+    // Die Leiste bleibt jetzt IMMER sichtbar (auch waehrend Connect laeuft)
+    // und zeigt vier feste Plaetze: Connect, Klassenarbeiten, iPad-Buchung,
+    // Alle Apps. Gemessen bei 375px (9.4): mit Symbol-ueber-Text (11px) passen
+    // vier Eintraege, „Klassenarbeiten"/„iPad-Buchung" muessen dafuer als
+    // „Arbeiten"/„iPads" abgekuerzt werden. Die Leiste waechst nie — eine
+    // fuenfte App bekaeme keinen Platz, sondern rutscht per group-Zuordnung
+    // in „Alle Apps".
     function MobileTabBar({ activeModule, onModuleSelect, unreadCounts }) {
       const connectUnread = unreadCounts.get('connect') || 0;
-      const onConnect = activeModule === 'connect';
-      // v3.19.0 — Solange Connect offen ist, verschwindet die Hub-Leiste ganz:
-      // Connect bringt unten eine eigene Zeile mit und zwei Leisten übereinander
-      // fressen auf dem Handy 112 px (Rückmeldung Norbert, 18.09.2026: „die
-      // beiden Leisten verschmelzen … um Platz zu sparen“). Der Weg zurück steht
-      // in Connects ☰-Menü („▦ Apps“, schickt KRS_HUB_NAVIGATE) und
-      // zusätzlich im ☰ der Kopfzeile des Hubs.
-      if (onConnect) return null;
-      const openMod = (!onConnect && activeModule)
-        ? CONFIG.MODULES.find(m => m.id === activeModule)
-        : null;
+      const onApps = !activeModule;
+      const planMod = CONFIG.MODULES.find(m => m.id === 'plan');
+      const buchungMod = CONFIG.MODULES.find(m => m.id === 'buchung2');
+      const slots = [
+        { id: 'connect', icon: '💬', label: 'Connect', fullLabel: 'Connect', unread: connectUnread },
+        { id: 'plan', icon: (planMod && planMod.icon) || '📅', label: 'Arbeiten', fullLabel: (planMod && planMod.name) || 'Klassenarbeiten', unread: unreadCounts.get('plan') || 0 },
+        { id: 'buchung2', icon: (buchungMod && buchungMod.icon) || '📱', label: 'iPads', fullLabel: (buchungMod && buchungMod.name) || 'iPad-Buchung', unread: unreadCounts.get('buchung2') || 0 },
+        { id: null, icon: '▦', label: 'Apps', fullLabel: 'Apps', unread: 0 }
+      ];
       return e('nav', { className: 'mobile-tabs', role: 'navigation', 'aria-label': 'Hauptnavigation' },
-        e('button', {
-          type: 'button',
-          className: 'mobile-tab' + (onConnect ? ' active' : ''),
-          'data-testid': 'mobile-tab-connect',
-          'aria-current': onConnect ? 'page' : undefined,
-          'aria-label': 'Connect' + (connectUnread ? ' (' + connectUnread + ' ungelesen)' : ''),
-          onClick: () => onModuleSelect('connect')
-        },
-          e('span', { className: 'mobile-tab-icon' }, '\uD83D\uDCAC'),
-          e('span', null, 'Connect'),
-          connectUnread > 0 && e('span', {
-            className: 'nav-badge',
-            style: { position: 'absolute', top: '6px', left: 'calc(50% + 22px)' }
-          }, connectUnread)
-        ),
-        e('button', {
-          type: 'button',
-          className: 'mobile-tab' + (!onConnect ? ' active' : ''),
-          'data-testid': 'mobile-tab-apps',
-          'aria-current': !onConnect ? 'page' : undefined,
-          'aria-label': openMod ? ('Apps — zurück zur Übersicht (offen: ' + openMod.name + ')') : 'Apps',
-          onClick: () => onModuleSelect(null)
-        },
-          e('span', { className: 'mobile-tab-icon' }, openMod ? openMod.icon : '\u25A6'),
-          e('span', null, openMod ? openMod.name : 'Apps')
-        )
+        slots.map(slot => {
+          const active = slot.id === null ? onApps : activeModule === slot.id;
+          return e('button', {
+            key: slot.id || 'apps',
+            type: 'button',
+            className: 'mobile-tab' + (active ? ' active' : ''),
+            'data-testid': 'mobile-tab-' + (slot.id || 'apps'),
+            'aria-current': active ? 'page' : undefined,
+            'aria-label': slot.fullLabel + (slot.unread ? ' (' + slot.unread + ' ungelesen)' : ''),
+            onClick: () => onModuleSelect(slot.id)
+          },
+            e('span', { className: 'mobile-tab-icon' }, slot.icon),
+            e('span', null, slot.label),
+            slot.unread > 0 && e('span', {
+              className: 'nav-badge',
+              style: { position: 'absolute', top: '2px', right: 'calc(50% - 26px)' }
+            }, slot.unread > 9 ? '9+' : slot.unread)
+          );
+        })
       );
     }
 
@@ -3306,8 +3315,8 @@
       const memberIds = new Set(members.map((m) => m.id));
       const toggle = (u) => { svc.setMembership(teamId, u.id, !memberIds.has(u.id)).then(() => { showToast('Mitgliedschaft aktualisiert', 'success'); reloadMembers(); }).catch((e2) => showToast(e2.message, 'error')); };
       return e('div', { 'data-testid': 'admin-mitglieder' },
-        e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Forum / Team'),
-        e('select', { style: ADM.input, value: teamId || '', 'aria-label': 'Forum / Team', 'data-testid': 'mitglieder-team', onChange: (ev) => setTeamId(Number(ev.target.value)) },
+        e('div', { style: { fontWeight: 700, fontSize: '13px', marginBottom: '8px' } }, 'Team'),
+        e('select', { style: ADM.input, value: teamId || '', 'aria-label': 'Team', 'data-testid': 'mitglieder-team', onChange: (ev) => setTeamId(Number(ev.target.value)) },
           teams.map((t) => e('option', { key: t.id, value: t.id }, t.name))),
         e('div', { style: { fontWeight: 700, fontSize: '13px', margin: '16px 0 8px' } }, 'Mitglieder (' + members.length + ')'),
         allUsers.map((u) => e('div', { key: u.id, style: ADM.row, 'data-testid': 'mitglieder-row' },

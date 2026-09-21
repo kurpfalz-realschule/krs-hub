@@ -1040,7 +1040,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.22.0',
+      VERSION: '3.23.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1495,6 +1495,11 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.23.0', date: '21.09.2026', items: [
+        'Nach mindestens einer Minute im Hintergrund lädt der Hub eine inzwischen veröffentlichte Version beim Zurückkehren automatisch — ohne zusätzlichen Tipp',
+        'Offene Texte und Dialoge bleiben geschützt: Dann erscheint weiterhin nur der bekannte Update-Hinweis',
+        'Die Versionsnummer steht jetzt schon auf dem Anmeldebildschirm'
+      ] },
       { v: '3.22.0', date: '20.09.2026', items: [
         'Die Standorte hei\u00dfen jetzt so, wie sie wirklich hei\u00dfen: \u201eLZ\u201c ist das Lehrerzimmer (nicht das Lernzentrum), \u201e1OG\u201c ist der Kartenraum',
         'In der Koffer-Verwaltung steht vor jedem iPad-Koffer seine Nummer \u2014 Koffer 1 sind die iPads 1\u201310, Koffer 12 die iPads 111\u2013120'
@@ -1574,14 +1579,47 @@
         if (window.__KRS_HUB_FORCE_DEMO) return; // im Test-/Demo-Modus nicht pollen
         const current = window.KRS_HUB_VERSION;
         let stopped = false;
-        const check = async () => {
+        let hiddenAt = null;
+        const hasUnsavedWork = () => {
+          const hasText = Array.from(document.querySelectorAll('input, textarea, [contenteditable]')).some((el) => {
+            if (el.matches('[contenteditable]')) return (el.textContent || '').trim().length > 0;
+            const type = (el.getAttribute('type') || 'text').toLowerCase();
+            if (['button', 'submit', 'reset', 'checkbox', 'radio', 'hidden', 'range', 'color'].includes(type)) return false;
+            return String(el.value || '').trim().length > 0;
+          });
+          const hasOpenDialog = Array.from(document.querySelectorAll('dialog[open], [role="dialog"], [aria-modal="true"], .modal-overlay, .feedback-overlay')).some((el) => {
+            if (el.matches('.krsc-panel:not(.krsc-open)')) return false;
+            if (el.hidden || el.getAttribute('aria-hidden') === 'true') return false;
+            const style = getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+          });
+          const hasUpload = (window.__krsActiveUploads || 0) > 0 || !!document.querySelector('[data-uploading="true"], .upload-progress');
+          return hasText || hasOpenDialog || hasUpload;
+        };
+        const check = async ({ allowAutoReload = false } = {}) => {
           try {
             const res = await fetch('index.html?_=' + Date.now(), { cache: 'no-store' });
             if (!res.ok) return;
             const txt = await res.text();
             const m = txt.match(/VERSION:\s*'([^']+)'/);
             const remote = m && m[1];
-            if (!stopped && remote && remote !== current) setNewVersion(remote);
+            if (stopped || !remote) return;
+            if (remote === current) {
+              try { sessionStorage.removeItem('krs_autoreload_for'); } catch (e) {}
+              setNewVersion(null);
+              return;
+            }
+            if (allowAutoReload && !hasUnsavedWork()) {
+              let alreadyTried = false;
+              try { alreadyTried = sessionStorage.getItem('krs_autoreload_for') === remote; } catch (e) {}
+              if (!alreadyTried) {
+                try { sessionStorage.setItem('krs_autoreload_for', remote); } catch (e) {}
+                location.reload();
+                return;
+              }
+            }
+            setDismissed(false);
+            setNewVersion(remote);
           } catch (e) { /* offline / CDN — ignorieren */ }
         };
         check();
@@ -1590,7 +1628,17 @@
         // iOS friert Timer im Standalone-Suspend ein — beim Zurückkehren in die
         // App (visibilitychange → visible) sofort neu prüfen statt auf den
         // nächsten 5-Minuten-Tick zu warten.
-        const onVisibility = () => { if (document.visibilityState === 'visible') check(); };
+        const onVisibility = () => {
+          if (document.visibilityState === 'hidden') {
+            hiddenAt = Date.now();
+            return;
+          }
+          if (document.visibilityState === 'visible') {
+            const backgroundMs = hiddenAt == null ? 0 : Date.now() - hiddenAt;
+            hiddenAt = null;
+            check({ allowAutoReload: backgroundMs >= 60 * 1000 });
+          }
+        };
         window.addEventListener('focus', onFocus);
         document.addEventListener('visibilitychange', onVisibility);
         return () => {
@@ -1601,7 +1649,7 @@
         };
       }, []);
       if (!newVersion || dismissed) return null;
-      return e('div', { role: 'alert', style: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000, background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', padding: '10px 14px', fontSize: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' } },
+      return e('div', { role: 'alert', 'data-testid': 'update-banner', style: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000, background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', padding: '10px 14px', fontSize: '14px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' } },
         e('span', null, '🔄 Neue Version ' + newVersion + ' verfügbar — du nutzt v' + window.KRS_HUB_VERSION + '.'),
         e('button', { onClick: () => location.reload(), style: { background: '#ea7624', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontWeight: 700, cursor: 'pointer' } }, 'Jetzt aktualisieren'),
         e('button', { onClick: () => setDismissed(true), style: { background: 'transparent', color: '#cbd5e1', border: '1px solid #475569', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' } }, 'Später')
@@ -1778,7 +1826,8 @@
             id: 'hub-login-status', role: 'alert', 'aria-live': 'assertive',
             className: status ? ('login-status ' + status.type) : undefined
           }, status ? status.msg : ''),
-          e('div', { className: 'login-info' }, 'Deine Zugangsdaten stehen auf der persönlichen Anmeldeliste.')
+          e('div', { className: 'login-info' }, 'Deine Zugangsdaten stehen auf der persönlichen Anmeldeliste.'),
+          e('div', { 'data-testid': 'version-badge', style: { marginTop: '14px', color: '#64748b', fontSize: '11px', textAlign: 'center' } }, 'v' + CONFIG.VERSION)
         )
       );
     }
@@ -3661,7 +3710,6 @@
       return e(React.Fragment, null,
         // Skip-Link „Zum Inhalt springen" (WCAG 2.4.1) — erstes fokussierbares Element
         e('a', { href: '#main', className: 'skip-link' }, 'Zum Inhalt springen'),
-        e(UpdateBanner),
         e('div', { className: 'shell' + (activeModule === 'connect' ? ' connect-aktiv' : '') },
           e(Sidebar, {
             activeModule,
@@ -3733,7 +3781,9 @@
     }
 
     // ── Mount ──────────────────────────────────────
-    ReactDOM.createRoot(document.getElementById('root')).render(e(ErrorBoundary, null, e(App)));
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      e(ErrorBoundary, null, e(React.Fragment, null, e(UpdateBanner), e(App)))
+    );
 
     // ── Service Worker Registration ────────────────
     if ('serviceWorker' in navigator) {

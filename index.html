@@ -924,6 +924,34 @@
          Reihenfolge im Stylesheet. */
       .topbar.module-open .hamburger { display: none; }
 
+      /* v3.25.0: Teams | Chats | Hub auch auf der Hub-Startseite (nur mobil) */
+      .hub-area-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .hub-area-nav .hub-area-switch {
+        display: flex; flex: 1; gap: 4px; min-width: 0;
+      }
+      .hub-area-nav .hub-area-switch button {
+        flex: 1; min-height: 36px; height: 36px;
+        display: flex; align-items: center; justify-content: center; gap: 4px;
+        padding: 0 8px; font-size: 13px; font-weight: 600;
+        border: 1px solid var(--border); border-radius: 10px;
+        background: var(--bg); color: var(--text-muted); cursor: pointer;
+      }
+      .hub-area-nav .hub-area-switch button.active {
+        background: var(--primary); border-color: var(--primary); color: #fff;
+      }
+      /* Desktop: Leiste nicht nötig — Sidebar deckt das ab */
+      @media (min-width: 769px) {
+        .hub-area-nav { display: none !important; }
+      }
+
       .mobile-tabs {
         display: flex !important;
         height: 56px;
@@ -1049,7 +1077,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.24.0',
+      VERSION: '3.25.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1504,6 +1532,12 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.25.0', date: '22.09.2026', items: [
+        'Nach dem Login öffnet der Hub direkt Connect',
+        'Oben auf der Startseite: dieselbe Leiste Teams | Chats | Hub wie in Connect',
+        'Aktuelle Mitteilungen erscheinen einmal als Overlay zum Wegklicken',
+        'Konto-Menü: Einstellungen und Profil öffnen die Connect-Panels'
+      ]},
       { v: '3.23.0', date: '21.09.2026', items: [
         'Nach mindestens einer Minute im Hintergrund lädt der Hub eine inzwischen veröffentlichte Version beim Zurückkehren automatisch — ohne zusätzlichen Tipp',
         'Offene Texte und Dialoge bleiben geschützt: Dann erscheint weiterhin nur der bekannte Update-Hinweis',
@@ -2045,7 +2079,7 @@
     }
 
     // ── User Menu ──────────────────────────────────
-    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew, autolock, autolockMin, onToggleAutolock, onSetAutolockMin }) {
+    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew, autolock, autolockMin, onToggleAutolock, onSetAutolockMin, onConnectSettings, onConnectProfile }) {
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu' },
@@ -2053,11 +2087,14 @@
             profile?.email || 'Demo-Modus'
           ),
           e('div', { className: 'user-menu-divider' }),
-          e('button', { className: 'user-menu-item', role: 'menuitem', onClick: () => { showToast('Profil kommt in Phase 2', 'info'); onClose(); } },
-            '👤', ' Mein Profil'
+          e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-settings', onClick: () => { if (onConnectSettings) onConnectSettings(); else onClose(); } },
+            '⚙️', ' Einstellungen'
+          ),
+          e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-profile', onClick: () => { if (onConnectProfile) onConnectProfile(); else onClose(); } },
+            '👤', ' Profil'
           ),
           profile?.role === 'admin' && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-admin', onClick: () => { onAdmin ? onAdmin() : onClose(); } },
-            '⚙️', ' Administration'
+            '🛠️', ' Administration'
           ),
           e('div', { className: 'user-menu-divider' }),
           onHelp && e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-help', onClick: onHelp },
@@ -2155,6 +2192,94 @@
     // v3.19.0 — Der ☰-Knopf hatte bis hierher `onMenuToggle: () => {}`, war also
     // eine tote Schaltfläche. Jetzt ist er der verlässliche Weg zu allen Apps —
     // wichtig, seit die untere Leiste in Connect ausgeblendet wird.
+
+    // v3.25.0 — dieselbe Bereichsleiste wie in Connect, auf der Hub-Startseite.
+    function HubAreaNav({ active, onTeams, onChats, onHub }) {
+      return e('nav', {
+        className: 'hub-area-nav',
+        role: 'navigation',
+        'aria-label': 'Bereich wechseln',
+        'data-testid': 'hub-area-nav'
+      },
+        e('div', { className: 'hub-area-switch' },
+          e('button', {
+            type: 'button',
+            className: active === 'teams' ? 'active' : '',
+            'data-testid': 'hub-area-teams',
+            'aria-current': active === 'teams' ? 'page' : undefined,
+            onClick: onTeams
+          }, '📋', ' Teams'),
+          e('button', {
+            type: 'button',
+            className: active === 'chats' ? 'active' : '',
+            'data-testid': 'hub-area-chats',
+            'aria-current': active === 'chats' ? 'page' : undefined,
+            onClick: onChats
+          }, '💬', ' Chats'),
+          e('button', {
+            type: 'button',
+            className: active === 'hub' ? 'active' : '',
+            'data-testid': 'hub-area-hub',
+            'aria-current': active === 'hub' ? 'page' : undefined,
+            onClick: onHub
+          }, '▦', ' Hub')
+        )
+      );
+    }
+
+    // v3.25.0 — Aktuelle Mitteilungen als Overlay zum Wegklicken.
+    function MitteilungenOverlay({ items, onDismiss }) {
+      if (!items || items.length === 0) return null;
+      return e('div', {
+        className: 'overlay',
+        style: { zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' },
+        'data-testid': 'mitteilungen-overlay',
+        onClick: onDismiss
+      },
+        e('div', {
+          role: 'dialog',
+          'aria-modal': 'true',
+          'aria-label': 'Aktuelle Mitteilungen',
+          onClick: (ev) => ev.stopPropagation(),
+          style: {
+            width: '100%', maxWidth: '420px', maxHeight: '80vh', overflowY: 'auto',
+            background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)',
+            boxShadow: '0 12px 40px rgba(15,23,42,.25)', padding: '16px 16px 12px'
+          }
+        },
+          e('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px' } },
+            e('h2', { style: { margin: 0, fontSize: '17px' } }, '📢 Aktuelle Mitteilungen'),
+            e('button', {
+              type: 'button',
+              'data-testid': 'mitteilungen-overlay-close',
+              'aria-label': 'Schließen',
+              onClick: onDismiss,
+              style: { border: 'none', background: 'var(--bg)', borderRadius: '8px', minWidth: '44px', minHeight: '44px', cursor: 'pointer', fontSize: '18px' }
+            }, '✕')
+          ),
+          items.map(m => e('div', {
+            key: m.id,
+            style: { padding: '10px 0', borderTop: '1px solid var(--border)' }
+          },
+            e('div', { style: { fontWeight: 700, marginBottom: '4px' } }, m.titel),
+            m.inhalt_html ? e('div', {
+              style: { fontSize: '14px', color: 'var(--text)', lineHeight: 1.45 },
+              dangerouslySetInnerHTML: { __html: sanitizeInfoHtml(m.inhalt_html) }
+            }) : null
+          )),
+          e('button', {
+            type: 'button',
+            'data-testid': 'mitteilungen-overlay-dismiss',
+            onClick: onDismiss,
+            style: {
+              marginTop: '12px', width: '100%', minHeight: '44px', border: 'none', borderRadius: '10px',
+              background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: '14px', cursor: 'pointer'
+            }
+          }, 'Verstanden')
+        )
+      );
+    }
+
     function AppMenu({ activeModule, onSelect, onClose }) {
       const zeile = (eintrag, istArchiv) => e('button', {
         key: eintrag.id,
@@ -3458,7 +3583,10 @@
     function App() {
       const [authState, setAuthState] = useState('loading'); // loading, login, authenticated, locked
       const [profile, setProfile] = useState(null);
-      const [activeModule, setActiveModule] = useState(null);
+      const [activeModule, setActiveModule] = useState('connect'); // v3.25.0: Hub startet mit Connect
+      const [showMitteilungenOverlay, setShowMitteilungenOverlay] = useState(false);
+      const [overlayMitteilungen, setOverlayMitteilungen] = useState([]);
+
       const [showUserMenu, setShowUserMenu] = useState(false);
       // v3.19.0: App-Menü hinter dem ☰ der Kopfzeile.
       const [showAppMenu, setShowAppMenu] = useState(false);
@@ -3493,9 +3621,11 @@
       useEffect(() => {
         const handleHash = () => {
           const hash = window.location.hash.slice(2);
+          // v3.25.0: kein Hash → Connect; #/apps → Startseite; sonst Modul-Id
+          if (!hash) { setActiveModule('connect'); return; }
+          if (hash === 'apps' || hash === 'start') { setActiveModule(null); return; }
           const mod = CONFIG.MODULES.find(m => m.id === hash);
           if (mod) setActiveModule(mod.id);
-          else if (!hash) setActiveModule(null);
         };
         window.addEventListener('hashchange', handleHash);
         handleHash();
@@ -3503,11 +3633,34 @@
       }, []);
 
       useEffect(() => {
-        const newHash = activeModule ? '#/' + activeModule : '#/';
+        // Startseite bewusst als #/apps — sonst würde leerer Hash wieder Connect öffnen
+        const newHash = activeModule ? '#/' + activeModule : '#/apps';
         if (window.location.hash !== newHash) {
           window.location.hash = newHash;
         }
       }, [activeModule]);
+
+      // v3.25.0: Beim Öffnen der Hub-Startseite Mitteilungen einmal als Overlay zeigen
+      useEffect(() => {
+        if (authState !== 'authenticated') return;
+        if (activeModule !== null) return; // nur auf der Apps-/Startseite
+        let alive = true;
+        HubInfoService.list()
+          .then(rows => {
+            if (!alive) return;
+            const mits = (rows || []).filter(x => x.typ === 'mitteilung');
+            if (mits.length === 0) return;
+            let seen = [];
+            try { seen = JSON.parse(localStorage.getItem('krs_hub_mitteilungen_seen') || '[]'); } catch (e) {}
+            const seenSet = new Set(seen.map(String));
+            const neu = mits.filter(m => !seenSet.has(String(m.id)));
+            if (neu.length === 0) return;
+            setOverlayMitteilungen(neu);
+            setShowMitteilungenOverlay(true);
+          })
+          .catch(() => {});
+        return () => { alive = false; };
+      }, [authState, activeModule]);
 
       // ── Auth Check (PIN-based) ─────────────────
       useEffect(() => {
@@ -3651,10 +3804,45 @@
         setActiveModule(null);
       }, []);
 
+      const postToConnect = useCallback((payload) => {
+        try {
+          const frame = document.querySelector('iframe.module-frame.active, iframe.module-frame[data-module="connect"], iframe[src*="connect"]');
+          const win = frame && frame.contentWindow;
+          if (!win) return false;
+          const ziel = (() => {
+            try { return new URL(frame.src, window.location.href).origin; } catch (e) { return window.location.origin; }
+          })();
+          win.postMessage(payload, ziel);
+          return true;
+        } catch (e) { return false; }
+      }, []);
+
+      const openConnectView = useCallback((view) => {
+        setActiveModule('connect');
+        setShowUserMenu(false);
+        setShowAppMenu(false);
+        // iframe kann noch laden — kurz nachfassen
+        const send = () => postToConnect({ type: 'KRS_CONNECT_SET_VIEW', view });
+        if (!send()) setTimeout(send, 400);
+        setTimeout(send, 900);
+      }, [postToConnect]);
+
       const handleModuleSelect = useCallback((moduleId) => {
         setActiveModule(moduleId);
         setShowUserMenu(false);
       }, []);
+
+      const dismissMitteilungenOverlay = useCallback(() => {
+        try {
+          const ids = overlayMitteilungen.map(m => String(m.id));
+          let seen = [];
+          try { seen = JSON.parse(localStorage.getItem('krs_hub_mitteilungen_seen') || '[]'); } catch (e) {}
+          const merged = Array.from(new Set(seen.map(String).concat(ids)));
+          localStorage.setItem('krs_hub_mitteilungen_seen', JSON.stringify(merged));
+        } catch (e) {}
+        setShowMitteilungenOverlay(false);
+        setOverlayMitteilungen([]);
+      }, [overlayMitteilungen]);
 
       // Manuelles Sperren (Shared-iPad: weggehen → tippen → sperren)
       const handleLock = useCallback(() => {
@@ -3737,6 +3925,12 @@
               collapsed: topbarCollapsed,
               onToggleCollapse: toggleTopbarCollapsed
             }),
+            !activeModule && e(HubAreaNav, {
+              active: 'hub',
+              onTeams: () => openConnectView('teams'),
+              onChats: () => openConnectView('chat'),
+              onHub: () => handleModuleSelect(null)
+            }),
             e('main', { id: 'main', className: 'module-main', tabIndex: -1 },
               activeModule
                 ? e(ModuleContent, { activeModule, profile })
@@ -3750,6 +3944,10 @@
             })
           )
         ),
+        showMitteilungenOverlay && e(MitteilungenOverlay, {
+          items: overlayMitteilungen,
+          onDismiss: dismissMitteilungenOverlay
+        }),
         showUserMenu && e(UserMenu, {
           profile,
           onClose: () => setShowUserMenu(false),

@@ -1077,7 +1077,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.25.0',
+      VERSION: '3.26.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1532,6 +1532,10 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.26.0', date: '23.09.2026', items: [
+        'Dateien aus Connect koennen jetzt auch innerhalb des Hubs heruntergeladen werden',
+        'Die Download-Freigabe gilt nur fuer Connect; die Sandbox der anderen Module bleibt unveraendert'
+      ]},
       { v: '3.25.0', date: '22.09.2026', items: [
         'Nach dem Login öffnet der Hub direkt Connect',
         'Oben auf der Startseite: dieselbe Leiste Teams | Chats | Hub wie in Connect',
@@ -2842,7 +2846,11 @@
             className: 'module-frame' + (activeModule === mod.id ? ' active' : ''),
             src: activeModule === mod.id || framesRef.current[mod.id] ? mod.url : undefined,
             title: mod.name,
-            sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-modals',
+            // Downloads werden nur fuer Connect freigegeben. Die Sandbox bleibt
+            // ansonsten unveraendert; insbesondere duerfen Popups sie nicht
+            // pauschal verlassen.
+            sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-modals' +
+              (mod.id === 'connect' ? ' allow-downloads' : ''),
             allow: mod.kamera ? 'camera' : undefined,
             onLoad: () => handleIframeLoad(mod.id),
             loading: 'lazy'

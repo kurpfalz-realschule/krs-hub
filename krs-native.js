@@ -24,12 +24,12 @@
  * Rückfallebene für einen PIN-Login (siehe PERSIST_KEYS — auf dem aktuellen Hub
  * wirkungslos).
  *
- * Version: 1.0.0
+ * Version: 1.1.0
  */
 (function () {
   'use strict';
 
-  var VERSION = '1.0.0';
+  var VERSION = '1.1.0';
   var LOG = '[krs-native]';
 
   // Welche Herkünfte dürfen die RPC-Brücke benutzen? Muss zu den Modulen in
@@ -106,6 +106,43 @@
   }
   function safe(promise, fallback) {
     return promise.then(null, function (e) { warn(e && e.message); return fallback; });
+  }
+
+  function safeDownloadName(value) {
+    var name = String(value || 'datei').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim();
+    return (name || 'datei').slice(0, 180);
+  }
+
+  function allowedDownloadUrl(value) {
+    try {
+      var u = new URL(String(value || ''));
+      return u.protocol === 'https:' && u.hostname === 'ooejsfixxiuobrpqgfqm.supabase.co' &&
+        u.pathname.indexOf('/storage/v1/object/') === 0;
+    } catch (e) { return false; }
+  }
+
+  function nativeDownloadFile(a) {
+    if (!a || !allowedDownloadUrl(a.url)) return Promise.reject(new Error('Download-URL nicht erlaubt'));
+    if (!P.Filesystem || !P.FileTransfer || !P.Share) return Promise.reject(new Error('Nativer Datei-Export in diesem App-Build nicht verfuegbar'));
+    var name = safeDownloadName(a.name);
+    var id = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : Date.now() + '-' + Math.random().toString(16).slice(2);
+    var relative = 'krs-downloads/' + id + '-' + name;
+    return call('Filesystem', 'mkdir', { path: 'krs-downloads', directory: 'CACHE', recursive: true })
+      .catch(function () {})
+      .then(function () { return call('Filesystem', 'getUri', { path: relative, directory: 'CACHE' }); })
+      .then(function (info) {
+        return call('FileTransfer', 'downloadFile', {
+          url: a.url, path: info.uri, progress: false, connectTimeout: 15000, readTimeout: 120000
+        }).then(function () { return info.uri; });
+      })
+      .then(function (uri) {
+        return call('Share', 'share', { title: name, files: [uri], dialogTitle: 'In Dateien sichern / Teilen' })
+          .then(function () {
+            return call('Filesystem', 'deleteFile', { path: relative, directory: 'CACHE' }).catch(function () {}).then(function () {
+              return { state: 'handed_off', requestId: a.requestId || id, name: name };
+            });
+          });
+      });
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -419,6 +456,14 @@
         dialogTitle: 'Teilen'
       }), null);
     },
+    capabilities: function () {
+      return Promise.resolve({
+        downloadFile: !!(P.Filesystem && P.FileTransfer && P.Share),
+        shareFile: !!(P.Filesystem && P.FileTransfer && P.Share),
+        version: VERSION
+      });
+    },
+    downloadFile: nativeDownloadFile,
     enablePush: function () { return enablePush(); },
     pushStatus: function () { return Promise.resolve({ token: pushToken }); },
     netStatus: function () { return safe(call('Network', 'getStatus'), { connected: navigator.onLine }); }
@@ -427,6 +472,8 @@
   function wireRpc() {
     window.addEventListener('message', function (ev) {
       if (RPC_ORIGINS.indexOf(ev.origin) === -1) return;
+      var connectFrame = document.querySelector('iframe[src*="/krs-connect/"]');
+      if (!connectFrame || ev.source !== connectFrame.contentWindow) return;
       var m = ev.data;
       if (!m || m.type !== 'KRS_NATIVE_RPC' || !m.id) return;
       var fn = RPC[m.method];

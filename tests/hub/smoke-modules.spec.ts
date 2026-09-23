@@ -5,19 +5,37 @@ const connectButton = (page) =>
 
 test.describe('KRS Hub — Modul-Switch', () => {
   test('Connect-Modul öffnet genau ein iframe', async ({ hubPage: page }) => {
-    await expect(connectButton(page)).toBeVisible();
-    await connectButton(page).click();
-    await expect(page.locator('iframe[src*="krs-connect"]')).toHaveCount(1);
+    // v3.25+: Hub startet bereits auf Connect — Sidebar ist dann ausgeblendet.
+    // Deshalb nicht auf den Nav-Button warten, sondern das iframe direkt prüfen.
+    await expect(page.locator('iframe[data-module="connect"], iframe[src*="krs-connect"], iframe[title="Connect"]')).toHaveCount(1);
   });
 
   test('Hash-Router setzt #/connect', async ({ hubPage: page }) => {
-    await expect(connectButton(page)).toBeVisible();
-    await connectButton(page).click();
     await expect(page).toHaveURL(/#\/connect/);
   });
 
   test('Homepage-Link ist auf dem Dashboard verfügbar', async ({ hubPage: page }) => {
-    await page.evaluate(() => { window.location.hash = '#/'; });
-    await expect(page.locator('a[href*="realschule-schriesheim.de"]').first()).toBeVisible();
+    await page.evaluate(() => { window.location.hash = '#/apps'; });
+    await expect(page.locator('a[href*="realschule-schriesheim.de"]').first()).toBeVisible({ timeout: 10_000 });
+  });
+});
+
+test.describe('KRS Hub — PERF-01 Keep-alive', () => {
+  // PERF-01 (v3.27.0): Connect-iframe darf beim Wechsel zur Hub-Startseite
+  // nicht unmounten. Abnahme Boot-Counter: Connect→Hub-Start→Connect →
+  // window.__krsConnectBootCount bleibt 1 (manuell / Live; hier DOM-Host).
+  test('Hub-Start zeigt Welcome-Overlay, Connect-Host bleibt gemountet', async ({ hubPage: page }) => {
+    const connectFrame = page.locator('iframe[data-module="connect"], iframe[title="Connect"], iframe[src*="krs-connect"]');
+    await expect(connectFrame).toHaveCount(1);
+
+    await page.evaluate(() => { window.location.hash = '#/apps'; });
+    await expect(page.locator('[data-testid="welcome-overlay"], .welcome-overlay').first()).toBeVisible({ timeout: 10_000 });
+
+    // Keep-alive: Connect-iframe weiter im DOM
+    await expect(connectFrame).toHaveCount(1);
+    await expect(page.locator('[data-testid="module-host"]')).toBeVisible();
+    // src soll gesetzt bleiben (warm), nicht entfernt
+    const src = await connectFrame.first().getAttribute('src');
+    expect(src && /connect/i.test(src)).toBeTruthy();
   });
 });

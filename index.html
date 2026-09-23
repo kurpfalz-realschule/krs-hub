@@ -344,6 +344,22 @@
     }
     .module-frame.active { display: block; }
 
+    /* v3.27.0 PERF-01: Welcome/Dashboard als Overlay über keep-alive iframes */
+    .welcome-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      background: var(--bg, #f8fafc);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .content.has-welcome-overlay .module-frame {
+      /* Frames bleiben gemountet, nur unsichtbar unter dem Overlay */
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+
     /* ── Welcome / Landing ────────────────────────── */
     .welcome {
       display: flex;
@@ -1077,7 +1093,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.26.0',
+      VERSION: '3.27.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1532,6 +1548,11 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.27.0', date: '23.09.2026', items: [
+        'Connect bleibt beim Wechsel zur Hub-Startseite geladen (kein Full-Reload mehr)',
+        'Welcome/Dashboard liegt als Overlay über dem Connect-iframe; Logout räumt Frames auf',
+        'Weitere Module weiterhin lazy; Keep-alive zuerst nur Connect + zuletzt genutztes Modul (iPad-RAM)'
+      ]},
       { v: '3.26.0', date: '23.09.2026', items: [
         'Dateien aus Connect koennen jetzt auch innerhalb des Hubs heruntergeladen werden',
         'Die Download-Freigabe gilt nur fuer Connect; die Sandbox der anderen Module bleibt unveraendert'
@@ -2806,10 +2827,44 @@
     }
 
     // ── Module Content (iframe loader) ─────────────
-    function ModuleContent({ activeModule, profile }) {
+    // v3.27.0 PERF-01: Keep-alive — activeModule===null unmountet Frames NICHT mehr.
+    // Welcome/Dashboard als Overlay. Keep-alive zuerst nur Connect + zuletzt
+    // genutztes anderes Modul (iPad-RAM). Logout: frameEpoch → Tear-down.
+    function ModuleContent({ activeModule, profile, onModuleSelect, frameEpoch }) {
       const framesRef = useRef({});
+      // Welche Module dürfen src behalten (einmal gesetzt → warm)
+      const [keptIds, setKeptIds] = useState(() => new Set());
+      const lastOtherRef = useRef(null);
 
-      // Send auth to newly loaded iframe
+      // Logout / Tenant-Wechsel: Tear-down (frameEpoch ändert sich)
+      useEffect(() => {
+        setKeptIds(new Set());
+        lastOtherRef.current = null;
+        framesRef.current = {};
+      }, [frameEpoch]);
+
+      // Keep-alive-Politik: Connect immer behalten sobald besucht;
+      // plus höchstens EIN weiteres zuletzt genutztes Modul.
+      useEffect(() => {
+        if (!activeModule) return;
+        setKeptIds(prev => {
+          const next = new Set();
+          if (activeModule === 'connect' || prev.has('connect')) next.add('connect');
+          if (activeModule === 'connect') {
+            if (lastOtherRef.current) next.add(lastOtherRef.current);
+          } else {
+            lastOtherRef.current = activeModule;
+            next.add(activeModule);
+            if (prev.has('connect')) next.add('connect');
+          }
+          // active immer
+          next.add(activeModule);
+          // Gleichheit prüfen
+          if (next.size === prev.size && [...next].every(id => prev.has(id))) return prev;
+          return next;
+        });
+      }, [activeModule]);
+
       const handleIframeLoad = useCallback((moduleId) => {
         const iframe = framesRef.current[moduleId];
         if (iframe && profile) {
@@ -2817,10 +2872,8 @@
         }
       }, [profile]);
 
-      // Listen for auth requests from modules
       useEffect(() => {
         const handler = (event) => {
-          // Origin validation
           if (!CONFIG.ALLOWED_ORIGINS.includes(event.origin)) return;
           if (event.data?.type === 'KRS_HUB_REQUEST_AUTH') {
             const moduleId = event.data.moduleId;
@@ -2834,28 +2887,41 @@
         return () => window.removeEventListener('message', handler);
       }, [profile]);
 
-      if (!activeModule) {
-        return e(WelcomeScreen, { onModuleSelect: () => {}, profile });
-      }
+      const showWelcome = !activeModule;
+      const selectHandler = onModuleSelect || (() => {});
 
-      return e('div', { className: 'content' },
-        CONFIG.MODULES.map(mod =>
-          e('iframe', {
-            key: mod.id,
-            ref: (el) => { if (el) framesRef.current[mod.id] = el; },
-            className: 'module-frame' + (activeModule === mod.id ? ' active' : ''),
-            src: activeModule === mod.id || framesRef.current[mod.id] ? mod.url : undefined,
+      return e('div', {
+        className: 'content' + (showWelcome ? ' has-welcome-overlay' : ''),
+        'data-testid': 'module-host',
+        'data-active-module': activeModule || '',
+        'data-kept': [...keptIds].join(',')
+      },
+        CONFIG.MODULES.map(mod => {
+          const isActive = activeModule === mod.id;
+          const keep = isActive || keptIds.has(mod.id);
+          // Lazy: src erst setzen wenn aktiv oder keep-alive; einmal gesetzt bleibt
+          // die URL im kept-Set bis Tear-down.
+          const src = keep ? (mod.url || undefined) : undefined;
+          return e('iframe', {
+            key: mod.id + ':' + (frameEpoch || 0) + (src ? ':on' : ':off'),
+            ref: (el) => { if (el) framesRef.current[mod.id] = el; else delete framesRef.current[mod.id]; },
+            className: 'module-frame' + (isActive ? ' active' : ''),
+            'data-module': mod.id,
+            src,
             title: mod.name,
-            // Downloads werden nur fuer Connect freigegeben. Die Sandbox bleibt
-            // ansonsten unveraendert; insbesondere duerfen Popups sie nicht
-            // pauschal verlassen.
+            // Downloads nur fuer Connect; Sandbox sonst unveraendert.
             sandbox: 'allow-same-origin allow-scripts allow-forms allow-popups allow-modals' +
               (mod.id === 'connect' ? ' allow-downloads' : ''),
             allow: mod.kamera ? 'camera' : undefined,
             onLoad: () => handleIframeLoad(mod.id),
-            loading: 'lazy'
-          })
-        )
+            // Connect warm halten: kein loading=lazy wenn keep-alive
+            loading: keep && mod.id === 'connect' ? undefined : 'lazy'
+          });
+        }),
+        showWelcome && e('div', {
+          className: 'welcome-overlay',
+          'data-testid': 'welcome-overlay'
+        }, e(WelcomeScreen, { onModuleSelect: selectHandler, profile }))
       );
     }
 
@@ -3592,6 +3658,7 @@
       const [authState, setAuthState] = useState('loading'); // loading, login, authenticated, locked
       const [profile, setProfile] = useState(null);
       const [activeModule, setActiveModule] = useState('connect'); // v3.25.0: Hub startet mit Connect
+      const [frameEpoch, setFrameEpoch] = useState(0); // v3.27.0: Tear-down bei Logout
       const [showMitteilungenOverlay, setShowMitteilungenOverlay] = useState(false);
       const [overlayMitteilungen, setOverlayMitteilungen] = useState([]);
 
@@ -3810,6 +3877,7 @@
         setAuthState('login');
         setProfile(null);
         setActiveModule(null);
+        setFrameEpoch(n => n + 1); // PERF-01: iframe Tear-down
       }, []);
 
       const postToConnect = useCallback((payload) => {
@@ -3940,9 +4008,12 @@
               onHub: () => handleModuleSelect(null)
             }),
             e('main', { id: 'main', className: 'module-main', tabIndex: -1 },
-              activeModule
-                ? e(ModuleContent, { activeModule, profile })
-                : e(WelcomeScreen, { onModuleSelect: handleModuleSelect, profile })
+              e(ModuleContent, {
+                activeModule,
+                profile,
+                onModuleSelect: handleModuleSelect,
+                frameEpoch
+              })
             ),
             e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts }),
             showAppMenu && e(AppMenu, {

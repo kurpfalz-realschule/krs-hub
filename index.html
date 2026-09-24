@@ -1093,7 +1093,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.27.0',
+      VERSION: '3.28.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1548,6 +1548,11 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.28.0', date: '23.09.2026', items: [
+        'Sperren ist jetzt echt: „Jetzt sperren" und die Auto-Sperre melden dieses Gerät ab (auch Connect und neue Tabs). Entsperren mit dem Passwort.',
+        'Fehlermeldungen beim Anmelden sind verständlich und zeigen keine Server-Details mehr',
+        'Abmelden räumt auch die Connect-Entwürfe und Lesestände auf diesem Gerät ab (geteilte iPads)'
+      ]},
       { v: '3.27.0', date: '23.09.2026', items: [
         'Connect bleibt beim Wechsel zur Hub-Startseite geladen (kein Full-Reload mehr)',
         'Welcome/Dashboard liegt als Overlay über dem Connect-iframe; Logout räumt Frames auf',
@@ -1830,7 +1835,9 @@
         try {
           const { error } = await SupabaseAuthService.signIn(trimmed, password);
           if (error) {
-            setStatus({ type: 'error', msg: /invalid login credentials/i.test(error) ? 'E-Mail oder Passwort falsch.' : error });
+            // A9: keine rohen Server-Meldungen anzeigen
+            if (!/invalid login credentials/i.test(error)) console.warn('Login-Fehler:', error);
+            setStatus({ type: 'error', msg: /invalid login credentials/i.test(error) ? 'E-Mail oder Passwort falsch.' : 'Anmeldung fehlgeschlagen. Bitte später erneut versuchen.' });
             setLoading(false);
             return;
           }
@@ -1845,7 +1852,8 @@
           onLogin(profile);
           return; // Komponente wird unmountet — kein setState mehr danach
         } catch (err) {
-          setStatus({ type: 'error', msg: err.message || 'Anmeldung fehlgeschlagen' });
+          console.warn('Login:', err);
+          setStatus({ type: 'error', msg: 'Anmeldung fehlgeschlagen. Bitte Internetverbindung prüfen und erneut versuchen.' });
         }
         setLoading(false);
       }, [email, password, loading, onLogin]);
@@ -1927,7 +1935,8 @@
           }
           onUnlock(profile);
         } catch (err) {
-          setStatus({ type: 'error', msg: err.message || 'Entsperren fehlgeschlagen' });
+          console.warn('Entsperren:', err);
+          setStatus({ type: 'error', msg: 'Entsperren fehlgeschlagen. Bitte erneut versuchen.' });
           setPin('');
         }
         setLoading(false);
@@ -3659,6 +3668,7 @@
       const [profile, setProfile] = useState(null);
       const [activeModule, setActiveModule] = useState('connect'); // v3.25.0: Hub startet mit Connect
       const [frameEpoch, setFrameEpoch] = useState(0); // v3.27.0: Tear-down bei Logout
+      window.__krsHubAuth = SupabaseAuthService; // Test-Hook (A6: Sperre ruft signOut)
       const [showMitteilungenOverlay, setShowMitteilungenOverlay] = useState(false);
       const [overlayMitteilungen, setOverlayMitteilungen] = useState([]);
 
@@ -3799,6 +3809,9 @@
           showToast('Bildschirm gesperrt (Inaktivität)', 'info');
           try { sessionStorage.setItem('krs_hub_locked', '1'); } catch {}
           setAuthState('locked');
+          // A6 (3.28.0): Sperre ist echt — Sitzung auf DIESEM Gerät beenden (Hub + Connect,
+          // auch in neuen Tabs). Entsperren = Passwort-Anmeldung im LockScreen.
+          SupabaseAuthService.signOut();
         }
       }, [authState, profile]);
 
@@ -3874,6 +3887,13 @@
           sessionStorage.removeItem('krs_session');
           sessionStorage.removeItem('krs_pin_data');
         } catch {}
+        // A5 (3.28.0): persönliche Connect-Daten dieses Geräts (Entwürfe, Lesestände,
+        // Stummschaltungen: Schlüssel „krs-…") mit abräumen — gleiche Origin wie Connect.
+        try {
+          Object.keys(localStorage).forEach((k) => {
+            if (k !== 'krs-embedded' && (k.indexOf('krs-') === 0 || k.indexOf('sb-') === 0)) localStorage.removeItem(k);
+          });
+        } catch {}
         setAuthState('login');
         setProfile(null);
         setActiveModule(null);
@@ -3926,6 +3946,7 @@
         if (authState === 'authenticated' && profile) {
           try { sessionStorage.setItem('krs_hub_locked', '1'); } catch {}
           setAuthState('locked');
+          SupabaseAuthService.signOut();   // A6: echte Sperre, nicht nur optisch
           showToast('Bildschirm gesperrt', 'info');
         }
       }, [authState, profile]);

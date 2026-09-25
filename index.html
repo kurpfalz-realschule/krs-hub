@@ -1096,7 +1096,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.29.0',
+      VERSION: '3.30.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1352,10 +1352,8 @@
       async loadProfile(authUser) {
         const c = await this.ensureClient();
         const email = (authUser?.email || '').toLowerCase();
-        const { data, error } = await c.from('users')
-          .select('id, username, display_name, role, avatar_color, email, kuerzel')
-          .eq('email', email)
-          .maybeSingle();
+        // S-2 2.5 (25.09.2026): users.email ist per Spalten-GRANT gesperrt -> eigene Zeile per RPC.
+        const { data, error } = await c.rpc('krs_my_profile').maybeSingle();
         if (error) throw new Error('Profil laden fehlgeschlagen: ' + error.message);
         if (!data) return null;
         const nachname = (data.display_name || '').trim().split(/\s+/).pop() || '';
@@ -1551,6 +1549,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.30.0', date: '25.09.2026', items: [
+        'Datenschutz: das eigene Profil wird über eine geschützte Serverfunktion geladen (E-Mail-Adressen anderer sind nicht mehr abrufbar)'
+      ]},
       { v: '3.29.0', date: '24.09.2026', items: [
         'Links wie …#/apps oder …#/plan öffnen wieder direkt die richtige Seite (vorher sprang der Hub immer zu Connect)',
         'Die Connect-Kachel zeigt die Zahl ungelesener Beiträge und Nachrichten',

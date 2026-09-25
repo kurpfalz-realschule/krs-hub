@@ -75,9 +75,11 @@ test.describe('Mobile-Layout 320px — Reflow mit offenem Dialog (Demo)', () => 
     // Benutzermenü. Auf Mobile ist die Sidebar (inkl. sidebar-admin) versteckt;
     // der einzige erreichbare Weg zum Admin-Panel ist die Topbar (Avatar bleibt
     // sichtbar, siehe Test oben) → Benutzermenü → „Administration".
-    await page.goto(`${HUB_PATH}?forceMode=demo&forceUser=Ko`);
+    await page.goto(`${HUB_PATH}?forceMode=demo&forceUser=Ko#/apps`);
     await page.waitForFunction(() => typeof window.KRS_HUB_VERSION === 'string');
     await expect(page.locator('.shell')).toBeVisible({ timeout: 10_000 });
+    const ok = page.getByRole('button', { name: 'Verstanden', exact: true });
+    try { await ok.waitFor({ state: 'visible', timeout: 2_000 }); await ok.click(); } catch (e) {}
 
     expect(await hasHorizontalOverflow(page)).toBe(false);
 

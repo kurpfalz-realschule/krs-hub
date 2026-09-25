@@ -2,6 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
+  <meta name="referrer" content="same-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -12,16 +13,17 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <!-- React 18 via CDN (mit Fallback-URLs) -->
-  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
-  <script>if(!window.React){document.write('<scr'+'ipt src="https://unpkg.com/react@18/umd/react.production.min.js"><\/scr'+'ipt>')}</script>
-  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script>if(!window.ReactDOM){document.write('<scr'+'ipt src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/scr'+'ipt>')}</script>
+  <!-- C12 (3.29.0): feste Versionen + SRI, gleiche URLs wie Connect -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"></script>
+  <script>if(!window.React){document.write('<scr'+'ipt crossorigin integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"><\/scr'+'ipt>')}</script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"></script>
+  <script>if(!window.ReactDOM){document.write('<scr'+'ipt crossorigin integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"><\/scr'+'ipt>')}</script>
   <!-- Supabase JS v2 via CDN (mit Fallback) — Unified Login Modell B -->
-  <script crossorigin src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script>if(!(window.supabase&&window.supabase.createClient)){document.write('<scr'+'ipt src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\/scr'+'ipt>')}</script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js" integrity="sha384-q36VSR1ktH2hgqgm+0LDeyqPW8CyZHSxfDSttSPm5ReOJzB+sYThmh7D4fE+jWTs"></script>
+  <script>if(!(window.supabase&&window.supabase.createClient)){document.write('<scr'+'ipt crossorigin integrity="sha384-K1nraABOP/zFehpLIUksXebbs7jMpB8gYMlb+uhVKZcWT/9Vkq1+qhv6ndC+1Yuz" src="https://unpkg.com/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"><\/scr'+'ipt>')}</script>
   <!-- DOMPurify (XSS-Schutz für Schulleitungs-Board Richtext) mit Fallback -->
-  <script crossorigin src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
-  <script>if(!window.DOMPurify){document.write('<scr'+'ipt src="https://unpkg.com/dompurify@3.2.4/dist/purify.min.js"><\/scr'+'ipt>')}</script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu"></script>
+  <script>if(!window.DOMPurify){document.write('<scr'+'ipt crossorigin integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu" src="https://unpkg.com/dompurify@3.2.4/dist/purify.min.js"><\/scr'+'ipt>')}</script>
   <!-- Phase 3: iServ OAuth wird hier eingebunden -->
 
   <!-- N4 (Sprint N-Sonnet, 22.07.2026): Native-Link-Bridge für die iOS-App (Capacitor). -->
@@ -615,6 +617,8 @@
     }
 
     .login-logo { font-size: 48px; margin-bottom: 16px; }
+    /* C11: sichtbare Feldbeschriftungen statt nur Platzhalter */
+    .login-label { display: block; text-align: left; font-size: 13px; font-weight: 600; color: var(--text-secondary, #475569); margin: 10px 0 4px; }
 
     .login-card h1 {
       font-size: 22px;
@@ -963,10 +967,6 @@
       .hub-area-nav .hub-area-switch button.active {
         background: var(--primary); border-color: var(--primary); color: #fff;
       }
-      /* Desktop: Leiste nicht nötig — Sidebar deckt das ab */
-      @media (min-width: 769px) {
-        .hub-area-nav { display: none !important; }
-      }
 
       .mobile-tabs {
         display: flex !important;
@@ -1025,6 +1025,9 @@
 
     @media (min-width: 769px) {
       .mobile-tabs { display: none !important; }
+      /* C2 (3.29.0): war in @media (max-width:768px) verschachtelt und griff nie →
+         ab 769 px erschien die Mobil-Leiste als ungestylte Knöpfe. */
+      .hub-area-nav { display: none !important; }
     }
 
     /* ── Overlay (click-away) ─────────────────────── */
@@ -1093,7 +1096,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.28.0',
+      VERSION: '3.29.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1548,6 +1551,14 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.29.0', date: '24.09.2026', items: [
+        'Links wie …#/apps oder …#/plan öffnen wieder direkt die richtige Seite (vorher sprang der Hub immer zu Connect)',
+        'Die Connect-Kachel zeigt die Zahl ungelesener Beiträge und Nachrichten',
+        'Anmeldung mit Schul-Logo und beschrifteten Feldern; Kürzel im Profilkreis läuft nicht mehr über; „Arbeiten“ in der Seitenleiste vollständig lesbar',
+        'Weniger Datenverkehr: Update-Prüfung lädt nur noch eine winzige Datei, der Offline-Speicher wächst nicht mehr täglich',
+        'Am Laptop erscheint keine ungestylte Handy-Leiste mehr; das geschlossene Hilfe-Fenster wirft keinen Schatten',
+        'Bibliotheken mit festen Versionen und Prüfsumme geladen (sicherer)'
+      ]},
       { v: '3.28.0', date: '23.09.2026', items: [
         'Sperren ist jetzt echt: „Jetzt sperren" und die Auto-Sperre melden dieses Gerät ab (auch Connect und neue Tabs). Entsperren mit dem Passwort.',
         'Fehlermeldungen beim Anmelden sind verständlich und zeigen keine Server-Details mehr',
@@ -1669,13 +1680,21 @@
           const hasUpload = (window.__krsActiveUploads || 0) > 0 || !!document.querySelector('[data-uploading="true"], .upload-progress');
           return hasText || hasOpenDialog || hasUpload;
         };
-        const check = async ({ allowAutoReload = false } = {}) => {
+        // B6 (3.29.0): winzige version.json statt ganzer index.html; nur wenn sichtbar.
+        const fetchRemoteVersion = async () => {
           try {
-            const res = await fetch('index.html?_=' + Date.now(), { cache: 'no-store' });
-            if (!res.ok) return;
-            const txt = await res.text();
-            const m = txt.match(/VERSION:\s*'([^']+)'/);
-            const remote = m && m[1];
+            const r = await fetch('version.json?_=' + Date.now(), { cache: 'no-store' });
+            if (r.ok) { const j = await r.json(); if (j && j.version) return String(j.version); }
+          } catch (e) {}
+          const res = await fetch('index.html?_=' + Date.now(), { cache: 'no-store' });
+          if (!res.ok) return null;
+          const m = (await res.text()).match(/VERSION:\s*'([^']+)'/);
+          return m && m[1];
+        };
+        const check = async ({ allowAutoReload = false } = {}) => {
+          if (document.visibilityState !== 'visible') return;
+          try {
+            const remote = await fetchRemoteVersion();
             if (stopped || !remote) return;
             if (remote === current) {
               try { sessionStorage.removeItem('krs_autoreload_for'); } catch (e) {}
@@ -1860,10 +1879,12 @@
 
       return e('div', { className: 'login-screen' },
         e('form', { className: 'login-card', onSubmit: handleSubmit },
-          e('div', { className: 'login-logo' }, '🏫'),
+          e('div', { className: 'login-logo' }, e('img', { src: 'logo-krs.png', alt: CONFIG.SCHOOL_NAME, style: { width: '72px', height: '72px', objectFit: 'contain' } })),
           e('h1', null, CONFIG.APP_NAME),
           e('p', null, CONFIG.SCHOOL_NAME, e('br'), 'Einmal anmelden — gilt für Hub und Connect.'),
+          e('label', { className: 'login-label', htmlFor: 'hub-login-email' }, 'Schul-E-Mail'),
           e('input', {
+            id: 'hub-login-email',
             className: 'login-input',
             type: 'email',
             placeholder: 'nachname@' + CONFIG.ALLOWED_EMAIL_DOMAIN,
@@ -1878,7 +1899,9 @@
             'aria-describedby': status?.type === 'error' ? 'hub-login-status' : undefined,
             'data-testid': 'login-email'
           }),
+          e('label', { className: 'login-label', htmlFor: 'hub-login-password' }, 'Passwort'),
           e('input', {
+            id: 'hub-login-password',
             className: 'login-input',
             type: 'password',
             placeholder: 'Passwort',
@@ -2014,7 +2037,7 @@
               'aria-label': mod.name + (unreadCounts.get(mod.id) ? ' (' + unreadCounts.get(mod.id) + ' ungelesen)' : '')
             },
               e('span', { className: 'nav-icon' }, mod.icon),
-              e('span', { className: 'nav-label' }, mod.name),
+              e('span', { className: 'nav-label' }, mod.name === 'Klassenarbeiten' ? 'Arbeiten' : mod.name),   // C11: passte nicht in die 64-px-Leiste
               mod.badge && e('span', { style: { background: 'var(--danger, #dc2626)', color: '#fff', fontSize: '8px', fontWeight: 800, padding: '1px 4px', borderRadius: '6px', marginLeft: '2px' } }, mod.badge),
               unreadCounts.get(mod.id) > 0 && e('span', { className: 'nav-badge' }, unreadCounts.get(mod.id))
             )
@@ -2071,7 +2094,8 @@
     function TopBar({ activeModule, profile, onMenuToggle, onUserMenuToggle, showUserMenu, collapsed, onToggleCollapse }) {
       const mod = CONFIG.MODULES.find(m => m.id === activeModule);
       const title = mod ? mod.icon + ' ' + mod.name : CONFIG.APP_NAME;
-      const initials = profile?.kuerzel || profile?.display_name?.charAt(0) || '?';
+      // C11 (3.29.0): höchstens 3 Zeichen im Kreis (Demo-Kürzel „Demo“ lief über)
+      const initials = (k => k.length > 3 ? k.slice(0, 2) : k)(String(profile?.kuerzel || profile?.display_name?.charAt(0) || '?'));
       const isCollapsed = !!activeModule && !!collapsed;
 
       if (isCollapsed) {
@@ -3666,7 +3690,17 @@
     function App() {
       const [authState, setAuthState] = useState('loading'); // loading, login, authenticated, locked
       const [profile, setProfile] = useState(null);
-      const [activeModule, setActiveModule] = useState('connect'); // v3.25.0: Hub startet mit Connect
+      // v3.25.0: Hub startet mit Connect. 3.29.0: Startwert aus dem Hash lesen —
+      // sonst überschrieb der Hash-Schreib-Effekt beim ersten Render einen
+      // Deep-Link (#/apps, #/plan …) mit #/connect, bevor der Router ihn las.
+      const [activeModule, setActiveModule] = useState(() => {
+        try {
+          const h = window.location.hash.slice(2);
+          if (!h) return 'connect';
+          if (h === 'apps' || h === 'start') return null;
+          return CONFIG.MODULES.some(m => m.id === h) ? h : 'connect';
+        } catch (e) { return 'connect'; }
+      });
       const [frameEpoch, setFrameEpoch] = useState(0); // v3.27.0: Tear-down bei Logout
       window.__krsHubAuth = SupabaseAuthService; // Test-Hook (A6: Sperre ruft signOut)
       const [showMitteilungenOverlay, setShowMitteilungenOverlay] = useState(false);
@@ -4279,7 +4313,9 @@ window.KRS_COACH_CONFIG = {
     background:#F8F9FC;box-shadow:-8px 0 40px rgba(15,23,42,.28);display:flex;flex-direction:column;
     transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
     font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#1e293b}
-  .krsc-panel.krsc-open{transform:translateX(0)}
+  /* C9: geschlossen unsichtbar — sonst fällt der Schatten in den rechten Rand */
+  .krsc-panel:not(.krsc-open){visibility:hidden;box-shadow:none;transition:transform .28s cubic-bezier(.4,0,.2,1),visibility 0s linear .28s}
+  .krsc-panel.krsc-open{transform:translateX(0);visibility:visible}
   @media(max-width:520px){.krsc-panel{width:100vw}}
 
   .krsc-head{padding:18px 18px 14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;flex:0 0 auto}

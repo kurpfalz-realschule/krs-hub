@@ -121,13 +121,16 @@ test.describe('KRS Hub — automatische Aktualisierung', () => {
 
   test('Anmeldebildschirm zeigt die laufende Version', async ({ page }) => {
     await prepare(page, '3.23.0');
-    await expect(page.getByTestId('version-badge')).toHaveText('v3.23.0');
+    const running = await page.evaluate(() => (window as any).KRS_HUB_VERSION);
+    await expect(page.getByTestId('version-badge')).toHaveText('v' + running);
   });
 
   test('Demo-Modus pollt die Remote-Version nicht', async ({ page }) => {
     let pollRequests = 0;
+    const isHubPoll = (u: string) => { const x = new URL(u); return x.hostname === '127.0.0.1' && (x.pathname === '/index.html' || x.pathname === '/version.json'); };
+    await page.route('**/version.json*', async route => { if (!isHubPoll(route.request().url())) return route.continue(); pollRequests += 1; await route.fulfill({ status: 404, body: '' }); });
     await page.route('**/index.html?*', async route => {
-      if (route.request().resourceType() === 'document') return route.continue();
+      if (route.request().resourceType() === 'document' || !isHubPoll(route.request().url())) return route.continue();
       pollRequests += 1;
       await route.fulfill({ status: 200, body: `const CONFIG = { VERSION: '${REMOTE_VERSION}' };` });
     });

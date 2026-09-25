@@ -1,4 +1,4 @@
-import { cp, mkdir, rm } from 'node:fs/promises';
+import { cp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,5 +30,11 @@ for (const file of files) {
 for (const directory of directories) {
   await cp(resolve(root, directory), resolve(site, directory), { recursive: true });
 }
+
+// B6 (3.29.0): kleine version.json für den Update-Check (statt ganzer index.html)
+const html = await readFile(resolve(root, 'index.html'), 'utf8');
+const m = html.match(/VERSION:\s*'([^']+)'/);
+if (!m) throw new Error('CONFIG.VERSION nicht gefunden');
+await writeFile(resolve(site, 'version.json'), JSON.stringify({ version: m[1] }) + '\n');
 
 console.log(`Hub-Artefakt erstellt: ${site}`);

@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════
 // KRS Hub — Service Worker
-// Version: 3.24.0
+// Version: siehe VERSION (identisch mit CONFIG.VERSION)
 // Strategie: Network-First für HTML, Cache-First für CDN
 // Offline-Fallback: caches.match('./offline.html') bei Navigations-Requests
 // ═══════════════════════════════════════════════
 
-const VERSION = '3.28.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
+const VERSION = '3.29.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)
@@ -29,9 +29,10 @@ const LOCAL_ASSETS = [
 
 // CDN-Assets (Cache-First — ändern sich selten)
 const CDN_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js',
-  'https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+  'https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js',
+  'https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js',
+  'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js'
 ];
 
 // ── Install ──────────────────────────────────
@@ -60,6 +61,9 @@ self.addEventListener('activate', (event) => {
           .filter(key => key !== CACHE_NAME)
           .map(key => caches.delete(key))
       )
+    ).then(() => caches.open(CACHE_NAME)).then(cache =>
+      // C1: Altlasten mit Query-String aus dem aktuellen Cache räumen
+      cache.keys().then(reqs => Promise.all(reqs.filter(r => new URL(r.url).search !== '').map(r => cache.delete(r))))
     )
   );
   self.clients.claim();
@@ -94,18 +98,22 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Lokale Assets: Network-First (immer frisch, Fallback auf Cache)
+  // C1 (3.29.0): Anfragen mit Query-String (z. B. Update-Check index.html?_=<ts>)
+  // oder cache:'no-store' NICHT speichern — sonst wuchs der Cache täglich um
+  // eine komplette index.html pro Prüfung.
   if (url.origin === self.location.origin) {
+    const cacheable = event.request.method === 'GET' && url.search === '' && event.request.cache !== 'no-store';
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          if (response.ok) {
+          if (response.ok && cacheable) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           }
           return response;
         })
         .catch(() =>
-          caches.match(event.request).then(cached => {
+          caches.match(event.request, { ignoreSearch: true }).then(cached => {
             if (cached) return cached;
             // Letzter Fallback bei Navigations-Requests: Offline-Seite statt Browser-Fehlerseite
             if (event.request.mode === 'navigate') return caches.match('./offline.html');

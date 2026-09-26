@@ -1023,6 +1023,21 @@
       .topbar-username { display: none; }
     }
 
+    /* D4 (3.31.0): Ungelesen-/Dringend-Karte auf der Hub-Startseite */
+    .connect-unread-card {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin: 12px 16px 0; padding: 12px 16px; min-height: 44px;
+      background: var(--bg-card); color: var(--text); text-align: left;
+      border: 1px solid var(--border); border-left: 4px solid var(--primary);
+      border-radius: 12px; cursor: pointer; font: inherit; width: calc(100% - 32px);
+    }
+    .connect-unread-card.dringend { border-left-color: var(--error, #dc2626); }
+    .connect-unread-card:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; }
+    .connect-unread-card .cuc-titel { font-weight: 700; font-size: 14px; }
+    .connect-unread-card .cuc-dringend { color: #b91c1c; font-weight: 700; }
+    .connect-unread-card ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 12px; color: var(--text-muted); width: 100%; }
+    .connect-unread-card li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     @media (min-width: 769px) {
       .mobile-tabs { display: none !important; }
       /* C2 (3.29.0): war in @media (max-width:768px) verschachtelt und griff nie →
@@ -1096,7 +1111,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.30.0',
+      VERSION: '3.31.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1549,6 +1564,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.31.0', date: '26.09.2026', items: [
+        'Neue Karte auf der Startseite: „In Connect: 5 ungelesen · 1 dringend“ — ein Tipp öffnet Connect. Dringende Beiträge stehen mit Team und Kanal darunter (ohne Inhalt).'
+      ]},
       { v: '3.30.0', date: '25.09.2026', items: [
         'Datenschutz: das eigene Profil wird über eine geschützte Serverfunktion geladen (E-Mail-Adressen anderer sind nicht mehr abrufbar)'
       ]},
@@ -2253,6 +2271,34 @@
     // wichtig, seit die untere Leiste in Connect ausgeblendet wird.
 
     // v3.25.0 — dieselbe Bereichsleiste wie in Connect, auf der Hub-Startseite.
+    // D4 (3.31.0): Karte „📌 In Connect: 5 ungelesen · 1 dringend" auf der
+    // Startseite. Daten kommen per postMessage aus Connect (nur Zahlen +
+    // Team/Kanal-Namen, kein Beitragsinhalt). Nur sichtbar, wenn > 0.
+    function ConnectUnreadCard({ count, urgent, onOpen }) {
+      const n = Number(count) || 0;
+      if (n <= 0) return null;
+      const dCount = Number(urgent && urgent.count) || 0;
+      const liste = (urgent && Array.isArray(urgent.list)) ? urgent.list : [];
+      const label = 'In Connect: ' + n + ' ungelesen' + (dCount > 0 ? ' · ' + dCount + ' dringend' : '') + ' – öffnen';
+      return e('button', {
+        type: 'button',
+        className: 'connect-unread-card' + (dCount > 0 ? ' dringend' : ''),
+        'data-testid': 'connect-unread-card',
+        'aria-label': label,
+        onClick: onOpen
+      },
+        e('span', { 'aria-hidden': 'true', style: { fontSize: '20px' } }, dCount > 0 ? '🔴' : '📌'),
+        e('span', { style: { flex: 1, minWidth: 0 } },
+          e('span', { className: 'cuc-titel' }, 'In Connect: ' + n + ' ungelesen'),
+          dCount > 0 && e('span', { className: 'cuc-dringend', 'data-testid': 'connect-unread-urgent' }, ' · ' + dCount + ' dringend'),
+          liste.length > 0 && e('ul', null,
+            liste.map((u) => e('li', { key: u.id }, '🔴 ' + u.team + (u.kanal ? ' · #' + u.kanal : '')))
+          )
+        ),
+        e('span', { 'aria-hidden': 'true', style: { fontSize: '18px', color: 'var(--text-muted)' } }, '›')
+      );
+    }
+
     function HubAreaNav({ active, onTeams, onChats, onHub }) {
       return e('nav', {
         className: 'hub-area-nav',
@@ -3715,6 +3761,8 @@
       const [showHelp, setShowHelp] = useState(false);       // H-2
       const [showFeedback, setShowFeedback] = useState(false); // H-3
       const [unreadCounts, setUnreadCounts] = useState(new Map());
+      // D4 (3.31.0): ungelesene Dringend-Beiträge aus Connect (max. 3, ohne Inhalt)
+      const [connectUrgent, setConnectUrgent] = useState({ count: 0, list: [] });
       // Auto-Sperre bei Inaktivität — OPT-IN (Default aus), pro Gerät gespeichert
       const [autolock, setAutolock] = useState(() => { try { return localStorage.getItem('krs_hub_autolock') === '1'; } catch (e) { return false; } });
       const [autolockMin, setAutolockMin] = useState(() => { try { var v = parseInt(localStorage.getItem('krs_hub_autolock_min') || '10', 10); return [5, 10, 15, 30].indexOf(v) !== -1 ? v : 10; } catch (e) { return 10; } });
@@ -3880,6 +3928,16 @@
               next.set(event.data.moduleId, event.data.count);
               return next;
             });
+            if (event.data.moduleId === 'connect') {
+              const roh = Array.isArray(event.data.urgent) ? event.data.urgent : [];
+              const list = roh.slice(0, 3).map((u) => ({
+                id: Number(u && u.id) || 0,
+                team: String((u && u.team) || '').slice(0, 60),
+                kanal: String((u && u.kanal) || '').slice(0, 60)
+              }));
+              const cnt = Math.max(Number(event.data.urgentCount) || 0, list.length);
+              setConnectUrgent({ count: cnt, list });
+            }
           }
           // v3.19.0 — Ein Modul darf den Hub um einen Wechsel bitten. Genutzt von
           // Connect: dort ist die Hub-Leiste ausgeblendet, der Eintrag „▦ Apps“
@@ -4064,6 +4122,11 @@
               onHub: () => handleModuleSelect(null)
             }),
             e('main', { id: 'main', className: 'module-main', tabIndex: -1 },
+              !activeModule && e(ConnectUnreadCard, {
+                count: unreadCounts.get('connect') || 0,
+                urgent: connectUrgent,
+                onOpen: () => openConnectView('teams')
+              }),
               e(ModuleContent, {
                 activeModule,
                 profile,

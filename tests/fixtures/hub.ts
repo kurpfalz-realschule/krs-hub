@@ -30,8 +30,9 @@ export const test = base.extend<{ hubPage: Page }>({
 });
 
 /**
- * v3.19.0 (18.09.2026): Die Startseite zeigt nur noch fünf Kacheln (Connect,
- * Klassenarbeiten, iPad-Buchung, Kalender, Dateiablage). Alles andere —
+ * v3.19.0 (18.09.2026): Die Startseite zeigt die täglich gebrauchten Kacheln
+ * (Connect, Klassenarbeiten, iPad-Buchung, Kalender, Dateiablage Teams,
+ * Dateiablage Nextcloud). Alles andere —
  * Schüler-Hub, Homepage, Untis, Hilfe und die archivierte Projektwoche — steht
  * hinter „Weitere Apps“ und ist zugeklappt. Tests, die eine dieser Kacheln
  * brauchen, klappen sie hiermit auf.

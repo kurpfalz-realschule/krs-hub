@@ -174,7 +174,7 @@
     .nav-item.active { background: var(--bg-sidebar-active); color: var(--text-sidebar-active); font-weight: 600; border-left: 3px solid var(--primary); }
 
     .nav-icon { font-size: 20px; line-height: 1; }
-    .nav-label { font-size: 9px; font-weight: 500; letter-spacing: 0.3px; }
+    .nav-label { font-size: 9px; font-weight: 500; letter-spacing: 0.3px; text-align: center; line-height: 1.15; }
 
     .nav-badge {
       position: absolute;
@@ -1111,7 +1111,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.31.0',
+      VERSION: '3.32.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1194,7 +1194,10 @@
         { id: 'homepage', name: 'Homepage', icon: '\uD83C\uDF10', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#', group: 'more' },
         { id: 'untis', name: 'Untis', icon: '\uD83D\uDCCA', url: (window.KRS_TENANT && window.KRS_TENANT.UNTIS_URL) || '#', group: 'more' },
         { id: 'kalender', name: 'Kalender', icon: '\uD83D\uDDD3\uFE0F', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' },
-        { id: 'dateiablage', name: 'Dateiablage', icon: '\uD83D\uDCC1', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' },
+        // Zwei Ablagen, damit niemand die Team-Dateien mit der Schul-Cloud verwechselt.
+        // rail: kurzes Wort für die 64-px-Leiste (volle Namen stehen im Menü und auf den Kacheln).
+        { id: 'dateiablage-teams', name: 'Dateiablage Teams', rail: 'Dateien', icon: '\uD83D\uDCC1', action: 'connect-files' },
+        { id: 'dateiablage-nextcloud', name: 'Dateiablage Nextcloud', rail: 'Cloud', icon: '\u2601\uFE0F', url: (window.KRS_TENANT && window.KRS_TENANT.NEXTCLOUD_URL) || '#' },
         // Q3 (30.07.2026): statische Hilfe-Seite fürs Kollegium — relativer Pfad,
         // funktioniert unabhängig vom Deploy-Präfix. Erscheint automatisch in der
         // Sidebar UND als Dashboard-Kachel, da beide Stellen CONFIG.EXTERNAL_LINKS
@@ -1564,6 +1567,9 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.32.0', date: '29.09.2026', items: [
+        'Zwei Dateiablagen: „Dateiablage Teams“ (Ordner) öffnet die Dateien im Team. „Dateiablage Nextcloud“ (Wolke) öffnet die Schul-Cloud.'
+      ]},
       { v: '3.31.0', date: '26.09.2026', items: [
         'Neue Karte auf der Startseite: „In Connect: 5 ungelesen · 1 dringend“ — ein Tipp öffnet Connect. Dringende Beiträge stehen mit Team und Kanal darunter (ohne Inhalt).'
       ]},
@@ -2034,7 +2040,66 @@
     }
 
     // ── Sidebar ────────────────────────────────────
-    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile, onAdmin }) {
+    // Ein Extern-Eintrag an drei Stellen: Leiste, Startkachel, ☰-Menü.
+    // action 'connect-files' bleibt in der App (Team-Dateiablage), sonst neuer Tab.
+    function ExternKnoten(link, art, onOpenDateien, onClose) {
+      const dateien = link.action === 'connect-files';
+      const oeffneDateien = () => { if (onClose) onClose(); if (onOpenDateien) onOpenDateien(); };
+      if (art === 'rail') {
+        const props = {
+          key: link.id,
+          className: 'nav-item',
+          title: link.name,
+          'aria-label': link.name,
+          'data-testid': 'nav-' + link.id,
+          style: { textDecoration: 'none' }
+        };
+        const kinder = [
+          e('span', { key: 'i', className: 'nav-icon', 'aria-hidden': 'true' }, link.icon),
+          e('span', { key: 'l', className: 'nav-label' }, link.rail || link.name)
+        ];
+        if (dateien) return e('button', Object.assign({ type: 'button', onClick: oeffneDateien }, props), kinder);
+        return e('a', Object.assign({}, props, {
+          href: link.url, target: '_blank', rel: 'noopener noreferrer',
+          title: link.name + ' (öffnet in neuem Tab)'
+        }), kinder);
+      }
+      if (art === 'tile') {
+        const kinder = [
+          e('div', { key: 'i', className: 'module-card-icon', 'aria-hidden': 'true' }, link.icon),
+          e('div', { key: 't', className: 'module-card-title' }, link.name)
+        ];
+        if (dateien) {
+          return e('button', {
+            key: link.id, type: 'button', className: 'module-card',
+            'aria-label': link.name, 'data-testid': 'tile-' + link.id,
+            onClick: oeffneDateien,
+            style: { font: 'inherit', cursor: 'pointer', textAlign: 'inherit', color: 'inherit' }
+          }, kinder);
+        }
+        kinder.push(e('div', { key: 'x', style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, '\u2197'));
+        return e('a', {
+          key: link.id, className: 'module-card', href: link.url, target: '_blank', rel: 'noopener noreferrer',
+          'aria-label': link.name, 'data-testid': 'tile-' + link.id,
+          style: { textDecoration: 'none', color: 'inherit', opacity: 0.85 }
+        }, kinder);
+      }
+      if (dateien) {
+        return e('button', {
+          key: link.id, type: 'button', className: 'user-menu-item', role: 'menuitem',
+          'data-testid': 'appmenu-' + link.id, onClick: oeffneDateien,
+          style: { minHeight: '44px', width: '100%', textAlign: 'left' }
+        }, link.icon, ' ' + link.name);
+      }
+      return e('a', {
+        key: link.id, className: 'user-menu-item', role: 'menuitem',
+        href: link.url, target: '_blank', rel: 'noopener noreferrer',
+        'data-testid': 'appmenu-' + link.id, onClick: onClose,
+        style: { minHeight: '44px', textDecoration: 'none', color: 'inherit' }
+      }, link.icon, ' ' + link.name, e('span', { style: { marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' } }, '\u2197'));
+    }
+
+    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile, onAdmin, onOpenDateien }) {
       return e('nav', { className: 'sidebar', role: 'navigation', 'aria-label': 'Hauptnavigation' },
         e('button', {
           type: 'button',
@@ -2068,20 +2133,7 @@
 
         // Externe Links
         e('div', { className: 'sidebar-nav', style: { flex: 'none' } },
-          PRIMAER_LINKS().map(link =>
-            e('a', {
-              key: link.id,
-              className: 'nav-item',
-              href: link.url,
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              title: link.name + ' (öffnet in neuem Tab)',
-              style: { textDecoration: 'none', color: 'inherit' }
-            },
-              e('span', { className: 'nav-icon' }, link.icon),
-              e('span', { className: 'nav-label' }, link.name)
-            )
-          )
+          PRIMAER_LINKS().map(link => ExternKnoten(link, 'rail', onOpenDateien))
         ),
 
         e('div', { className: 'sidebar-footer' },
@@ -2385,7 +2437,7 @@
       );
     }
 
-    function AppMenu({ activeModule, onSelect, onClose }) {
+    function AppMenu({ activeModule, onSelect, onClose, onOpenDateien }) {
       const zeile = (eintrag, istArchiv) => e('button', {
         key: eintrag.id,
         type: 'button',
@@ -2397,17 +2449,7 @@
         style: { minHeight: '44px', fontWeight: activeModule === eintrag.id ? 700 : 400, opacity: istArchiv ? 0.7 : 1 }
       }, eintrag.icon, ' ' + eintrag.name + (istArchiv ? ' (Archiv)' : ''));
 
-      const linkZeile = (link) => e('a', {
-        key: link.id,
-        className: 'user-menu-item',
-        role: 'menuitem',
-        href: link.url,
-        target: '_blank',
-        rel: 'noopener noreferrer',
-        'data-testid': 'appmenu-' + link.id,
-        onClick: onClose,
-        style: { minHeight: '44px', textDecoration: 'none', color: 'inherit' }
-      }, link.icon, ' ' + link.name, e('span', { style: { marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' } }, '\u2197'));
+      const linkZeile = (link) => ExternKnoten(link, 'menu', onOpenDateien, onClose);
 
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
@@ -2588,7 +2630,7 @@
       );
     }
 
-    function WelcomeScreen({ onModuleSelect, profile }) {
+    function WelcomeScreen({ onModuleSelect, profile, onOpenDateien }) {
       const [openFaq, setOpenFaq] = useState(null);
       // v3.19.0: „Weitere Apps“ startet zugeklappt — die Startseite soll das
       // Wichtige zeigen, nicht alles. Die Wahl merkt sich der Browser.
@@ -2706,21 +2748,7 @@
               mod.badge && e('div', { style: { position: 'absolute', top: '8px', right: '8px', background: 'var(--danger, #dc2626)', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '8px', letterSpacing: '0.5px' } }, mod.badge)
             )
           ),
-          // Externe Links
-          PRIMAER_LINKS().map(link =>
-            e('a', {
-              key: link.id,
-              className: 'module-card',
-              href: link.url,
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              style: { textDecoration: 'none', color: 'inherit', opacity: 0.85 }
-            },
-              e('div', { className: 'module-card-icon' }, link.icon),
-              e('div', { className: 'module-card-title' }, link.name),
-              e('div', { style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, '↗')
-            )
-          )
+          PRIMAER_LINKS().map(link => ExternKnoten(link, 'tile', onOpenDateien))
         ),
 
         // ── Weitere Apps (zugeklappt) + Archiv ──
@@ -2746,16 +2774,7 @@
                 mod.badge && e('div', { style: { position: 'absolute', top: '8px', right: '8px', background: 'var(--danger, #dc2626)', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '1px 6px', borderRadius: '8px', letterSpacing: '0.5px' } }, mod.badge)
               )
             ),
-            WEITERE_LINKS().map(link =>
-              e('a', {
-                key: link.id, className: 'module-card', href: link.url, target: '_blank', rel: 'noopener noreferrer',
-                style: { textDecoration: 'none', color: 'inherit', opacity: 0.85 }
-              },
-                e('div', { className: 'module-card-icon' }, link.icon),
-                e('div', { className: 'module-card-title' }, link.name),
-                e('div', { style: { fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' } }, '\u2197')
-              )
-            ),
+            WEITERE_LINKS().map(link => ExternKnoten(link, 'tile', onOpenDateien)),
             ARCHIV_MODULE().map(mod =>
               e('button', {
                 key: mod.id, type: 'button', className: 'module-card', 'data-testid': 'archiv-' + mod.id,
@@ -2910,7 +2929,7 @@
     // v3.27.0 PERF-01: Keep-alive — activeModule===null unmountet Frames NICHT mehr.
     // Welcome/Dashboard als Overlay. Keep-alive zuerst nur Connect + zuletzt
     // genutztes anderes Modul (iPad-RAM). Logout: frameEpoch → Tear-down.
-    function ModuleContent({ activeModule, profile, onModuleSelect, frameEpoch }) {
+    function ModuleContent({ activeModule, profile, onModuleSelect, onOpenDateien, frameEpoch }) {
       const framesRef = useRef({});
       // Welche Module dürfen src behalten (einmal gesetzt → warm)
       const [keptIds, setKeptIds] = useState(() => new Set());
@@ -3001,7 +3020,7 @@
         showWelcome && e('div', {
           className: 'welcome-overlay',
           'data-testid': 'welcome-overlay'
-        }, e(WelcomeScreen, { onModuleSelect: selectHandler, profile }))
+        }, e(WelcomeScreen, { onModuleSelect: selectHandler, onOpenDateien, profile }))
       );
     }
 
@@ -4006,15 +4025,30 @@
         } catch (e) { return false; }
       }, []);
 
-      const openConnectView = useCallback((view) => {
+      const openConnectView = useCallback((view, teamTab) => {
         setActiveModule('connect');
         setShowUserMenu(false);
         setShowAppMenu(false);
-        // iframe kann noch laden — kurz nachfassen
-        const send = () => postToConnect({ type: 'KRS_CONNECT_SET_VIEW', view });
+        const payload = { type: 'KRS_CONNECT_SET_VIEW', view: view };
+        if (teamTab) payload.teamTab = teamTab;
+        // iframe kann noch laden — kurz nachfassen. Zusätzlich denselben Tab
+        // antippen, falls Connect schon offen ist (gleiche Origin, github.io).
+        const send = () => {
+          const posted = postToConnect(payload);
+          if (teamTab) {
+            try {
+              const frame = document.querySelector('iframe.module-frame[data-module="connect"]');
+              const btn = frame && frame.contentDocument && frame.contentDocument.querySelector('[data-testid="team-tab-' + teamTab + '"]');
+              if (btn) btn.click();
+            } catch (err) {}
+          }
+          return posted;
+        };
         if (!send()) setTimeout(send, 400);
         setTimeout(send, 900);
+        if (teamTab) setTimeout(send, 1800);
       }, [postToConnect]);
+      const openConnectDateien = useCallback(() => openConnectView('teams', 'links'), [openConnectView]);
 
       const handleModuleSelect = useCallback((moduleId) => {
         setActiveModule(moduleId);
@@ -4103,7 +4137,8 @@
             onModuleSelect: handleModuleSelect,
             unreadCounts,
             profile,
-            onAdmin: () => setShowAdmin(true)
+            onAdmin: () => setShowAdmin(true),
+            onOpenDateien: openConnectDateien
           }),
           e('div', { className: 'main' },
             e(TopBar, {
@@ -4131,6 +4166,7 @@
                 activeModule,
                 profile,
                 onModuleSelect: handleModuleSelect,
+                onOpenDateien: openConnectDateien,
                 frameEpoch
               })
             ),
@@ -4138,7 +4174,8 @@
             showAppMenu && e(AppMenu, {
               activeModule,
               onSelect: (id) => { setShowAppMenu(false); handleModuleSelect(id); },
-              onClose: () => setShowAppMenu(false)
+              onClose: () => setShowAppMenu(false),
+              onOpenDateien: openConnectDateien
             })
           )
         ),

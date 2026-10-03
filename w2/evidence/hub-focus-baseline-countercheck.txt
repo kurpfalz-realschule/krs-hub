@@ -1,0 +1,41 @@
+[2m[WebServer] [22m(node:63520) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
+[2m[WebServer] [22m(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+  ✓  1 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (603ms)
+  ✓  2 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (425ms)
+  ✓  3 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (439ms)
+  ✓  4 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (528ms)
+  ✘  5 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (438ms)
+
+
+  1) [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"admin-tab-l[7mogin[27m"[39m
+    Received: [31m"admin-tab-l[7mehrer[27m"[39m
+
+      85 |     await expect(page.locator('#admpanel')).toHaveAttribute('aria-labelledby', 'admtab-login');
+      86 |     // Fokus ist mit der Auswahl gewandert.
+    > 87 |     expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('admin-tab-login');
+         |                                                                                            ^
+      88 |     // Home springt zum ersten Tab zurück.
+      89 |     await page.keyboard.press('Home');
+      90 |     await expect(firstTab).toHaveAttribute('aria-selected', 'true');
+        at /Volumes/2tb/Codex playground/teams 2.0/_lokal/w2-staging-2026-10-03/hub/tests/hub/smoke-a11y-focus.spec.ts:87:92
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub-repeat4/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub-repeat4/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub-repeat4/error-context.md
+
+  1 failed
+    [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl 
+  4 passed (4.0s)

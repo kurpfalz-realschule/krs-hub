@@ -1,0 +1,48 @@
+[2m[WebServer] [22m(node:63341) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
+[2m[WebServer] [22m(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+  ✓   1 [hub] › tests/hub/smoke-a11y-focus.spec.ts:24:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Skip-Link ist das erste fokussierbare Element und der Inhalt liegt in <main id="main"> (421ms)
+  -   2 [hub] › tests/hub/smoke-a11y-focus.spec.ts:52:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Lern-Coach-Panel (geschlossen) wird vom Focus-Trap nicht als offener Dialog erkannt
+  ✘   3 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (523ms)
+  ✓   4 [hub] › tests/hub/smoke-a11y-focus.spec.ts:93:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Focus-Trap im Admin-Dialog; Escape schließt und gibt den Fokus zurück (463ms)
+  ✓   5 [hub] › tests/hub/smoke-w2-flags.spec.ts:15:5 › W2 default off blocks tile and direct hash (395ms)
+  ✓   6 [hub] › tests/hub/smoke-w2-flags.spec.ts:21:5 › server toggle opens placeholder and revocation removes active iframe (533ms)
+  ✓   7 [hub] › tests/hub/smoke-w2-flags.spec.ts:33:5 › tenant false overrides server true (347ms)
+  ✓   8 [hub] › tests/hub/smoke-w2-flags.spec.ts:38:5 › query error removes previously enabled tile (539ms)
+  ✓   9 [hub] › tests/hub/smoke-w2-flags.spec.ts:46:5 › stale enabled response cannot undo reset (473ms)
+  ✓  10 [hub] › tests/hub/smoke-w2-flags.spec.ts:60:5 › parallel refresh keeps latest disabled result (353ms)
+  ✓  11 [hub] › tests/hub/smoke-w2-flags.spec.ts:74:5 › missing flags script keeps the existing Hub usable and Unterricht closed (310ms)
+
+
+  1) [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"admin-tab-l[7mogin[27m"[39m
+    Received: [31m"admin-tab-l[7mehrer[27m"[39m
+
+      85 |     await expect(page.locator('#admpanel')).toHaveAttribute('aria-labelledby', 'admtab-login');
+      86 |     // Fokus ist mit der Auswahl gewandert.
+    > 87 |     expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('admin-tab-login');
+         |                                                                                            ^
+      88 |     // Home springt zum ersten Tab zurück.
+      89 |     await page.keyboard.press('Home');
+      90 |     await expect(firstTab).toHaveAttribute('aria-selected', 'true');
+        at /Volumes/2tb/Codex playground/teams 2.0/_lokal/w2-staging-2026-10-03/hub/tests/hub/smoke-a11y-focus.spec.ts:87:92
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub/error-context.md
+
+  1 failed
+    [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl 
+  1 skipped
+  9 passed (5.8s)

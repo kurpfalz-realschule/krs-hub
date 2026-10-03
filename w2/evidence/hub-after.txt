@@ -1,0 +1,177 @@
+[2m[WebServer] [22m(node:62978) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
+[2m[WebServer] [22m(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 104 tests using 1 worker
+
+  ✓    1 [hub] › tests/hub/a11y-axe.spec.ts:61:7 › KRS Hub — WCAG 2.1 AA (axe-core) › Shell hat keine kritischen axe-Verstöße (858ms)
+  ✓    2 [hub] › tests/hub/a11y-axe.spec.ts:74:7 › KRS Hub — WCAG 2.1 AA (axe-core) › Shell hat keine kritischen axe-Verstöße (forceUser=Ko, DEMO_KOLLEGIUM) (628ms)
+  ✓    3 [hub] › tests/hub/a11y-axe.spec.ts:79:7 › KRS Hub — WCAG 2.1 AA (axe-core) › Jedes iframe hat ein aussagekräftiges title-Attribut (333ms)
+  ✓    4 [hub] › tests/hub/a11y-axe.spec.ts:97:7 › KRS Hub — WCAG 2.1 AA (axe-core) › Topbar-Toggle spiegelt den Zustand in aria-expanded (404ms)
+  ✓    5 [hub] › tests/hub/a11y-axe.spec.ts:113:7 › KRS Hub — WCAG 2.1 AA (axe-core) › Lockscreen hat keine kritischen axe-Verstöße (716ms)
+  ✓    6 [hub] › tests/hub/admin.spec.ts:13:7 › KRS Hub — Admin-Panel (Demo) › Superadmin öffnet das Panel ohne PIN (397ms)
+  ✓    7 [hub] › tests/hub/admin.spec.ts:22:7 › KRS Hub — Admin-Panel (Demo) › Lehrkraft anlegen und CSV prüfen (549ms)
+  ✓    8 [hub] › tests/hub/admin.spec.ts:37:7 › KRS Hub — Admin-Panel (Demo) › Koffer lässt sich im Demo-Store anlegen (513ms)
+  ✓    9 [hub] › tests/hub/admin.spec.ts:47:7 › KRS Hub — Admin-Panel (Demo) › Mitgliedschaft lässt sich toggeln (513ms)
+  ✓   10 [hub] › tests/hub/admin.spec.ts:56:7 › KRS Hub — Admin-Panel (Demo) › Klassenarbeit lässt sich über die Demo-Bridge löschen (564ms)
+  ✓   11 [hub] › tests/hub/admin.spec.ts:64:7 › KRS Hub — Admin-Panel (Demo) › Normaler Admin sieht keinen Rollen-Umschalter (443ms)
+  ✓   12 [hub] › tests/hub/smoke-a11y-focus.spec.ts:24:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Skip-Link ist das erste fokussierbare Element und der Inhalt liegt in <main id="main"> (386ms)
+  -   13 [hub] › tests/hub/smoke-a11y-focus.spec.ts:52:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Lern-Coach-Panel (geschlossen) wird vom Focus-Trap nicht als offener Dialog erkannt
+  ✘   14 [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl (407ms)
+  ✓   15 [hub] › tests/hub/smoke-a11y-focus.spec.ts:93:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Focus-Trap im Admin-Dialog; Escape schließt und gibt den Fokus zurück (444ms)
+  ✓   16 [hub] › tests/hub/smoke-auto-update.spec.ts:35:7 › KRS Hub — automatische Aktualisierung › neuere Version lädt nach 60 Sekunden im Hintergrund automatisch (416ms)
+  ✓   17 [hub] › tests/hub/smoke-auto-update.spec.ts:45:7 › KRS Hub — automatische Aktualisierung › Text im Composer verhindert Reload und zeigt das Banner (331ms)
+  ✓   18 [hub] › tests/hub/smoke-auto-update.spec.ts:61:7 › KRS Hub — automatische Aktualisierung › offener Dialog verhindert den automatischen Reload (375ms)
+  ✓   19 [hub] › tests/hub/smoke-auto-update.spec.ts:76:7 › KRS Hub — automatische Aktualisierung › laufender Upload verhindert den automatischen Reload (316ms)
+  ✘   20 [hub] › tests/hub/smoke-auto-update.spec.ts:87:7 › KRS Hub — automatische Aktualisierung › gleiche Remote-Version zeigt kein Banner und lädt nicht neu (8.3s)
+  ✓   21 [hub] › tests/hub/smoke-auto-update.spec.ts:97:7 › KRS Hub — automatische Aktualisierung › nur fünf Sekunden im Hintergrund lösen keinen Reload aus (640ms)
+  ✓   22 [hub] › tests/hub/smoke-auto-update.spec.ts:107:7 › KRS Hub — automatische Aktualisierung › dieselbe alte Version lädt nach dem ersten Reload nicht erneut (656ms)
+  ✓   23 [hub] › tests/hub/smoke-auto-update.spec.ts:122:7 › KRS Hub — automatische Aktualisierung › Anmeldebildschirm zeigt die laufende Version (350ms)
+  ✓   24 [hub] › tests/hub/smoke-auto-update.spec.ts:128:7 › KRS Hub — automatische Aktualisierung › Demo-Modus pollt die Remote-Version nicht (1.1s)
+  ✓   25 [hub] › tests/hub/smoke-autolock.spec.ts:9:7 › KRS Hub — Auto-Sperre › ist standardmäßig aus (554ms)
+  ✓   26 [hub] › tests/hub/smoke-autolock.spec.ts:17:7 › KRS Hub — Auto-Sperre › Opt-in wird gespeichert (519ms)
+  ✓   27 [hub] › tests/hub/smoke-autolock.spec.ts:31:7 › KRS Hub — Auto-Sperre › manuelles Sperren bleibt verfügbar (519ms)
+  ✓   28 [hub] › tests/hub/smoke-badges.spec.ts:14:7 › KRS Hub — Kacheln & Badges › statisches "NEU"-Badge erscheint auf einer Kachel (467ms)
+  ✓   29 [hub] › tests/hub/smoke-badges.spec.ts:21:7 › KRS Hub — Kacheln & Badges › ohne Nachricht zeigt die Connect-Kachel/Sidebar keinen Ungelesen-Badge (410ms)
+  ✓   30 [hub] › tests/hub/smoke-badges.spec.ts:28:7 › KRS Hub — Kacheln & Badges › KRS_HUB_UNREAD_UPDATE setzt den Badge in Sidebar und aria-label (442ms)
+  ✓   31 [hub] › tests/hub/smoke-badges.spec.ts:39:7 › KRS Hub — Kacheln & Badges › Badge verschwindet wieder, sobald der Zähler auf 0 gesetzt wird (444ms)
+  ✓   32 [hub] › tests/hub/smoke-badges.spec.ts:53:7 › KRS Hub — Kacheln & Badges › Badge erscheint ebenfalls in der mobilen Tab-Leiste (412ms)
+  ✓   33 [hub] › tests/hub/smoke-connect-download.spec.ts:7:7 › KRS Hub — Connect-Downloads in der echten iframe-Huelle › Connect darf einen Blob mit Name und unveraenderten Bytes herunterladen (323ms)
+  ✓   34 [hub] › tests/hub/smoke-connect-download.spec.ts:37:7 › KRS Hub — Connect-Downloads in der echten iframe-Huelle › andere Module erhalten keine zusaetzliche Download-Freigabe (389ms)
+  ✓   35 [hub] › tests/hub/smoke-connect-unread-card.spec.ts:12:7 › KRS Hub — Connect-Karte ungelesen/dringend (D4) › ohne Nachricht keine Karte (424ms)
+  ✓   36 [hub] › tests/hub/smoke-connect-unread-card.spec.ts:16:7 › KRS Hub — Connect-Karte ungelesen/dringend (D4) › Nachricht mit Dringend → Karte mit Zahlen und Team/Kanal, 0 → weg (444ms)
+  ✓   37 [hub] › tests/hub/smoke-connect-unread-card.spec.ts:35:7 › KRS Hub — Connect-Karte ungelesen/dringend (D4) › alte Connect-Version (nur count) → Karte ohne Dringend-Zeile (458ms)
+  ✓   38 [hub] › tests/hub/smoke-connect-unread-card.spec.ts:43:7 › KRS Hub — Connect-Karte ungelesen/dringend (D4) › Klick öffnet Connect (483ms)
+  ✓   39 [hub] › tests/hub/smoke-connect-unread-card.spec.ts:52:7 › KRS Hub — Connect-Karte ungelesen/dringend (D4) › Zähler eines anderen Moduls erzeugt keine Connect-Karte (345ms)
+  ✓   40 [hub] › tests/hub/smoke-csv-import-contract.spec.ts:16:7 › KRS Hub — CSV-Import Payload-Contract (INT-1) › parseUsersCSV liefert nur Backend-erlaubte Felder (406ms)
+  ✓   41 [hub] › tests/hub/smoke-dateiablage-menu.spec.ts:4:7 › Dateiablage Teams und Nextcloud › Menü, Leiste und Kacheln unterscheiden beide Ablagen (510ms)
+  ✓   42 [hub] › tests/hub/smoke-dateiablage-menu.spec.ts:30:7 › Dateiablage Teams und Nextcloud › Schmale Ansicht: beide Kacheln, kein seitlicher Überlauf (454ms)
+  ✓   43 [hub] › tests/hub/smoke-hilfe.spec.ts:12:7 › KRS Hub — Hilfe-Seite (statisch) › lädt unter /hilfe/ mit Status 200 (4ms)
+  ✓   44 [hub] › tests/hub/smoke-hilfe.spec.ts:19:7 › KRS Hub — Hilfe-Seite (statisch) › hat eine sichtbare H1 und mindestens drei funktionierende TOC-Anker (147ms)
+  ✓   45 [hub] › tests/hub/smoke-hilfe.spec.ts:46:7 › KRS Hub — Hilfe-Seite (statisch) › Kontakt nennt Norbert Kotzan mit dienstlicher Adresse, keine private Nummer (110ms)
+  ✓   46 [hub] › tests/hub/smoke-hilfe.spec.ts:53:7 › KRS Hub — Hilfe-Seite (statisch) › Hub-Startseite verlinkt „❓ Hilfe" relativ auf ./hilfe/ (397ms)
+  ✓   47 [hub] › tests/hub/smoke-ipad-kachel.spec.ts:4:7 › KRS Hub — iPad-Buchung (Q1) › zeigt genau eine Kachel ohne Alt-/Neu-Zusatz (374ms)
+  ✓   48 [hub] › tests/hub/smoke-ipad-kachel.spec.ts:12:7 › KRS Hub — iPad-Buchung (Q1) › Kachel öffnet ausschließlich ipad-buchung-neu (487ms)
+  ✓   49 [hub] › tests/hub/smoke-lockscreen.spec.ts:12:7 › KRS Hub — Lockscreen › User-Menü bietet die Sperre an (464ms)
+  ✓   50 [hub] › tests/hub/smoke-lockscreen.spec.ts:17:7 › KRS Hub — Lockscreen › Demo-Entsperren führt zurück ins Dashboard (566ms)
+  ✓   51 [hub] › tests/hub/smoke-lockscreen.spec.ts:26:7 › KRS Hub — Lockscreen › Anderer Benutzer führt zurück zum Login (486ms)
+  ✓   52 [hub] › tests/hub/smoke-lockscreen.spec.ts:32:7 › KRS Hub — Lockscreen › A6: Sperren beendet die Sitzung auf dem Gerät (signOut) (534ms)
+  ✓   53 [hub] › tests/hub/smoke-login-status.spec.ts:26:7 › KRS Hub — Login-Status (Demo) › zeigt Zusammenfassung und standardmäßig nur die Nicht-Eingeloggten (442ms)
+  ✓   54 [hub] › tests/hub/smoke-login-status.spec.ts:40:7 › KRS Hub — Login-Status (Demo) › Umschalten auf „alle" zeigt das ganze Kollegium (532ms)
+  ✓   55 [hub] › tests/hub/smoke-login-status.spec.ts:49:7 › KRS Hub — Login-Status (Demo) › Sammel-Versand fragt vorher nach und lässt sich abbrechen (552ms)
+  ✓   56 [hub] › tests/hub/smoke-login-status.spec.ts:67:7 › KRS Hub — Login-Status (Demo) › ESC schließt nur den Bestätigungsdialog, nicht das Admin-Panel (460ms)
+  ✓   57 [hub] › tests/hub/smoke-login-status.spec.ts:76:7 › KRS Hub — Login-Status (Demo) › Einzel-Versand: Bestätigen zeigt Ergebnis und Toast (663ms)
+  ✓   58 [hub] › tests/hub/smoke-login-status.spec.ts:89:7 › KRS Hub — Login-Status (Demo) › A11Y: Buttons haben sprechende Labels, Fokus landet im Dialog (549ms)
+  ✓   59 [hub] › tests/hub/smoke-login.spec.ts:5:7 › KRS Hub — Login-Screen › ohne Session erscheint der E-Mail-Login (338ms)
+  ✓   60 [hub] › tests/hub/smoke-login.spec.ts:14:7 › KRS Hub — Login-Screen › fremde Domain wird clientseitig abgelehnt (455ms)
+  ✓   61 [hub] › tests/hub/smoke-login.spec.ts:26:7 › KRS Hub — Login-Screen › Demo-Hook überspringt den Login (523ms)
+  ✓   62 [hub] › tests/hub/smoke-mobile-layout.spec.ts:40:9 › Mobile-Layout (Demo) — 320px (iPhone SE) › Sidebar ist ausgeblendet, mobile-tabs zeigt die Modul-Navigation (449ms)
+  ✓   63 [hub] › tests/hub/smoke-mobile-layout.spec.ts:56:9 › Mobile-Layout (Demo) — 320px (iPhone SE) › Bottom-Bar blendet Ballast aus (Username-Text neben dem Avatar) (411ms)
+  ✓   64 [hub] › tests/hub/smoke-mobile-layout.spec.ts:63:9 › Mobile-Layout (Demo) — 320px (iPhone SE) › Hauptansicht hat kein horizontales Scrollen (413ms)
+  ✓   65 [hub] › tests/hub/smoke-mobile-layout.spec.ts:40:9 › Mobile-Layout (Demo) — 390px (iPhone-Format) › Sidebar ist ausgeblendet, mobile-tabs zeigt die Modul-Navigation (394ms)
+  ✓   66 [hub] › tests/hub/smoke-mobile-layout.spec.ts:56:9 › Mobile-Layout (Demo) — 390px (iPhone-Format) › Bottom-Bar blendet Ballast aus (Username-Text neben dem Avatar) (383ms)
+  ✓   67 [hub] › tests/hub/smoke-mobile-layout.spec.ts:63:9 › Mobile-Layout (Demo) — 390px (iPhone-Format) › Hauptansicht hat kein horizontales Scrollen (544ms)
+  ✓   68 [hub] › tests/hub/smoke-mobile-layout.spec.ts:73:7 › Mobile-Layout 320px — Reflow mit offenem Dialog (Demo) › Admin-Panel bei 320px: kein horizontales Scrollen, Dialog bleibt bedienbar (504ms)
+  ✓   69 [hub] › tests/hub/smoke-modules.spec.ts:7:7 › KRS Hub — Modul-Switch › Connect-Modul öffnet genau ein iframe (596ms)
+  ✓   70 [hub] › tests/hub/smoke-modules.spec.ts:14:7 › KRS Hub — Modul-Switch › Hash-Router setzt #/connect (1.1s)
+  ✓   71 [hub] › tests/hub/smoke-modules.spec.ts:20:7 › KRS Hub — Modul-Switch › Homepage-Link ist auf dem Dashboard verfügbar (1.6s)
+  ✓   72 [hub] › tests/hub/smoke-modules.spec.ts:30:7 › KRS Hub — PERF-01 Keep-alive › Hub-Start zeigt Welcome-Overlay, Connect-Host bleibt gemountet (543ms)
+  ✓   73 [hub] › tests/hub/smoke-native-linkbridge.spec.ts:8:7 › KRS Hub — Native-Link-Bridge (Sprint N4, Guard-Verhalten) › ohne window.Capacitor bleibt der Shim inaktiv (333ms)
+  ✓   74 [hub] › tests/hub/smoke-native-linkbridge.spec.ts:12:7 › KRS Hub — Native-Link-Bridge (Sprint N4, Guard-Verhalten) › externer Link öffnet weiterhin normal in neuem Tab (preventDefault wird nicht gerufen) (508ms)
+  ✓   75 [hub] › tests/hub/smoke-notizen-kachel.spec.ts:19:7 › KRS Hub — Notizen ist keine Kachel mehr › Startseite zeigt keine Notizen-Kachel (356ms)
+  ✓   76 [hub] › tests/hub/smoke-notizen-kachel.spec.ts:24:7 › KRS Hub — Notizen ist keine Kachel mehr › Die alte Notizen-Seite bleibt erreichbar (488ms)
+  ✓   77 [hub] › tests/hub/smoke-pwa.spec.ts:4:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › manifest.json: 200, standalone, mindestens 3 Icons, alle Icon-URLs erreichbar (5ms)
+  ✓   78 [hub] › tests/hub/smoke-pwa.spec.ts:18:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › Manifest-Icons haben die deklarierten Pixelmaße (PNG-IHDR) (5ms)
+  ✓   79 [hub] › tests/hub/smoke-pwa.spec.ts:37:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › mindestens ein maskable Icon ist deklariert (Android/adaptive Icons) (1ms)
+  ✓   80 [hub] › tests/hub/smoke-pwa.spec.ts:45:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › apple-touch-icon: 180×180 PNG (iOS-Homescreen-Icon) (395ms)
+  ✓   81 [hub] › tests/hub/smoke-pwa.spec.ts:56:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › apple-touch-icon-Link im DOM vorhanden und Datei erreichbar (527ms)
+  ✓   82 [hub] › tests/hub/smoke-pwa.spec.ts:66:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › sw.js VERSION stimmt mit CONFIG.VERSION aus index.html überein (478ms)
+  ✓   83 [hub] › tests/hub/smoke-pwa.spec.ts:78:7 › KRS Hub — PWA / iOS-Installierbarkeit (S1) › offline.html: 200 und enthält „KRS Hub" (2ms)
+  ✓   84 [hub] › tests/hub/smoke-shell.spec.ts:4:7 › KRS Hub — Shell › lädt im Demo-Modus mit Version-Marker (330ms)
+  ✓   85 [hub] › tests/hub/smoke-shell.spec.ts:9:7 › KRS Hub — Shell › forceMode=demo überspringt den Login (337ms)
+  ✓   86 [hub] › tests/hub/smoke-shell.spec.ts:15:7 › KRS Hub — Shell › Demo-Profil zeigt die Hub-Shell (390ms)
+  ✓   87 [hub] › tests/hub/smoke-shell.spec.ts:20:7 › KRS Hub — Shell › Modul-Navigation enthält Connect, Plan und Buchung (431ms)
+  ✓   88 [hub] › tests/hub/smoke-shell.spec.ts:27:7 › KRS Hub — Shell › beim Start entstehen keine kritischen Console-Fehler (1.9s)
+  ✓   89 [hub] › tests/hub/smoke-topbar-collapse.spec.ts:11:7 › KRS Hub — Topbar-Collapse (Q2) › Dashboard hat keinen Collapse-Toggle (352ms)
+  ✓   90 [hub] › tests/hub/smoke-topbar-collapse.spec.ts:15:7 › KRS Hub — Topbar-Collapse (Q2) › Toggle klappt ein, persistiert und klappt wieder aus (775ms)
+  ✓   91 [hub] › tests/hub/smoke-topbar-collapse.spec.ts:35:7 › KRS Hub — Topbar-Collapse (Q2) › Toggle hat mindestens 44 × 44 Pixel (379ms)
+  ✓   92 [hub] › tests/hub/smoke-topbar-collapse.spec.ts:44:7 › KRS Hub — Topbar-Collapse (Q2) › Mobile startet ohne Präferenz eingeklappt (510ms)
+  ✓   93 [hub] › tests/hub/smoke-untis-link.spec.ts:6:7 › KRS Hub — Untis-Link (Q1) › tenant.js liefert die direkte URL (343ms)
+  ✓   94 [hub] › tests/hub/smoke-untis-link.spec.ts:10:7 › KRS Hub — Untis-Link (Q1) › Dashboard verlinkt die direkte Login-Seite (505ms)
+  ✓   95 [hub] › tests/hub/smoke-ux.spec.ts:4:7 › KRS Hub — UX-Smokes › Intro-Banner lässt sich dauerhaft ausblenden (428ms)
+  ✓   96 [hub] › tests/hub/smoke-ux.spec.ts:17:7 › KRS Hub — UX-Smokes › Hilfe öffnet Anleitung und FAQ (462ms)
+  ✓   97 [hub] › tests/hub/smoke-ux.spec.ts:25:7 › KRS Hub — UX-Smokes › Was ist neu nennt den entfernten blauen Lernen-Knopf (522ms)
+  ✓   98 [hub] › tests/hub/smoke-ux.spec.ts:36:7 › KRS Hub — UX-Smokes › Feedback verlangt Kategorie und Nachricht (521ms)
+  ✓   99 [hub] › tests/hub/smoke-w2-flags.spec.ts:15:5 › W2 default off blocks tile and direct hash (395ms)
+  ✓  100 [hub] › tests/hub/smoke-w2-flags.spec.ts:21:5 › server toggle opens placeholder and revocation removes active iframe (578ms)
+  ✓  101 [hub] › tests/hub/smoke-w2-flags.spec.ts:33:5 › tenant false overrides server true (380ms)
+  ✓  102 [hub] › tests/hub/smoke-w2-flags.spec.ts:38:5 › query error removes previously enabled tile (444ms)
+  ✓  103 [hub] › tests/hub/smoke-w2-flags.spec.ts:46:5 › stale enabled response cannot undo reset (348ms)
+  ✓  104 [hub] › tests/hub/smoke-w2-flags.spec.ts:60:5 › parallel refresh keeps latest disabled result (379ms)
+
+
+  1) [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"admin-tab-l[7mogin[27m"[39m
+    Received: [31m"admin-tab-l[7mehrer[27m"[39m
+
+      85 |     await expect(page.locator('#admpanel')).toHaveAttribute('aria-labelledby', 'admtab-login');
+      86 |     // Fokus ist mit der Auswahl gewandert.
+    > 87 |     expect(await page.evaluate(() => document.activeElement?.getAttribute('data-testid'))).toBe('admin-tab-login');
+         |                                                                                            ^
+      88 |     // Home springt zum ersten Tab zurück.
+      89 |     await page.keyboard.press('Home');
+      90 |     await expect(firstTab).toHaveAttribute('aria-selected', 'true');
+        at /Volumes/2tb/Codex playground/teams 2.0/_lokal/w2-staging-2026-10-03/hub/tests/hub/smoke-a11y-focus.spec.ts:87:92
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/smoke-a11y-focus-A2b-Fokus-3d947-tasten-wechseln-die-Auswahl-hub/error-context.md
+
+  2) [hub] › tests/hub/smoke-auto-update.spec.ts:87:7 › KRS Hub — automatische Aktualisierung › gleiche Remote-Version zeigt kein Banner und lädt nicht neu 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  getByTestId('update-banner')
+    Expected: [32m0[39m
+    Received: [31m1[39m
+    Timeout:  8000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 8000ms[22m
+    [2m  - waiting for getByTestId('update-banner')[22m
+    [2m    11 × locator resolved to 1 element[22m
+    [2m       - unexpected value "1"[22m
+
+
+      91 |     await visibility(page, 'hidden');
+      92 |     await visibility(page, 'visible', 60_001);
+    > 93 |     await expect(page.getByTestId('update-banner')).toHaveCount(0);
+         |                                                     ^
+      94 |     expect(loads).toBe(1);
+      95 |   });
+      96 |
+        at /Volumes/2tb/Codex playground/teams 2.0/_lokal/w2-staging-2026-10-03/hub/tests/hub/smoke-auto-update.spec.ts:93:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/smoke-auto-update-KRS-Hub--13497-n-Banner-und-lädt-nicht-neu-hub/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/smoke-auto-update-KRS-Hub--13497-n-Banner-und-lädt-nicht-neu-hub/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/smoke-auto-update-KRS-Hub--13497-n-Banner-und-lädt-nicht-neu-hub/error-context.md
+
+  2 failed
+    [hub] › tests/hub/smoke-a11y-focus.spec.ts:62:7 › A2b Fokus & Tastatur — KRS Hub (Demo) › Tab-Pattern vollständig: tablist/tab/tabpanel + Pfeiltasten wechseln die Auswahl 
+    [hub] › tests/hub/smoke-auto-update.spec.ts:87:7 › KRS Hub — automatische Aktualisierung › gleiche Remote-Version zeigt kein Banner und lädt nicht neu 
+  1 skipped
+  101 passed (59.6s)

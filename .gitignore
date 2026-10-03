@@ -7,3 +7,5 @@ node_modules/
 playwright-report/
 test-results/
 _site/
+node_modules
+w2/evidence/hub-baseline-results/

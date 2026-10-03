@@ -9,6 +9,7 @@ const files = [
   'index.html',
   'krs-native.js',
   'tenant.js',
+  'w2-flags.js',
   'manifest.json',
   'sw.js',
   'logo-krs.png',

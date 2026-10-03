@@ -1,0 +1,58 @@
+
+> krs-hub@3.8.0 build:site
+> node scripts/build-site.mjs
+
+Hub-Artefakt erstellt: /Volumes/2tb/Codex playground/teams 2.0/_lokal/w2-staging-2026-10-03/hub/_site
+
+> krs-hub@3.8.0 verify:site
+> node scripts/verify-site.mjs
+
+{
+  "requiredFiles": [
+    "index.html",
+    "krs-native.js",
+    "tenant.js",
+    "w2-flags.js",
+    "modules/unterricht.html",
+    "manifest.json",
+    "sw.js",
+    "logo-krs.png",
+    "offline.html",
+    "apple-touch-icon.png",
+    "icon-192.png",
+    "icon-512.png",
+    "icon-512-maskable.png",
+    "modules/buchung.html",
+    "modules/connect.html",
+    "modules/piano.html",
+    "modules/plan.html",
+    "notizen/index.html",
+    "hilfe/index.html"
+  ],
+  "inventory": [
+    "apple-touch-icon.png",
+    "hilfe/index.html",
+    "icon-192.png",
+    "icon-512-maskable.png",
+    "icon-512.png",
+    "index.html",
+    "krs-native.js",
+    "logo-krs.png",
+    "manifest.json",
+    "modules/buchung.html",
+    "modules/connect.html",
+    "modules/piano.html",
+    "modules/plan.html",
+    "modules/unterricht.html",
+    "notizen/index.html",
+    "offline.html",
+    "sw.js",
+    "tenant.js",
+    "version.json",
+    "w2-flags.js"
+  ],
+  "missing": [],
+  "empty": []
+}
+Versions-Kopplung ok: sw.js und index.html sind auf v3.33.0.
+Hub-Artefakt vollständig: 20 Dateien geprüft.

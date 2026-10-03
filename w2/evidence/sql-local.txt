@@ -1,0 +1,1 @@
+psql:w2/tests/bootstrap.sql:2: ERROR:  role "anon" already exists

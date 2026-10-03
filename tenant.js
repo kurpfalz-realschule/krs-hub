@@ -6,6 +6,7 @@
 // KEINE Personendaten, KEINE Secrets hier eintragen.
 // ═══════════════════════════════════════════════════════════════
 window.KRS_TENANT = {
+  features: { unterricht: false, hausaufgaben: false, bbb: false },
   EMAIL_DOMAIN: 'realschule-schriesheim.de',
   HOMEPAGE_URL: 'https://realschule-schriesheim.de/',
   KALENDER_URL: 'https://outlook.office365.com/owa/calendar/a95005ab7be44772829ded01908dd047@realschule-schriesheim.de/c28240066c4043798c40398ea699cee116822421613853451472/calendar.html',

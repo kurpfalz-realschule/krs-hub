@@ -1091,6 +1091,7 @@
        Werte (E-Mail-Domain, Homepage-Links) liegen in tenant.js
        (Whitelabel-Muster). Der App-Code bleibt schul-neutral. -->
   <script src="tenant.js"></script>
+  <script src="w2-flags.js"></script>
   <script>
     // CDN-Verfügbarkeitsprüfung
     if (!window.React || !window.ReactDOM) {
@@ -1111,7 +1112,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.32.0',
+      VERSION: '3.33.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1126,6 +1127,7 @@
         'https://kurpfalz-realschule.github.io'
       ],
       MODULES: [
+        { id: 'unterricht', name: 'Unterricht', icon: '📚', desc: 'Kurse und Aufgaben', url: './modules/unterricht.html', color: '#2563eb', feature: 'UNTERRICHT' },
         {
           id: 'connect',
           name: 'Connect',
@@ -1233,15 +1235,19 @@
       }
     };
 
+    function moduleEnabled(mod) {
+      return !mod.feature || window.KRSW2Flags?.enabled(mod.feature) === true;
+    }
+
     // v3.19.0 — Gruppen-Helfer. 'primary' ist der Standard, damit ein neuer
     // Eintrag ohne `group` automatisch sichtbar bleibt (fail-open in Richtung
     // Sichtbarkeit — ein vergessenes Feld darf keine App verstecken).
     const istGruppe = (eintrag, gruppe) => ((eintrag && eintrag.group) || 'primary') === gruppe;
-    const PRIMAER_MODULE = () => CONFIG.MODULES.filter(m => istGruppe(m, 'primary'));
+    const PRIMAER_MODULE = () => CONFIG.MODULES.filter(m => moduleEnabled(m)).filter(m => istGruppe(m, 'primary'));
     const PRIMAER_LINKS = () => CONFIG.EXTERNAL_LINKS.filter(l => istGruppe(l, 'primary'));
-    const WEITERE_MODULE = () => CONFIG.MODULES.filter(m => istGruppe(m, 'more'));
+    const WEITERE_MODULE = () => CONFIG.MODULES.filter(m => moduleEnabled(m)).filter(m => istGruppe(m, 'more'));
     const WEITERE_LINKS = () => CONFIG.EXTERNAL_LINKS.filter(l => istGruppe(l, 'more'));
-    const ARCHIV_MODULE = () => CONFIG.MODULES.filter(m => istGruppe(m, 'archiv'));
+    const ARCHIV_MODULE = () => CONFIG.MODULES.filter(m => moduleEnabled(m)).filter(m => istGruppe(m, 'archiv'));
 
     // ── Demo-Kollegium (anonymisiert) ────────────────
     // S2 (2026-07-03): Klarnamen echter Lehrkräfte sind aus dem Client
@@ -2995,7 +3001,7 @@
         'data-active-module': activeModule || '',
         'data-kept': [...keptIds].join(',')
       },
-        CONFIG.MODULES.map(mod => {
+        CONFIG.MODULES.filter(moduleEnabled).map(mod => {
           const isActive = activeModule === mod.id;
           const keep = isActive || keptIds.has(mod.id);
           // Lazy: src erst setzen wenn aktiv oder keep-alive; einmal gesetzt bleibt
@@ -3764,9 +3770,36 @@
           const h = window.location.hash.slice(2);
           if (!h) return 'connect';
           if (h === 'apps' || h === 'start') return null;
-          return CONFIG.MODULES.some(m => m.id === h) ? h : 'connect';
+          return CONFIG.MODULES.some(m => moduleEnabled(m) && m.id === h) ? h : 'connect';
         } catch (e) { return 'connect'; }
       });
+      const [featureRevision, setFeatureRevision] = useState(0);
+      useEffect(() => {
+        const changed = () => setFeatureRevision(v => v + 1);
+        window.addEventListener('krs-w2-flags-changed', changed);
+        return () => window.removeEventListener('krs-w2-flags-changed', changed);
+      }, []);
+      useEffect(() => {
+        if (!window.KRSW2Flags) return;
+        if (authState !== 'authenticated') { window.KRSW2Flags?.reset(); return; }
+        // Demo has no backend access; fixture tests inject a synthetic client.
+        if (window.__KRS_HUB_FORCE_DEMO === true) return;
+        let alive = true;
+        const refresh = async () => {
+          try {
+            const client = await SupabaseAuthService.ensureClient();
+            if (alive) await window.KRSW2Flags.refresh(client);
+          } catch { if (alive) window.KRSW2Flags?.reset(); }
+        };
+        refresh();
+        window.addEventListener('focus', refresh);
+        const timer = window.setInterval(refresh, 60000);
+        return () => { alive = false; window.clearInterval(timer); window.removeEventListener('focus', refresh); window.KRSW2Flags?.reset(); };
+      }, [authState]);
+      useEffect(() => {
+        const mod = CONFIG.MODULES.find(m => m.id === activeModule);
+        if (mod && !moduleEnabled(mod)) setActiveModule(null);
+      }, [featureRevision, activeModule]);
       const [frameEpoch, setFrameEpoch] = useState(0); // v3.27.0: Tear-down bei Logout
       window.__krsHubAuth = SupabaseAuthService; // Test-Hook (A6: Sperre ruft signOut)
       const [showMitteilungenOverlay, setShowMitteilungenOverlay] = useState(false);
@@ -3811,7 +3844,7 @@
           // v3.25.0: kein Hash → Connect; #/apps → Startseite; sonst Modul-Id
           if (!hash) { setActiveModule('connect'); return; }
           if (hash === 'apps' || hash === 'start') { setActiveModule(null); return; }
-          const mod = CONFIG.MODULES.find(m => m.id === hash);
+          const mod = CONFIG.MODULES.find(m => moduleEnabled(m) && m.id === hash);
           if (mod) setActiveModule(mod.id);
         };
         window.addEventListener('hashchange', handleHash);
@@ -3965,7 +3998,7 @@
           if (event.data?.type === 'KRS_HUB_NAVIGATE') {
             const ziel = event.data.moduleId;
             if (ziel === null || ziel === undefined) { handleModuleSelect(null); return; }
-            if (CONFIG.MODULES.some(m => m.id === ziel)) handleModuleSelect(ziel);
+            if (CONFIG.MODULES.some(m => moduleEnabled(m) && m.id === ziel)) handleModuleSelect(ziel);
           }
         };
         window.addEventListener('message', handler);

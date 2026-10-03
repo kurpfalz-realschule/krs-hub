@@ -10,6 +10,8 @@ const requiredFiles = [
   'index.html',
   'krs-native.js',
   'tenant.js',
+  'w2-flags.js',
+  'modules/unterricht.html',
   'manifest.json',
   'sw.js',
   'logo-krs.png',

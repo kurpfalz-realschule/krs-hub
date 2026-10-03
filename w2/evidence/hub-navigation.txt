@@ -1,0 +1,16 @@
+[2m[WebServer] [22m(node:63455) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
+[2m[WebServer] [22m(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+  ✓  1 [hub] › tests/hub/smoke-modules.spec.ts:7:7 › KRS Hub — Modul-Switch › Connect-Modul öffnet genau ein iframe (1.2s)
+  ✓  2 [hub] › tests/hub/smoke-modules.spec.ts:14:7 › KRS Hub — Modul-Switch › Hash-Router setzt #/connect (502ms)
+  ✓  3 [hub] › tests/hub/smoke-modules.spec.ts:20:7 › KRS Hub — Modul-Switch › Homepage-Link ist auf dem Dashboard verfügbar (351ms)
+  ✓  4 [hub] › tests/hub/smoke-modules.spec.ts:30:7 › KRS Hub — PERF-01 Keep-alive › Hub-Start zeigt Welcome-Overlay, Connect-Host bleibt gemountet (515ms)
+  ✓  5 [hub] › tests/hub/smoke-shell.spec.ts:4:7 › KRS Hub — Shell › lädt im Demo-Modus mit Version-Marker (341ms)
+  ✓  6 [hub] › tests/hub/smoke-shell.spec.ts:9:7 › KRS Hub — Shell › forceMode=demo überspringt den Login (411ms)
+  ✓  7 [hub] › tests/hub/smoke-shell.spec.ts:15:7 › KRS Hub — Shell › Demo-Profil zeigt die Hub-Shell (391ms)
+  ✓  8 [hub] › tests/hub/smoke-shell.spec.ts:20:7 › KRS Hub — Shell › Modul-Navigation enthält Connect, Plan und Buchung (338ms)
+  ✓  9 [hub] › tests/hub/smoke-shell.spec.ts:27:7 › KRS Hub — Shell › beim Start entstehen keine kritischen Console-Fehler (1.9s)
+
+  9 passed (6.6s)

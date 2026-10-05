@@ -8,6 +8,8 @@ const site = resolve(root, '_site');
 
 const requiredFiles = [
   'index.html',
+  'krs-design.js',
+  'krs-design.css',
   'krs-native.js',
   'tenant.js',
   'manifest.json',

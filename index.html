@@ -22,8 +22,8 @@
   <script crossorigin src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js" integrity="sha384-q36VSR1ktH2hgqgm+0LDeyqPW8CyZHSxfDSttSPm5ReOJzB+sYThmh7D4fE+jWTs"></script>
   <script>if(!(window.supabase&&window.supabase.createClient)){document.write('<scr'+'ipt crossorigin integrity="sha384-K1nraABOP/zFehpLIUksXebbs7jMpB8gYMlb+uhVKZcWT/9Vkq1+qhv6ndC+1Yuz" src="https://unpkg.com/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"><\/scr'+'ipt>')}</script>
   <!-- DOMPurify (XSS-Schutz für Schulleitungs-Board Richtext) mit Fallback -->
-  <script crossorigin src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js" integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu"></script>
-  <script>if(!window.DOMPurify){document.write('<scr'+'ipt crossorigin integrity="sha384-eEu5CTj3qGvu9PdJuS+YlkNi7d2XxQROAFYOr59zgObtlcux1ae1Il3u7jvdCSWu" src="https://unpkg.com/dompurify@3.2.4/dist/purify.min.js"><\/scr'+'ipt>')}</script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js" integrity="sha384-a7SzOxErzJ3ZpQz0zJ32d67dSitNzPcbfybc/ykU9KJhMgZkwqfSxlhhdJRS+XGL"></script>
+  <script>if(!window.DOMPurify){document.write('<scr'+'ipt crossorigin integrity="sha384-a7SzOxErzJ3ZpQz0zJ32d67dSitNzPcbfybc/ykU9KJhMgZkwqfSxlhhdJRS+XGL" src="https://unpkg.com/dompurify@3.4.16/dist/purify.min.js"><\/scr'+'ipt>')}</script>
   <!-- Phase 3: iServ OAuth wird hier eingebunden -->
 
   <!-- N4 (Sprint N-Sonnet, 22.07.2026): Native-Link-Bridge für die iOS-App (Capacitor). -->
@@ -1075,6 +1075,8 @@
   </style>
   <!-- Native iOS-Huelle (krs-ios). Im Browser wirkungslos. -->
   <script src="krs-native.js"></script>
+  <link rel="stylesheet" href="krs-design.css">
+  <script src="krs-design.js"></script>
 </head>
 <body>
   <div id="root">
@@ -1111,7 +1113,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.32.0',
+      VERSION: '3.33.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1567,6 +1569,13 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.33.0', date: '05.10.2026', items: [
+        'Neues Design ausprobieren: im Konto oder unter Mehr einschalten und jederzeit zurückwechseln. Das vertraute Design bleibt Standard.',
+        'Gemeinsame Navigation für Connect, Plan und Buchen; die Auswahl gilt auf diesem Gerät. Offene Entwürfe bleiben beim Designwechsel erhalten.'
+      ] },
+      { v: '3.32.1', date: '03.10.2026', items: [
+        'Der Schutz beim Anzeigen von Mitteilungen ist aktualisiert.'
+      ]},
       { v: '3.32.0', date: '29.09.2026', items: [
         'Zwei Dateiablagen: „Dateiablage Teams“ (Ordner) öffnet die Dateien im Team. „Dateiablage Nextcloud“ (Wolke) öffnet die Schul-Cloud.'
       ]},
@@ -2208,13 +2217,14 @@
     }
 
     // ── User Menu ──────────────────────────────────
-    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew, autolock, autolockMin, onToggleAutolock, onSetAutolockMin, onConnectSettings, onConnectProfile }) {
+    function UserMenu({ profile, onClose, onLogout, onLock, onAdmin, onHelp, onFeedback, onWhatsNew, autolock, autolockMin, onToggleAutolock, onSetAutolockMin, onConnectSettings, onConnectProfile, designV2, onToggleDesign }) {
       return e(React.Fragment, null,
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu' },
           e('div', { style: { padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' } },
             profile?.email || 'Demo-Modus'
           ),
+          e('button', { className: 'user-menu-item', role: 'menuitemcheckbox', 'aria-checked': !!designV2, 'data-testid': 'design-toggle', onClick: onToggleDesign }, 'Neues Design ausprobieren: ' + (designV2 ? 'An' : 'Aus')),
           e('div', { className: 'user-menu-divider' }),
           e('button', { className: 'user-menu-item', role: 'menuitem', 'data-testid': 'usermenu-settings', onClick: () => { if (onConnectSettings) onConnectSettings(); else onClose(); } },
             '⚙️', ' Einstellungen'
@@ -2437,7 +2447,7 @@
       );
     }
 
-    function AppMenu({ activeModule, onSelect, onClose, onOpenDateien }) {
+    function AppMenu({ activeModule, onSelect, onClose, onOpenDateien, designV2, onToggleDesign, onAccount }) {
       const zeile = (eintrag, istArchiv) => e('button', {
         key: eintrag.id,
         type: 'button',
@@ -2455,6 +2465,8 @@
         e('div', { className: 'overlay', onClick: onClose }),
         e('div', { className: 'user-menu', role: 'menu', 'aria-label': 'Apps', 'data-testid': 'app-menu', style: { left: '8px', right: 'auto', maxHeight: '80vh', overflowY: 'auto' } },
           e('div', { style: { padding: '8px 12px', fontSize: '12px', color: 'var(--text-muted)' } }, 'Apps'),
+          e('button', { className: 'user-menu-item', role: 'menuitemcheckbox', 'aria-checked': !!designV2, 'data-testid': 'appmenu-design-toggle', onClick: onToggleDesign }, 'Neues Design ausprobieren: ' + (designV2 ? 'An' : 'Aus')),
+          e('button', { className: 'user-menu-item', role: 'menuitem', onClick: onAccount }, 'Konto & Einstellungen'),
           PRIMAER_MODULE().map(m => zeile(m, false)),
           PRIMAER_LINKS().map(linkZeile),
           (WEITERE_MODULE().length + WEITERE_LINKS().length + ARCHIV_MODULE().length) > 0 && e('div', { className: 'user-menu-divider' }),
@@ -3753,7 +3765,46 @@
       );
     }
 
+    function DesignNavigation({ activeModule, onSelect, onMore, onAccount, moreOpen }) {
+      const entries = [[null, '⌂', 'Start'], ['connect', '💬', 'Connect'], ['plan', '▦', 'Plan'], ['buchung2', '▣', 'Buchen']];
+      return e('nav', { className: 'design-nav', 'aria-label': 'Hauptnavigation', 'data-testid': 'design-nav' },
+        e('strong', { className: 'design-nav-brand' }, 'KRS'),
+        entries.filter(([id]) => !id || CONFIG.MODULES.some(m => m.id === id)).map(([id, icon, label]) =>
+          e('button', { key: id || 'start', type: 'button', 'aria-current': !moreOpen && activeModule === id ? 'page' : undefined, onClick: () => onSelect(id) }, e('span', { 'aria-hidden': true }, icon), e('span', null, label))),
+        e('button', { type: 'button', 'aria-current': moreOpen ? 'page' : undefined, onClick: onMore }, e('span', { 'aria-hidden': true }, '…'), e('span', null, 'Mehr')),
+        e('button', { type: 'button', className: 'design-nav-account', onClick: onAccount }, 'Konto')
+      );
+    }
+
     function App() {
+      const [designV2, setDesignV2] = useState(window.KRSDesign.enabled);
+      const [designReady, setDesignReady] = useState(new Set());
+      const designSessions = useRef(new Map());
+      useEffect(() => window.KRSDesign.subscribe(setDesignV2), []);
+      const toggleDesign = () => window.KRSDesign.setEnabled(!window.KRSDesign.enabled);
+      useEffect(() => {
+        const send = session => session.source.postMessage({ type: 'KRS_DESIGN_STATE', version: 1, requestId: session.requestId, enabled: window.KRSDesign.enabled }, session.origin);
+        const unsubscribe = window.KRSDesign.subscribe(() => designSessions.current.forEach(send));
+        const receive = event => {
+          const d = event.data;
+          if (!d || d.version !== 1 || typeof d.requestId !== 'string' || !/^[a-f0-9-]{4,80}$/.test(d.requestId)) return;
+          const frame = Array.from(document.querySelectorAll('iframe[data-module]')).find(f => f.contentWindow === event.source);
+          const module = frame && CONFIG.MODULES.find(m => m.id === frame.dataset.module);
+          if (!module || event.origin !== new URL(module.url, location.href).origin) return;
+          if (d.type === 'KRS_DESIGN_REQUEST') {
+            const session = { source: event.source, origin: event.origin, requestId: d.requestId };
+            designSessions.current.set(module.id, session); send(session);
+          } else {
+            const session = designSessions.current.get(module.id);
+            if (!session || session.source !== event.source || session.requestId !== d.requestId) return;
+            if (d.type === 'KRS_DESIGN_READY') setDesignReady(previous => new Set([...previous, module.id]));
+            if (d.type === 'KRS_DESIGN_CHANGE' && typeof d.enabled === 'boolean') window.KRSDesign.setEnabled(d.enabled);
+          }
+        };
+        addEventListener('message', receive);
+        return () => { unsubscribe(); removeEventListener('message', receive); };
+      }, []);
+
       const [authState, setAuthState] = useState('loading'); // loading, login, authenticated, locked
       const [profile, setProfile] = useState(null);
       // v3.25.0: Hub startet mit Connect. 3.29.0: Startwert aus dem Hash lesen —
@@ -3767,7 +3818,8 @@
           return CONFIG.MODULES.some(m => m.id === h) ? h : 'connect';
         } catch (e) { return 'connect'; }
       });
-      const [frameEpoch, setFrameEpoch] = useState(0); // v3.27.0: Tear-down bei Logout
+      const [frameEpoch, setFrameEpoch] = useState(0);
+      useEffect(() => { designSessions.current.clear(); setDesignReady(new Set()); }, [frameEpoch]); // v3.27.0: Tear-down bei Logout
       window.__krsHubAuth = SupabaseAuthService; // Test-Hook (A6: Sperre ruft signOut)
       const [showMitteilungenOverlay, setShowMitteilungenOverlay] = useState(false);
       const [overlayMitteilungen, setOverlayMitteilungen] = useState([]);
@@ -4014,7 +4066,7 @@
 
       const postToConnect = useCallback((payload) => {
         try {
-          const frame = document.querySelector('iframe.module-frame.active, iframe.module-frame[data-module="connect"], iframe[src*="connect"]');
+          const frame = document.querySelector('iframe.module-frame[data-module="connect"]');
           const win = frame && frame.contentWindow;
           if (!win) return false;
           const ziel = (() => {
@@ -4048,11 +4100,16 @@
         setTimeout(send, 900);
         if (teamTab) setTimeout(send, 1800);
       }, [postToConnect]);
+      const openConnectPanel = useCallback((panel) => {
+        setActiveModule('connect'); setShowUserMenu(false); setShowAppMenu(false);
+        const send = () => postToConnect({ type: 'KRS_CONNECT_OPEN_PANEL', panel });
+        send(); setTimeout(send, 400); setTimeout(send, 900);
+      }, [postToConnect]);
       const openConnectDateien = useCallback(() => openConnectView('teams', 'links'), [openConnectView]);
 
       const handleModuleSelect = useCallback((moduleId) => {
         setActiveModule(moduleId);
-        setShowUserMenu(false);
+        setShowUserMenu(false); setShowAppMenu(false);
       }, []);
 
       const dismissMitteilungenOverlay = useCallback(() => {
@@ -4131,7 +4188,8 @@
       return e(React.Fragment, null,
         // Skip-Link „Zum Inhalt springen" (WCAG 2.4.1) — erstes fokussierbares Element
         e('a', { href: '#main', className: 'skip-link' }, 'Zum Inhalt springen'),
-        e('div', { className: 'shell' + (activeModule === 'connect' ? ' connect-aktiv' : '') },
+        e('div', { className: 'shell' + (designV2 && designReady.has(activeModule) ? ' design-module-ready' : '') + (activeModule === 'connect' ? ' connect-aktiv' : '') },
+          designV2 && e(DesignNavigation, { activeModule, onSelect: handleModuleSelect, moreOpen: showAppMenu, onMore: () => setShowAppMenu(v => !v), onAccount: () => setShowUserMenu(v => !v) }),
           e(Sidebar, {
             activeModule,
             onModuleSelect: handleModuleSelect,
@@ -4172,6 +4230,7 @@
             ),
             e(MobileTabBar, { activeModule, onModuleSelect: handleModuleSelect, unreadCounts }),
             showAppMenu && e(AppMenu, {
+              designV2, onToggleDesign: toggleDesign, onAccount: () => { setShowAppMenu(false); setShowUserMenu(true); },
               activeModule,
               onSelect: (id) => { setShowAppMenu(false); handleModuleSelect(id); },
               onClose: () => setShowAppMenu(false),
@@ -4184,6 +4243,8 @@
           onDismiss: dismissMitteilungenOverlay
         }),
         showUserMenu && e(UserMenu, {
+          designV2, onToggleDesign: toggleDesign,
+          onConnectSettings: () => openConnectPanel('settings'), onConnectProfile: () => openConnectPanel('profile'),
           profile,
           onClose: () => setShowUserMenu(false),
           onLogout: handleLogout,

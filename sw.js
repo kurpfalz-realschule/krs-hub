@@ -5,13 +5,15 @@
 // Offline-Fallback: caches.match('./offline.html') bei Navigations-Requests
 // ═══════════════════════════════════════════════
 
-const VERSION = '3.32.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
+const VERSION = '3.33.0'; // Ab jetzt identisch mit CONFIG.VERSION (index.html) — CI prüft Gleichheit
 const CACHE_NAME = 'krs-hub-v' + VERSION;
 
 // Lokale Assets (Cache-First nach erstem Load)
 const LOCAL_ASSETS = [
   './',
   './index.html',
+  './krs-design.js',
+  './krs-design.css',
   './krs-native.js',
   './tenant.js',
   './manifest.json',
@@ -32,7 +34,7 @@ const CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js',
   'https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.min.js',
-  'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js'
+  'https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js'
 ];
 
 // ── Install ──────────────────────────────────

@@ -1113,7 +1113,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.33.0',
+      VERSION: '3.34.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1569,6 +1569,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.34.0', date: '06.10.2026', items: ['Seitenleiste kompakt mit Symbolen und Namen bei Mauszeiger oder Tastaturfokus. Logo, Feedback und Designwahl sind direkt erreichbar.', 'Ein einmaliger schließbarer Hinweis lädt zum neuen Design ein.'] },
       { v: '3.33.0', date: '05.10.2026', items: [
         'Neues Design ausprobieren: im Konto oder unter Mehr einschalten und jederzeit zurückwechseln. Das vertraute Design bleibt Standard.',
         'Gemeinsame Navigation für Connect, Plan und Buchen; die Auswahl gilt auf diesem Gerät. Offene Entwürfe bleiben beim Designwechsel erhalten.'
@@ -2108,7 +2109,7 @@
       }, link.icon, ' ' + link.name, e('span', { style: { marginLeft: 'auto', fontSize: '11px', color: 'var(--text-muted)' } }, '\u2197'));
     }
 
-    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile, onAdmin, onOpenDateien }) {
+    function Sidebar({ activeModule, onModuleSelect, unreadCounts, profile, onAdmin, onOpenDateien, onDesign, onFeedback }) {
       return e('nav', { className: 'sidebar', role: 'navigation', 'aria-label': 'Hauptnavigation' },
         e('button', {
           type: 'button',
@@ -2146,6 +2147,8 @@
         ),
 
         e('div', { className: 'sidebar-footer' },
+          e('button', { className: 'nav-item design-legacy-choice', title: 'Neues Design ausprobieren', 'aria-label': 'Neues Design ausprobieren', 'data-testid': 'sidebar-design-toggle', onClick: onDesign }, e('span', { className: 'nav-icon' }, '◐'), e('span', { className: 'nav-label' }, 'Neues Design')),
+          e('button', { className: 'nav-item design-legacy-feedback', title: 'Feedback geben', 'aria-label': 'Feedback geben', onClick: onFeedback }, e('span', { className: 'nav-icon' }, '✎'), e('span', { className: 'nav-label' }, 'Feedback')),
           profile?.role === 'admin' && e('button', {
             className: 'nav-item',
             title: 'Admin',
@@ -3765,18 +3768,25 @@
       );
     }
 
-    function DesignNavigation({ activeModule, onSelect, onMore, onAccount, moreOpen }) {
+    function DesignNavigation({ activeModule, onSelect, onMore, onAccount, moreOpen, collapsed, onCollapse, onFeedback, onDesign }) {
       const entries = [[null, '⌂', 'Start'], ['connect', '💬', 'Connect'], ['plan', '▦', 'Plan'], ['buchung2', '▣', 'Buchen']];
-      return e('nav', { className: 'design-nav', 'aria-label': 'Hauptnavigation', 'data-testid': 'design-nav' },
-        e('strong', { className: 'design-nav-brand' }, 'KRS'),
-        entries.filter(([id]) => !id || CONFIG.MODULES.some(m => m.id === id)).map(([id, icon, label]) =>
-          e('button', { key: id || 'start', type: 'button', 'aria-current': !moreOpen && activeModule === id ? 'page' : undefined, onClick: () => onSelect(id) }, e('span', { 'aria-hidden': true }, icon), e('span', null, label))),
-        e('button', { type: 'button', 'aria-current': moreOpen ? 'page' : undefined, onClick: onMore }, e('span', { 'aria-hidden': true }, '…'), e('span', null, 'Mehr')),
-        e('button', { type: 'button', className: 'design-nav-account', onClick: onAccount }, 'Konto')
+      const button = (label, icon, handler, props = {}) => e('button', { type: 'button', 'aria-label': label, title: label, onClick: handler, ...props }, e('span', { className: 'design-nav-icon', 'aria-hidden': true }, label === 'Start' && e('img', { className: 'design-nav-mobile-logo', src: 'logo-krs.png', alt: '', width: 24, height: 24 }), e('span', { className: label === 'Start' ? 'design-nav-start-glyph' : '' }, icon)), e('span', { className: 'design-nav-label', 'aria-hidden': true }, label));
+      return e('nav', { className: 'design-nav' + (collapsed ? ' design-nav-compact' : ''), 'aria-label': 'Hauptnavigation', 'data-testid': 'design-nav' },
+        e('button', { className: 'design-nav-brand', 'aria-label': 'KRS – Startseite', onClick: () => onSelect(null) }, e('img', { src: 'logo-krs.png', alt: 'KRS', width: 36, height: 36 })),
+        button(collapsed ? 'Seitenleiste ausklappen' : 'Seitenleiste einklappen', collapsed ? '»' : '«', onCollapse, { className: 'design-collapse', 'aria-expanded': !collapsed, 'data-testid': 'design-nav-collapse' }),
+        entries.filter(([id]) => !id || CONFIG.MODULES.some(m => m.id === id)).map(([id, icon, label]) => button(label, icon, () => onSelect(id), { key: id || 'start', 'aria-current': !moreOpen && activeModule === id ? 'page' : undefined })),
+        button('Mehr', '…', onMore, { 'aria-current': moreOpen ? 'page' : undefined }),
+        button('Feedback geben', '✎', onFeedback, { className: 'design-feedback', 'data-testid': 'design-feedback' }),
+        button('Vertrautes Design verwenden', '◐', onDesign, { className: 'design-choice', 'data-testid': 'sidebar-design-toggle' }),
+        button('Konto', '♙', onAccount, { className: 'design-nav-account' })
       );
     }
 
     function App() {
+      const [navCompact, setNavCompact] = useState(() => { try { return localStorage.getItem('krs_nav_compact') !== '0'; } catch (_) { return true; } });
+      const [designOffer, setDesignOffer] = useState(false);
+      const toggleNav = () => setNavCompact(value => { try { localStorage.setItem('krs_nav_compact', value ? '0' : '1'); } catch (_) {} return !value; });
+      const dismissDesignOffer = () => { setDesignOffer(false); try { localStorage.setItem('krs_design_offer_seen', '1'); } catch (_) {} };
       const [designV2, setDesignV2] = useState(window.KRSDesign.enabled);
       const [designReady, setDesignReady] = useState(new Set());
       const designSessions = useRef(new Map());
@@ -3805,7 +3815,14 @@
         return () => { unsubscribe(); removeEventListener('message', receive); };
       }, []);
 
-      const [authState, setAuthState] = useState('loading'); // loading, login, authenticated, locked
+      const [authState, setAuthState] = useState('loading');
+      useEffect(() => {
+        if (window.KRSDesign.enabled) { setDesignOffer(false); return; }
+        if (authState !== 'authenticated') { setDesignOffer(false); return; }
+        try { if (localStorage.getItem('krs_design_offer_seen') === '1') return; } catch (_) {}
+        const timer = setTimeout(() => setDesignOffer(true), 12000);
+        return () => clearTimeout(timer);
+      }, [authState, designV2]); // loading, login, authenticated, locked
       const [profile, setProfile] = useState(null);
       // v3.25.0: Hub startet mit Connect. 3.29.0: Startwert aus dem Hash lesen —
       // sonst überschrieb der Hash-Schreib-Effekt beim ersten Render einen
@@ -3881,7 +3898,7 @@
 
       // v3.25.0: Beim Öffnen der Hub-Startseite Mitteilungen einmal als Overlay zeigen
       useEffect(() => {
-        if (authState !== 'authenticated') return;
+        if (authState !== 'authenticated') { setDesignOffer(false); return; }
         if (activeModule !== null) return; // nur auf der Apps-/Startseite
         let alive = true;
         HubInfoService.list()
@@ -3984,7 +4001,7 @@
       // wird bei Ablehnung/fehlender API stillschweigend ignoriert (kein Blocker,
       // keine UI, kein Retry nötig).
       useEffect(() => {
-        if (authState !== 'authenticated') return;
+        if (authState !== 'authenticated') { setDesignOffer(false); return; }
         if (!(navigator.storage && navigator.storage.persist)) return;
         navigator.storage.persist().catch(() => {});
       }, [authState]);
@@ -4189,8 +4206,9 @@
         // Skip-Link „Zum Inhalt springen" (WCAG 2.4.1) — erstes fokussierbares Element
         e('a', { href: '#main', className: 'skip-link' }, 'Zum Inhalt springen'),
         e('div', { className: 'shell' + (designV2 && designReady.has(activeModule) ? ' design-module-ready' : '') + (activeModule === 'connect' ? ' connect-aktiv' : '') },
-          designV2 && e(DesignNavigation, { activeModule, onSelect: handleModuleSelect, moreOpen: showAppMenu, onMore: () => setShowAppMenu(v => !v), onAccount: () => setShowUserMenu(v => !v) }),
+          designV2 && e(DesignNavigation, { collapsed: navCompact, onCollapse: toggleNav, onFeedback: () => setShowFeedback(true), onDesign: toggleDesign, activeModule, onSelect: handleModuleSelect, moreOpen: showAppMenu, onMore: () => setShowAppMenu(v => !v), onAccount: () => setShowUserMenu(v => !v) }),
           e(Sidebar, {
+            onDesign: toggleDesign, onFeedback: () => setShowFeedback(true),
             activeModule,
             onModuleSelect: handleModuleSelect,
             unreadCounts,
@@ -4237,6 +4255,13 @@
               onOpenDateien: openConnectDateien
             })
           )
+        ),
+        designOffer && e('div', { className: 'design-offer', role: 'dialog', 'aria-label': 'Neues Design ausprobieren', 'aria-modal': false },
+          e('button', { className: 'design-offer-close', 'aria-label': 'Designhinweis schließen', onClick: dismissDesignOffer }, '×'),
+          e('strong', null, 'Mehr Platz für deine Inhalte'),
+          e('p', null, 'Probiere das neue Design mit einklappbaren Seitenleisten aus. Du kannst jederzeit zurückwechseln.'),
+          e('button', { onClick: () => { dismissDesignOffer(); window.KRSDesign.setEnabled(true); } }, 'Neues Design ausprobieren'),
+          e('button', { onClick: dismissDesignOffer }, 'Später')
         ),
         showMitteilungenOverlay && e(MitteilungenOverlay, {
           items: overlayMitteilungen,

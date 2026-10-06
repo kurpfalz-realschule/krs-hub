@@ -37,6 +37,28 @@
         return; // Browser/PWA: kein Capacitor vorhanden → Shim bleibt aus
       }
       import('https://cdn.jsdelivr.net/npm/@capacitor/browser/dist/index.js').catch(function () {});
+      // Dieselbe native Tastatur wie die App. Nur die Höhe, kein Text.
+      var tastaturVerdrahtet = false;
+      function tastaturWeiter(name, detail) {
+        try { window.dispatchEvent(new CustomEvent(name, { detail: detail || {} })); } catch (e) {}
+      }
+      function tastaturAnschliessen(Keyboard) {
+        if (tastaturVerdrahtet || !Keyboard || typeof Keyboard.addListener !== 'function') return;
+        tastaturVerdrahtet = true;
+        Keyboard.addListener('keyboardWillShow', function (info) {
+          tastaturWeiter('krs-keyboard-will-show', { keyboardHeight: info && info.keyboardHeight });
+        });
+        Keyboard.addListener('keyboardWillHide', function () { tastaturWeiter('krs-keyboard-will-hide'); });
+        Keyboard.addListener('keyboardDidHide', function () { tastaturWeiter('krs-keyboard-did-hide'); });
+      }
+      var vorhandeneTastatur = window.Capacitor.Plugins && window.Capacitor.Plugins.Keyboard;
+      if (vorhandeneTastatur && typeof vorhandeneTastatur.addListener === 'function') {
+        tastaturAnschliessen(vorhandeneTastatur);
+      } else {
+        import('https://cdn.jsdelivr.net/npm/@capacitor/keyboard@8.0.5/+esm').then(function (mod) {
+          tastaturAnschliessen(mod && (mod.Keyboard || (mod.default && mod.default.Keyboard)));
+        }).catch(function () {});
+      }
       document.addEventListener('click', function (e) {
         var a = e.target && e.target.closest ? e.target.closest('a[href^="http"]') : null;
         if (!a) return;
@@ -1175,6 +1197,13 @@
   <!-- Native iOS-Huelle (krs-ios). Im Browser wirkungslos. -->
   <script src="krs-native.js"></script>
   <link rel="stylesheet" href="krs-design.css">
+  <style>
+    @media (max-width: 767px) {
+      html.krs-keyboard-open .design-nav,
+      html.krs-keyboard-open .mobile-tabs { display: none !important; }
+      html.krs-keyboard-open .shell { padding-bottom: 0; }
+    }
+  </style>
   <script src="krs-design.js"></script>
 </head>
 <body>
@@ -1212,7 +1241,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.34.1',
+      VERSION: '3.35.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1668,6 +1697,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.35.0', date: '06.10.2026', items: ['Auf dem Handy verschwindet die Leiste unten nur bei offener Bildschirmtastatur. Schließt sie, ist die Leiste wieder da.'] },
       { v: '3.34.1', date: '06.10.2026', items: ['Feedback öffnet sich als Fenster über der Liste, nicht mehr links im Seitenfluss. Auf dem iPhone stürzt die App dabei nicht mehr ab.'] },
       { v: '3.34.0', date: '06.10.2026', items: ['Seitenleiste kompakt mit Symbolen und Namen bei Mauszeiger oder Tastaturfokus. Logo, Feedback und Designwahl sind direkt erreichbar.', 'Ein einmaliger schließbarer Hinweis lädt zum neuen Design ein.'] },
       { v: '3.33.0', date: '05.10.2026', items: [
@@ -3890,6 +3920,8 @@
       const [designV2, setDesignV2] = useState(window.KRSDesign.enabled);
       const [designReady, setDesignReady] = useState(new Set());
       const designSessions = useRef(new Map());
+      const keyboardResetRef = useRef(function () {});
+      const keyboardWegRef = useRef(false);
       useEffect(() => window.KRSDesign.subscribe(setDesignV2), []);
       const toggleDesign = () => window.KRSDesign.setEnabled(!window.KRSDesign.enabled);
       useEffect(() => {
@@ -3913,6 +3945,117 @@
         };
         addEventListener('message', receive);
         return () => { unsubscribe(); removeEventListener('message', receive); };
+      }, []);
+
+      useEffect(() => {
+        const stand = { editor: false, rast: false, versteckt: false, basis: window.visualViewport ? window.visualViewport.height : window.innerHeight };
+        let hideTimer = 0;
+        let showTimer = 0;
+        const leisten = () => document.querySelectorAll('.design-nav, .mobile-tabs');
+        const klasseWeg = () => {
+          document.documentElement.classList.remove('krs-keyboard-open');
+          leisten().forEach((el) => el.removeAttribute('aria-hidden'));
+        };
+        const basisNachziehen = () => {
+          const vv = window.visualViewport;
+          const scale = vv && typeof vv.scale === 'number' ? vv.scale : 1;
+          if (scale <= 1) stand.basis = vv && typeof vv.height === 'number' ? vv.height : window.innerHeight;
+        };
+        const leisteSofort = () => {
+          window.clearTimeout(hideTimer);
+          window.clearTimeout(showTimer);
+          stand.rast = false;
+          stand.versteckt = false;
+          klasseWeg();
+          basisNachziehen();
+        };
+        keyboardResetRef.current = () => { stand.editor = false; leisteSofort(); };
+        const aufConnect = () => {
+          if (keyboardWegRef.current) return false;
+          const shell = document.querySelector('.shell');
+          return !!(shell && shell.classList.contains('connect-aktiv'));
+        };
+        const anwenden = () => {
+          if (document.visibilityState === 'hidden' || !aufConnect()) { leisteSofort(); return; }
+          const vv = window.visualViewport;
+          const scale = vv && typeof vv.scale === 'number' ? vv.scale : 1;
+          const hoehe = vv && typeof vv.height === 'number' ? vv.height : window.innerHeight;
+          let offen = false;
+          if (stand.rast) offen = true;
+          else if (scale <= 1 && stand.basis - hoehe >= 150) offen = true;
+          if (!stand.rast && !stand.versteckt && scale <= 1 && !(stand.basis - hoehe >= 150)) stand.basis = hoehe;
+          const schmal = window.matchMedia('(max-width: 767px)').matches;
+          let weg = stand.editor && offen && scale <= 1 && schmal;
+          if (stand.versteckt) {
+            const offset = stand.basis - hoehe;
+            if (!stand.editor || scale > 1 || (!stand.rast && offset < 100) || !schmal) weg = false;
+            else weg = true;
+          }
+          if (weg) {
+            window.clearTimeout(showTimer);
+            window.clearTimeout(hideTimer);
+            hideTimer = window.setTimeout(() => {
+              stand.versteckt = true;
+              document.documentElement.classList.add('krs-keyboard-open');
+              if (window.matchMedia('(max-width: 767px)').matches) leisten().forEach((el) => el.setAttribute('aria-hidden', 'true'));
+            }, 100);
+          } else {
+            window.clearTimeout(hideTimer);
+            window.clearTimeout(showTimer);
+            showTimer = window.setTimeout(() => { stand.versteckt = false; klasseWeg(); }, 80);
+          }
+        };
+        const hoeheAus = (ev) => {
+          if (!ev) return 0;
+          if (typeof ev.keyboardHeight === 'number') return ev.keyboardHeight;
+          const d = ev.detail;
+          if (d && typeof d.keyboardHeight === 'number') return d.keyboardHeight;
+          return 0;
+        };
+        const beiNachricht = (event) => {
+          const d = event.data;
+          if (!d || typeof d !== 'object') return;
+          const keys = Object.keys(d);
+          if (keys.length !== 4 || keys.some((k) => k !== 'type' && k !== 'version' && k !== 'requestId' && k !== 'active')) return;
+          if (d.type !== 'KRS_EDITOR_ACTIVE' || d.version !== 1 || typeof d.active !== 'boolean') return;
+          if (typeof d.requestId !== 'string' || !/^[a-f0-9-]{4,80}$/.test(d.requestId)) return;
+          const frame = document.querySelector('iframe.module-frame[data-module="connect"]');
+          if (!frame || frame.contentWindow !== event.source) return;
+          const mod = CONFIG.MODULES.find((m) => m.id === 'connect');
+          if (!mod) return;
+          let origin = '';
+          try { origin = new URL(mod.url, location.href).origin; } catch (err) { return; }
+          if (event.origin !== origin) return;
+          if (!aufConnect()) return;
+          stand.editor = d.active;
+          anwenden();
+        };
+        const beiZeigen = (ev) => {
+          if (hoeheAus(ev) < 150) return;
+          stand.rast = true;
+          anwenden();
+        };
+        window.addEventListener('message', beiNachricht);
+        window.addEventListener('krs-keyboard-will-show', beiZeigen);
+        window.addEventListener('krs-keyboard-will-hide', leisteSofort);
+        window.addEventListener('krs-keyboard-did-hide', leisteSofort);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', anwenden);
+        window.addEventListener('orientationchange', leisteSofort);
+        const beiSicht = () => { if (document.visibilityState === 'hidden') leisteSofort(); };
+        document.addEventListener('visibilitychange', beiSicht);
+        return () => {
+          window.removeEventListener('message', beiNachricht);
+          window.removeEventListener('krs-keyboard-will-show', beiZeigen);
+          window.removeEventListener('krs-keyboard-will-hide', leisteSofort);
+          window.removeEventListener('krs-keyboard-did-hide', leisteSofort);
+          if (window.visualViewport) window.visualViewport.removeEventListener('resize', anwenden);
+          window.removeEventListener('orientationchange', leisteSofort);
+          document.removeEventListener('visibilitychange', beiSicht);
+          window.clearTimeout(hideTimer);
+          window.clearTimeout(showTimer);
+          keyboardResetRef.current = function () {};
+          klasseWeg();
+        };
       }, []);
 
       const [authState, setAuthState] = useState('loading');
@@ -4225,6 +4368,8 @@
       const openConnectDateien = useCallback(() => openConnectView('teams', 'links'), [openConnectView]);
 
       const handleModuleSelect = useCallback((moduleId) => {
+        keyboardWegRef.current = moduleId !== 'connect';
+        keyboardResetRef.current();
         setActiveModule(moduleId);
         setShowUserMenu(false); setShowAppMenu(false);
       }, []);

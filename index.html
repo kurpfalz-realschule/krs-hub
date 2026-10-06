@@ -1052,6 +1052,105 @@
       z-index: 90;
     }
 
+    /* Feedback, Hilfe und Info-Dialoge. Ohne diese Regeln stand das Formular
+       im normalen Fluss links neben der Liste und wurde unten abgeschnitten. */
+    .feedback-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      padding:
+        max(16px, env(safe-area-inset-top))
+        max(16px, env(safe-area-inset-right))
+        max(16px, env(safe-area-inset-bottom))
+        max(16px, env(safe-area-inset-left));
+      background: rgba(15, 23, 42, 0.48);
+    }
+    .feedback-modal {
+      width: min(440px, 100%);
+      max-height: 100%;
+      overflow: auto;
+      box-sizing: border-box;
+      padding: 20px 16px;
+      border-radius: 16px;
+      background: var(--bg-card, #fff);
+      color: var(--text, #172338);
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.28);
+    }
+    .feedback-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .feedback-label {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted, #52657d);
+    }
+    .feedback-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .feedback-cat {
+      min-height: 44px;
+      padding: 8px 14px;
+      border: 1px solid var(--border, #dce2eb);
+      border-radius: 22px;
+      background: var(--bg, #f5f7fb);
+      color: var(--text, #172338);
+      font: inherit;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .feedback-cat.active {
+      background: var(--primary, #245bc4);
+      border-color: var(--primary, #245bc4);
+      color: #fff;
+    }
+    .feedback-textarea {
+      display: block;
+      width: 100%;
+      min-height: 120px;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid var(--border, #dce2eb);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text, #172338);
+      font: inherit;
+      font-size: 16px;
+      resize: vertical;
+    }
+    .feedback-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .feedback-btn {
+      min-height: 44px;
+      padding: 0 16px;
+      border: none;
+      border-radius: 10px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .feedback-btn-cancel { background: var(--bg, #eef2f7); color: var(--text, #172338); }
+    .feedback-btn-send { background: var(--primary, #245bc4); color: #fff; }
+    .feedback-btn-send:disabled { opacity: 0.45; cursor: not-allowed; }
+
     /* ── iPad Scrolling Fix ───────────────────────── */
     .module-frame {
       -webkit-overflow-scrolling: touch;
@@ -1113,7 +1212,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.34.0',
+      VERSION: '3.34.1',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1569,6 +1668,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.34.1', date: '06.10.2026', items: ['Feedback öffnet sich als Fenster über der Liste, nicht mehr links im Seitenfluss. Auf dem iPhone stürzt die App dabei nicht mehr ab.'] },
       { v: '3.34.0', date: '06.10.2026', items: ['Seitenleiste kompakt mit Symbolen und Namen bei Mauszeiger oder Tastaturfokus. Logo, Feedback und Designwahl sind direkt erreichbar.', 'Ein einmaliger schließbarer Hinweis lädt zum neuen Design ein.'] },
       { v: '3.33.0', date: '05.10.2026', items: [
         'Neues Design ausprobieren: im Konto oder unter Mehr einschalten und jederzeit zurückwechseln. Das vertraute Design bleibt Standard.',
@@ -4364,23 +4464,47 @@
       return isVisible(el) && el.getAttribute('aria-hidden') !== 'true';
     });
   }
+  function containsFrame(el) {
+    return !!(el && el.querySelector && el.querySelector('iframe'));
+  }
+  function blurFrames(el) {
+    if (!el || !el.querySelectorAll) return;
+    Array.prototype.forEach.call(el.querySelectorAll('iframe'), function (frame) {
+      try { if (document.activeElement === frame) frame.blur(); } catch (e) {}
+    });
+  }
   function neutralizeBackground(dialog) {
     var parent = dialog.parentNode;
     if (!parent || !parent.children) return;
     Array.prototype.forEach.call(parent.children, function (sib) {
       if (sib === dialog) return;
       if (sib.getAttribute && sib.getAttribute('role') === 'dialog') return;
-      neutralized.push({ el: sib, ariaHidden: sib.getAttribute('aria-hidden'), hadInert: sib.hasAttribute('inert') });
+      // iOS beendet die App, wenn ein Vorfahre eines iframes inert wird,
+      // während Connect darin läuft. Tastatur bleibt über den Tab-Fang hier.
+      var frames = containsFrame(sib);
+      if (frames) blurFrames(sib);
+      neutralized.push({
+        el: sib,
+        ariaHidden: sib.getAttribute('aria-hidden'),
+        hadInert: sib.hasAttribute('inert'),
+        skipInert: frames,
+        pointerEvents: sib.style ? sib.style.pointerEvents : ''
+      });
       sib.setAttribute('aria-hidden', 'true');
-      try { sib.inert = true; } catch (e) {}
-      sib.setAttribute('inert', '');
+      if (frames) {
+        if (sib.style) sib.style.pointerEvents = 'none';
+      } else {
+        try { sib.inert = true; } catch (e) {}
+        sib.setAttribute('inert', '');
+      }
     });
   }
   function restoreBackground() {
     neutralized.forEach(function (n) {
       if (n.ariaHidden === null) n.el.removeAttribute('aria-hidden');
       else n.el.setAttribute('aria-hidden', n.ariaHidden);
-      if (!n.hadInert) { try { n.el.inert = false; } catch (e) {} n.el.removeAttribute('inert'); }
+      if (!n.skipInert && !n.hadInert) { try { n.el.inert = false; } catch (e) {} n.el.removeAttribute('inert'); }
+      if (n.el.style) n.el.style.pointerEvents = n.pointerEvents || '';
     });
     neutralized = [];
   }

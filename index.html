@@ -1241,7 +1241,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.35.0',
+      VERSION: '3.36.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1697,6 +1697,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.36.0', date: '10.10.2026', items: ['Das neue Design ist für alle eingeschaltet. Wer das vertraute Design möchte, schaltet es im Konto-Menü oder unter „Mehr“ zurück.', 'In der Leiste heißen die Einträge jetzt Klassenarbeiten und Medien.'] },
       { v: '3.35.0', date: '06.10.2026', items: ['Auf dem Handy verschwindet die Leiste unten nur bei offener Bildschirmtastatur. Schließt sie, ist die Leiste wieder da.'] },
       { v: '3.34.1', date: '06.10.2026', items: ['Feedback öffnet sich als Fenster über der Liste, nicht mehr links im Seitenfluss. Auf dem iPhone stürzt die App dabei nicht mehr ab.'] },
       { v: '3.34.0', date: '06.10.2026', items: ['Seitenleiste kompakt mit Symbolen und Namen bei Mauszeiger oder Tastaturfokus. Logo, Feedback und Designwahl sind direkt erreichbar.', 'Ein einmaliger schließbarer Hinweis lädt zum neuen Design ein.'] },
@@ -3899,8 +3900,8 @@
     }
 
     function DesignNavigation({ activeModule, onSelect, onMore, onAccount, moreOpen, collapsed, onCollapse, onFeedback, onDesign }) {
-      const entries = [[null, '⌂', 'Start'], ['connect', '💬', 'Connect'], ['plan', '▦', 'Plan'], ['buchung2', '▣', 'Buchen']];
-      const button = (label, icon, handler, props = {}) => e('button', { type: 'button', 'aria-label': label, title: label, onClick: handler, ...props }, e('span', { className: 'design-nav-icon', 'aria-hidden': true }, label === 'Start' && e('img', { className: 'design-nav-mobile-logo', src: 'logo-krs.png', alt: '', width: 24, height: 24 }), e('span', { className: label === 'Start' ? 'design-nav-start-glyph' : '' }, icon)), e('span', { className: 'design-nav-label', 'aria-hidden': true }, label));
+      const entries = [[null, '⌂', 'Start'], ['connect', '💬', 'Connect'], ['plan', '▦', 'Klassen\u00ADarbeiten'], ['buchung2', '▣', 'Medien']];
+      const button = (label, icon, handler, props = {}) => e('button', { type: 'button', 'aria-label': label.replace(/\u00AD/g, ''), title: label.replace(/\u00AD/g, ''), onClick: handler, ...props }, e('span', { className: 'design-nav-icon', 'aria-hidden': true }, label === 'Start' && e('img', { className: 'design-nav-mobile-logo', src: 'logo-krs.png', alt: '', width: 24, height: 24 }), e('span', { className: label === 'Start' ? 'design-nav-start-glyph' : '' }, icon)), e('span', { className: 'design-nav-label', 'aria-hidden': true }, label));
       return e('nav', { className: 'design-nav' + (collapsed ? ' design-nav-compact' : ''), 'aria-label': 'Hauptnavigation', 'data-testid': 'design-nav' },
         e('button', { className: 'design-nav-brand', 'aria-label': 'KRS – Startseite', onClick: () => onSelect(null) }, e('img', { src: 'logo-krs.png', alt: 'KRS', width: 36, height: 36 })),
         button(collapsed ? 'Seitenleiste ausklappen' : 'Seitenleiste einklappen', collapsed ? '»' : '«', onCollapse, { className: 'design-collapse', 'aria-expanded': !collapsed, 'data-testid': 'design-nav-collapse' }),

@@ -8,6 +8,11 @@ export async function openHub(page: Page, opts: { user?: string } = {}) {
   const query = new URLSearchParams({ forceMode: 'demo' });
   if (opts.user) query.set('forceUser', opts.user);
 
+  // 3.36.0: Neues Design ist Standard. Die bestehenden Smokes prüfen das
+  // vertraute Design; Design-Tests setzen 'krs_design_v2' vorher selbst.
+  await page.addInitScript(() => {
+    try { if (localStorage.getItem('krs_design_v2') === null) localStorage.setItem('krs_design_v2', '0'); } catch (e) {}
+  });
   // v3.25.0 startet der Hub mit Connect; die Smokes prüfen die Startseite → #/apps
   await page.goto(`${HUB_PATH}?${query.toString()}#/apps`);
   await page.waitForFunction(

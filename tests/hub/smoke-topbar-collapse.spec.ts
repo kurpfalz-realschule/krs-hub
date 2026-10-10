@@ -43,7 +43,7 @@ test.describe('KRS Hub — Topbar-Collapse (Q2)', () => {
 
   test('Mobile startet ohne Präferenz eingeklappt', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.addInitScript(() => localStorage.removeItem('krs_hub_topbar_collapsed'));
+    await page.addInitScript(() => { localStorage.removeItem('krs_hub_topbar_collapsed'); localStorage.setItem('krs_design_v2', '0'); });
     await page.goto(`${HUB_PATH}?forceMode=demo`);
     await page.waitForFunction(() => typeof window.KRS_HUB_VERSION === 'string');
     await expect(connectButton(page)).toBeVisible();

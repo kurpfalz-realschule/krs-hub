@@ -49,7 +49,7 @@ for (const width of [390, 834]) {
   test(`Neues Design: Feedback liegt über der Liste (${width}px)`, async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('krs_design_v2', '1');
-      localStorage.setItem('krs_design_offer_seen', '1');
+      localStorage.setItem('krs_design_offer_seen_2', '1');
       localStorage.setItem('krs_hub_mitteilungen_seen', '["demo"]');
     });
     await page.setViewportSize({ width, height: 844 });
@@ -64,7 +64,7 @@ for (const width of [390, 834]) {
 test('Vertrautes Design: Feedback aus dem Konto-Menü (390px)', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('krs_design_v2', '0');
-    localStorage.setItem('krs_design_offer_seen', '1');
+    localStorage.setItem('krs_design_offer_seen_2', '1');
     localStorage.setItem('krs_hub_topbar_collapsed', '0');
     localStorage.setItem('krs_hub_mitteilungen_seen', '["demo"]');
   });

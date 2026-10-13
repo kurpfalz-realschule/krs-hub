@@ -3,7 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 async function oeffne(page: Page, design: '0' | '1') {
   await page.addInitScript((wert) => {
     localStorage.setItem('krs_design_v2', wert);
-    localStorage.setItem('krs_design_offer_seen', '1');
+    localStorage.setItem('krs_design_offer_seen_2', '1');
     localStorage.setItem('krs_hub_mitteilungen_seen', '["demo"]');
   }, design);
   await page.setViewportSize({ width: 390, height: 844 });

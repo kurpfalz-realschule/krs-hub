@@ -311,6 +311,29 @@
     }
     .topbar-user:hover { background: var(--bg); }
 
+    /* 3.36.1: Wechsel zum neuen Design sichtbar in der Leiste (nur vertrautes Design) */
+    .topbar-design-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: var(--touch-min);
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid #9db6e6;
+      background: #e7efff;
+      color: #174796;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .topbar-design-btn:hover { background: #d6e3ff; }
+    .topbar-design-btn > span[aria-hidden] { font-size: 18px; line-height: 1; }
+    .topbar-design-btn:focus-visible { outline: 3px solid #174796; outline-offset: 2px; }
+    @media (max-width: 359px) { .topbar-design-btn { padding: 0 10px; font-size: 13px; } }
+
     .avatar {
       width: 32px;
       height: 32px;
@@ -1241,7 +1264,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.36.0',
+      VERSION: '3.36.1',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1697,6 +1720,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.36.1', date: '13.10.2026', items: ['Im vertrauten Design steht oben in der Leiste „◐ Neues Design“. Ein Klick schaltet um, zurück geht es jederzeit über „Vertrautes Design verwenden“.', 'Wer noch das vertraute Design nutzt, sieht den Hinweis zum neuen Design einmal neu.'] },
       { v: '3.36.0', date: '10.10.2026', items: ['Das neue Design ist für alle eingeschaltet. Wer das vertraute Design möchte, schaltet es im Konto-Menü oder unter „Mehr“ zurück.', 'In der Leiste heißen die Einträge jetzt Klassenarbeiten und Medien.'] },
       { v: '3.35.0', date: '06.10.2026', items: ['Auf dem Handy verschwindet die Leiste unten nur bei offener Bildschirmtastatur. Schließt sie, ist die Leiste wieder da.'] },
       { v: '3.34.1', date: '06.10.2026', items: ['Feedback öffnet sich als Fenster über der Liste, nicht mehr links im Seitenfluss. Auf dem iPhone stürzt die App dabei nicht mehr ab.'] },
@@ -2305,7 +2329,7 @@
     // Q2 (11.07.2026): einklappbar, solange ein Modul (iframe) aktiv ist.
     // Auf dem Dashboard (kein activeModule) bleibt sie immer voll sichtbar —
     // dort gibt es nichts, wofür sich das Einklappen lohnt.
-    function TopBar({ activeModule, profile, onMenuToggle, onUserMenuToggle, showUserMenu, collapsed, onToggleCollapse }) {
+    function TopBar({ activeModule, profile, onMenuToggle, onUserMenuToggle, showUserMenu, collapsed, onToggleCollapse, designV2, onDesign }) {
       const mod = CONFIG.MODULES.find(m => m.id === activeModule);
       const title = mod ? mod.icon + ' ' + mod.name : CONFIG.APP_NAME;
       // C11 (3.29.0): höchstens 3 Zeichen im Kreis (Demo-Kürzel „Demo“ lief über)
@@ -2336,6 +2360,16 @@
           title: 'Leiste ausblenden',
           'data-testid': 'topbar-collapse-toggle'
         }, '▲'),
+        // 3.36.1: Im vertrauten Design war der Wechsel nur ein ◐ in der Seitenleiste
+        // bzw. im Konto-Menü. Jetzt beschriftet in der Leiste, auch auf dem Handy.
+        !designV2 && onDesign && e('button', {
+          type: 'button',
+          className: 'topbar-design-btn',
+          onClick: onDesign,
+          title: 'Zum neuen Design wechseln',
+          'aria-label': 'Zum neuen Design wechseln',
+          'data-testid': 'topbar-design-toggle'
+        }, e('span', { 'aria-hidden': 'true' }, '◐'), e('span', { className: 'topbar-design-label' }, 'Neues Design')),
         e('button', {
           type: 'button',
           className: 'topbar-user',
@@ -3917,7 +3951,7 @@
       const [navCompact, setNavCompact] = useState(() => { try { return localStorage.getItem('krs_nav_compact') !== '0'; } catch (_) { return true; } });
       const [designOffer, setDesignOffer] = useState(false);
       const toggleNav = () => setNavCompact(value => { try { localStorage.setItem('krs_nav_compact', value ? '0' : '1'); } catch (_) {} return !value; });
-      const dismissDesignOffer = () => { setDesignOffer(false); try { localStorage.setItem('krs_design_offer_seen', '1'); } catch (_) {} };
+      const dismissDesignOffer = () => { setDesignOffer(false); try { localStorage.setItem('krs_design_offer_seen_2', '1'); } catch (_) {} };
       const [designV2, setDesignV2] = useState(window.KRSDesign.enabled);
       const [designReady, setDesignReady] = useState(new Set());
       const designSessions = useRef(new Map());
@@ -4063,7 +4097,7 @@
       useEffect(() => {
         if (window.KRSDesign.enabled) { setDesignOffer(false); return; }
         if (authState !== 'authenticated') { setDesignOffer(false); return; }
-        try { if (localStorage.getItem('krs_design_offer_seen') === '1') return; } catch (_) {}
+        try { if (localStorage.getItem('krs_design_offer_seen_2') === '1') return; } catch (_) {} // 3.36.1: neuer Schlüssel, Hinweis erscheint einmal neu
         const timer = setTimeout(() => setDesignOffer(true), 12000);
         return () => clearTimeout(timer);
       }, [authState, designV2]); // loading, login, authenticated, locked
@@ -4470,7 +4504,9 @@
               onUserMenuToggle: () => setShowUserMenu(v => !v),
               showUserMenu,
               collapsed: topbarCollapsed,
-              onToggleCollapse: toggleTopbarCollapsed
+              onToggleCollapse: toggleTopbarCollapsed,
+              designV2,
+              onDesign: toggleDesign
             }),
             !activeModule && e(HubAreaNav, {
               active: 'hub',
@@ -4504,9 +4540,9 @@
         ),
         designOffer && e('div', { className: 'design-offer', role: 'dialog', 'aria-label': 'Neues Design ausprobieren', 'aria-modal': false },
           e('button', { className: 'design-offer-close', 'aria-label': 'Designhinweis schließen', onClick: dismissDesignOffer }, '×'),
-          e('strong', null, 'Mehr Platz für deine Inhalte'),
-          e('p', null, 'Probiere das neue Design mit einklappbaren Seitenleisten aus. Du kannst jederzeit zurückwechseln.'),
-          e('button', { onClick: () => { dismissDesignOffer(); window.KRSDesign.setEnabled(true); } }, 'Neues Design ausprobieren'),
+          e('strong', null, 'Das neue Design ist jetzt Standard'),
+          e('p', null, 'Mehr Platz für deine Inhalte und das Feedback-Board direkt in der Liste. Du kannst jederzeit zurückwechseln.'),
+          e('button', { onClick: () => { dismissDesignOffer(); window.KRSDesign.setEnabled(true); } }, 'Zum neuen Design wechseln'),
           e('button', { onClick: dismissDesignOffer }, 'Später')
         ),
         showMitteilungenOverlay && e(MitteilungenOverlay, {

@@ -1264,7 +1264,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.36.1',
+      VERSION: '3.37.0',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1346,6 +1346,7 @@
         // „Weitere Apps“) und 'archiv' (dort im Abschnitt Archiv).
         { id: 'homepage', name: 'Homepage', icon: '\uD83C\uDF10', url: (window.KRS_TENANT && window.KRS_TENANT.HOMEPAGE_URL) || '#', group: 'more' },
         { id: 'untis', name: 'Untis', icon: '\uD83D\uDCCA', url: (window.KRS_TENANT && window.KRS_TENANT.UNTIS_URL) || '#', group: 'more' },
+        { id: 'maengel', name: 'Mängelliste', icon: '\uD83D\uDD27', action: 'maengel', group: 'more' },
         { id: 'kalender', name: 'Kalender', icon: '\uD83D\uDDD3\uFE0F', url: (window.KRS_TENANT && window.KRS_TENANT.KALENDER_URL) || '#' },
         // Zwei Ablagen, damit niemand die Team-Dateien mit der Schul-Cloud verwechselt.
         // rail: kurzes Wort für die 64-px-Leiste (volle Namen stehen im Menü und auf den Kacheln).
@@ -1720,6 +1721,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.37.0', date: '15.10.2026', items: ['Unter Weitere Apps gibt es die Kachel „Mängelliste“. Die Adresse steht nicht in der App. Nach der Anmeldung öffnet ein Klick das Gebäude-Mängelprotokoll.'] },
       { v: '3.36.1', date: '13.10.2026', items: ['Im vertrauten Design steht oben in der Leiste „◐ Neues Design“. Ein Klick schaltet um, zurück geht es jederzeit über „Vertrautes Design verwenden“.', 'Wer noch das vertraute Design nutzt, sieht den Hinweis zum neuen Design einmal neu.'] },
       { v: '3.36.0', date: '10.10.2026', items: ['Das neue Design ist für alle eingeschaltet. Wer das vertraute Design möchte, schaltet es im Konto-Menü oder unter „Mehr“ zurück.', 'In der Leiste heißen die Einträge jetzt Klassenarbeiten und Medien.'] },
       { v: '3.35.0', date: '06.10.2026', items: ['Auf dem Handy verschwindet die Leiste unten nur bei offener Bildschirmtastatur. Schließt sie, ist die Leiste wieder da.'] },
@@ -2207,9 +2209,41 @@
     // ── Sidebar ────────────────────────────────────
     // Ein Extern-Eintrag an drei Stellen: Leiste, Startkachel, ☰-Menü.
     // action 'connect-files' bleibt in der App (Team-Dateiablage), sonst neuer Tab.
+    async function oeffneMaengel() {
+      if (window.__KRS_HUB_FORCE_DEMO === true) {
+        window.__KRS_MAENGEL_STATUS = 'demo-ohne-adresse';
+        showToast('Im Testmodus wird die Mängelliste nicht geöffnet.', 'info');
+        return;
+      }
+      window.__KRS_MAENGEL_STATUS = 'lade';
+      try {
+        const session = await SupabaseAuthService.getSession();
+        if (!session) {
+          window.__KRS_MAENGEL_STATUS = 'ohne-anmeldung';
+          showToast('Bitte zuerst anmelden.', 'error');
+          return;
+        }
+        const client = await SupabaseAuthService.ensureClient();
+        const { data, error } = await client.from('hub_externe_links').select('url').eq('schluessel', 'maengel').maybeSingle();
+        if (error || !data || !data.url) {
+          window.__KRS_MAENGEL_STATUS = 'fehlt';
+          showToast('Die Mängelliste ist gerade nicht hinterlegt.', 'error');
+          return;
+        }
+        window.__KRS_MAENGEL_STATUS = 'geoeffnet';
+        window.open(data.url, '_blank', 'noopener');
+      } catch (err) {
+        window.__KRS_MAENGEL_STATUS = 'fehler';
+        showToast('Die Mängelliste konnte nicht geöffnet werden.', 'error');
+      }
+    }
+
     function ExternKnoten(link, art, onOpenDateien, onClose) {
       const dateien = link.action === 'connect-files';
+      const maengel = link.action === 'maengel';
       const oeffneDateien = () => { if (onClose) onClose(); if (onOpenDateien) onOpenDateien(); };
+      const oeffneGeheim = () => { if (onClose) onClose(); oeffneMaengel(); };
+      const aktion = dateien ? oeffneDateien : (maengel ? oeffneGeheim : null);
       if (art === 'rail') {
         const props = {
           key: link.id,
@@ -2223,7 +2257,7 @@
           e('span', { key: 'i', className: 'nav-icon', 'aria-hidden': 'true' }, link.icon),
           e('span', { key: 'l', className: 'nav-label' }, link.rail || link.name)
         ];
-        if (dateien) return e('button', Object.assign({ type: 'button', onClick: oeffneDateien }, props), kinder);
+        if (aktion) return e('button', Object.assign({ type: 'button', onClick: aktion }, props), kinder);
         return e('a', Object.assign({}, props, {
           href: link.url, target: '_blank', rel: 'noopener noreferrer',
           title: link.name + ' (öffnet in neuem Tab)'
@@ -2234,11 +2268,11 @@
           e('div', { key: 'i', className: 'module-card-icon', 'aria-hidden': 'true' }, link.icon),
           e('div', { key: 't', className: 'module-card-title' }, link.name)
         ];
-        if (dateien) {
+        if (aktion) {
           return e('button', {
             key: link.id, type: 'button', className: 'module-card',
             'aria-label': link.name, 'data-testid': 'tile-' + link.id,
-            onClick: oeffneDateien,
+            onClick: aktion,
             style: { font: 'inherit', cursor: 'pointer', textAlign: 'inherit', color: 'inherit' }
           }, kinder);
         }
@@ -2249,10 +2283,10 @@
           style: { textDecoration: 'none', color: 'inherit', opacity: 0.85 }
         }, kinder);
       }
-      if (dateien) {
+      if (aktion) {
         return e('button', {
           key: link.id, type: 'button', className: 'user-menu-item', role: 'menuitem',
-          'data-testid': 'appmenu-' + link.id, onClick: oeffneDateien,
+          'data-testid': 'appmenu-' + link.id, onClick: aktion,
           style: { minHeight: '44px', width: '100%', textAlign: 'left' }
         }, link.icon, ' ' + link.name);
       }

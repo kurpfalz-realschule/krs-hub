@@ -9,13 +9,15 @@ import { test, expect, oeffneWeitereApps } from '../fixtures/hub';
  * akzeptiert sie, weil window.location.origin in CONFIG.ALLOWED_ORIGINS steht.
  */
 test.describe('KRS Hub — Kacheln & Badges', () => {
-  // v3.18.0 (18.09.2026): geprüft wird jetzt die Schüler-Hub-Kachel — die
-  // Notizen-Kachel gibt es nicht mehr (siehe smoke-notizen-kachel.spec.ts).
-  test('statisches "NEU"-Badge erscheint auf einer Kachel', async ({ hubPage: page }) => {
-    await oeffneWeitereApps(page); // v3.19.0: Sch\u00fcler-Hub steht unter \u201eWeitere Apps\u201c
-    const tile = page.locator('.module-card').filter({ hasText: 'Sch\u00fcler-Hub' });
-    await expect(tile).toBeVisible();
-    await expect(tile).toContainText('NEU');
+  // v3.37.1 (16.10.2026): Die Schüler-Hub-Kachel ist entfernt (alter
+  // Schülerhub eingefroren). Damit trägt keine Kachel mehr ein statisches
+  // "NEU"-Badge; der Render-Code für CONFIG.MODULES[].badge bleibt, ist aber
+  // erst wieder testbar, wenn eine Kachel ein Badge bekommt.
+  test('Schüler-Hub-Kachel ist entfernt, Weitere Apps bleibt intakt', async ({ hubPage: page }) => {
+    await oeffneWeitereApps(page);
+    await expect(page.locator('.module-card').filter({ hasText: 'M\u00e4ngelliste' })).toBeVisible();
+    await expect(page.locator('.module-card').filter({ hasText: 'Sch\u00fcler-Hub' })).toHaveCount(0);
+    expect(await page.content()).not.toContain('krs-schueler-hub');
   });
 
   test('ohne Nachricht zeigt die Connect-Kachel/Sidebar keinen Ungelesen-Badge', async ({ hubPage: page }) => {

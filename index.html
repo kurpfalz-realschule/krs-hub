@@ -1264,7 +1264,7 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.37.0',
+      VERSION: '3.37.1',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
@@ -1325,17 +1325,9 @@
           // vollständig nutzbar, steht aber unter „Weitere Apps → Archiv“ statt
           // das ganze Jahr in der Leiste (Norbert, 18.09.2026).
           group: 'archiv'
-        },
-        {
-          id: 'schueler-hub',
-          name: 'Schüler-Hub',
-          icon: '\uD83C\uDF93',
-          badge: 'NEU',
-          desc: 'Schüler-Nachrichten, Ankündigungen, Vorschau',
-          url: 'https://kurpfalz-realschule.github.io/krs-schueler-hub/lehrer-panel.html',
-          color: '#0891b2',
-          group: 'more'
         }
+        // v3.37.1: Kachel „Schüler-Hub“ entfernt. Der alte Schülerhub ist seit
+        // 16.10.2026 eingefroren; Nachfolger ist Welle 2 („Mein Unterricht“).
       ],
       EXTERNAL_LINKS: [
         // v3.19.0 — Aufgeräumte Leiste (Rückmeldung Norbert, 18.09.2026):
@@ -1721,6 +1713,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.37.1', date: '16.10.2026', items: ['Die Kachel „Schüler-Hub“ unter Weitere Apps ist entfernt. Der alte Schülerhub wird nicht weitergeführt; sein Nachfolger kommt mit „Mein Unterricht“.'] },
       { v: '3.37.0', date: '15.10.2026', items: ['Unter Weitere Apps gibt es die Kachel „Mängelliste“. Die Adresse steht nicht in der App. Nach der Anmeldung öffnet ein Klick das Gebäude-Mängelprotokoll.'] },
       { v: '3.36.1', date: '13.10.2026', items: ['Im vertrauten Design steht oben in der Leiste „◐ Neues Design“. Ein Klick schaltet um, zurück geht es jederzeit über „Vertrautes Design verwenden“.', 'Wer noch das vertraute Design nutzt, sieht den Hinweis zum neuen Design einmal neu.'] },
       { v: '3.36.0', date: '10.10.2026', items: ['Das neue Design ist für alle eingeschaltet. Wer das vertraute Design möchte, schaltet es im Konto-Menü oder unter „Mehr“ zurück.', 'In der Leiste heißen die Einträge jetzt Klassenarbeiten und Medien.'] },

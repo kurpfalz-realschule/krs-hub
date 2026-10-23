@@ -19,7 +19,7 @@ permissions:
 jobs:
   test:
     name: Playwright Hub-Smokes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
   build:
     name: GitHub-Pages-Artefakt bauen
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +72,7 @@ jobs:
     name: GitHub Pages deployen
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

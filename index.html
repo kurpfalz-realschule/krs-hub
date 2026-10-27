@@ -1264,12 +1264,12 @@
     const CONFIG = {
       APP_NAME: 'KRS Hub',
       SCHOOL_NAME: 'Kurpfalz-Realschule Schriesheim',
-      VERSION: '3.37.1',
+      VERSION: '3.37.2',
       INACTIVITY_TIMEOUT: 10 * 60 * 1000, // Default-Timeout; Auto-Sperre ist OPT-IN (localStorage krs_hub_autolock, Default aus)
       SESSION_MAX_DAYS: 7,
       // Unified Login (Modell B): echter Supabase-Login (E-Mail + Passwort).
       // Gleiche Origin + gleiches Projekt wie Connect → EINE Session für beide.
-      SUPABASE_URL: 'https://ooejsfixxiuobrpqgfqm.supabase.co',
+      SUPABASE_URL: 'https://krs-api.linkup.school',
       SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vZWpzZml4eGl1b2JycHFnZnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjQ5MDYsImV4cCI6MjA4OTYwMDkwNn0.GbAv-sB4B8nNE3IPfiYIjbkMKs0Aq03c_-TUcmFY_5s',
       // S2: Domain kommt aus tenant.js. Fail-closed: fehlt tenant.js,
       // matcht keine Domain → Login wird abgelehnt (kein offenes Gate).
@@ -1354,7 +1354,7 @@
       // v5 (2026-07-06): kein PIN mehr — Autorisierung über das Supabase-Login
       // (role='admin' in users). Aufruf mit Session-Access-Token als Bearer.
       ADMIN: {
-        EDGE_URL: 'https://ooejsfixxiuobrpqgfqm.supabase.co/functions/v1/dashboard-admin',
+        EDGE_URL: 'https://krs-api.linkup.school/functions/v1/dashboard-admin',
         ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9vZWpzZml4eGl1b2JycHFnZnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjQ5MDYsImV4cCI6MjA4OTYwMDkwNn0.GbAv-sB4B8nNE3IPfiYIjbkMKs0Aq03c_-TUcmFY_5s',
         SUPERADMINS: ['Ktz', 'Ko'],          // dürfen Rollen ändern (Ktz = Norbert live, Ko = Legacy)
         // GAS-Bridge: geschützter Admin-Endpoint des Klassenarbeitsplan-GAS.
@@ -1713,6 +1713,7 @@
     // pollt die live index.html und vergleicht die Version (löst das
     // PWA-Cache-Problem: bei neuer Version erscheint ein Reload-Hinweis).
     const KRS_HUB_CHANGELOG = [
+      { v: '3.37.2', date: '27.10.2026', items: ['Der Hub spricht mit dem Server der Schule. Einmal neu laden.'] },
       { v: '3.37.1', date: '16.10.2026', items: ['Die Kachel „Schüler-Hub“ unter Weitere Apps ist entfernt. Der alte Schülerhub wird nicht weitergeführt; sein Nachfolger kommt mit „Mein Unterricht“.'] },
       { v: '3.37.0', date: '15.10.2026', items: ['Unter Weitere Apps gibt es die Kachel „Mängelliste“. Die Adresse steht nicht in der App. Nach der Anmeldung öffnet ein Klick das Gebäude-Mängelprotokoll.'] },
       { v: '3.36.1', date: '13.10.2026', items: ['Im vertrauten Design steht oben in der Leiste „◐ Neues Design“. Ein Klick schaltet um, zurück geht es jederzeit über „Vertrautes Design verwenden“.', 'Wer noch das vertraute Design nutzt, sieht den Hinweis zum neuen Design einmal neu.'] },

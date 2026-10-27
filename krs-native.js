@@ -116,7 +116,8 @@
   function allowedDownloadUrl(value) {
     try {
       var u = new URL(String(value || ''));
-      return u.protocol === 'https:' && u.hostname === 'ooejsfixxiuobrpqgfqm.supabase.co' &&
+      return u.protocol === 'https:' &&
+        (u.hostname === 'krs-api.linkup.school' || u.hostname === 'ooejsfixxiuobrpqgfqm.supabase.co') &&
         u.pathname.indexOf('/storage/v1/object/') === 0;
     } catch (e) { return false; }
   }
